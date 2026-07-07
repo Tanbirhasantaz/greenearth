@@ -1,0 +1,6 @@
+{
+  "name": "Green Earth",
+  "description": "Cleaner, Greener & Sustainable Future - Non-profit environmental organization driving tree plantation, solar micro-grid installations, and clean water wells across Bangladesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
