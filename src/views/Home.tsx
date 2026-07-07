@@ -154,15 +154,20 @@ export default function Home({
         </div>
 
         {/* Hero image background overlay */}
-        <div className="absolute inset-y-0 right-0 w-full lg:w-1/2 z-0 opacity-15 lg:opacity-100 pointer-events-none">
-          {/* Subtle diagonal split for modern composition */}
-          <div className="hidden lg:block absolute left-0 inset-y-0 w-32 bg-gradient-to-r from-[#F4F6F0] to-transparent z-10" />
+        <div className="absolute inset-y-0 right-0 w-full lg:w-1/2 z-0 pointer-events-none">
+          {/* Main Hero Image */}
           <img
             src={IMAGES.hero}
             alt="Bangladesh Landscape"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover opacity-50 sm:opacity-65 lg:opacity-100"
             referrerPolicy="no-referrer"
           />
+          {/* Subtle diagonal split for modern composition on desktop */}
+          <div className="hidden lg:block absolute left-0 inset-y-0 w-32 bg-gradient-to-r from-[#F4F6F0] to-transparent z-10" />
+          
+          {/* Mobile-only gradient overlays to blend image into background and ensure legibility */}
+          <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-transparent via-[#F4F6F0]/85 to-[#F4F6F0] z-10" />
+          <div className="lg:hidden absolute inset-0 bg-gradient-to-r from-[#F4F6F0] via-[#F4F6F0]/75 to-transparent z-10" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10 py-12">

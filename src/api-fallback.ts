@@ -306,7 +306,7 @@ if (typeof window !== 'undefined') {
 
   const originalFetch = window.fetch;
 
-  window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const interceptedFetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const urlStr = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
     
     if (urlStr.includes('/api/')) {
@@ -327,4 +327,21 @@ if (typeof window !== 'undefined') {
     
     return originalFetch(input, init);
   };
+
+  try {
+    // Try simple assignment first
+    (window as any).fetch = interceptedFetch;
+  } catch (e) {
+    console.warn('Direct assignment to window.fetch failed, trying Object.defineProperty:', e);
+    try {
+      Object.defineProperty(window, 'fetch', {
+        value: interceptedFetch,
+        configurable: true,
+        writable: true,
+        enumerable: true
+      });
+    } catch (err) {
+      console.error('Could not redefine window.fetch. LocalStorage fallback API might not be active:', err);
+    }
+  }
 }
