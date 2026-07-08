@@ -5,12 +5,17 @@
 
 import { Project, TeamMember, BlogPost, GalleryItem, Testimonial, Milestone, CoreValue } from './types';
 
+import heroImg from './assets/images/hero_landscape_bangladesh_1783444495014.jpg';
+import plantationImg from './assets/images/tree_plantation_drive_1783444509434.jpg';
+import solarImg from './assets/images/solar_panel_installation_1783444522844.jpg';
+import waterImg from './assets/images/clean_water_project_1783444536915.jpg';
+
 // Let's import the generated image paths. We can refer to them as strings
 export const IMAGES = {
-  hero: '/src/assets/images/hero_landscape_bangladesh_1783444495014.jpg',
-  plantation: '/src/assets/images/tree_plantation_drive_1783444509434.jpg',
-  solar: '/src/assets/images/solar_panel_installation_1783444522844.jpg',
-  water: '/src/assets/images/clean_water_project_1783444536915.jpg',
+  hero: heroImg,
+  plantation: plantationImg,
+  solar: solarImg,
+  water: waterImg,
   logo: '/src/assets/images/logo_placeholder.png', // We'll render logo using SVG
   avatar_placeholder: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   news_1: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&auto=format&fit=crop&q=80',
