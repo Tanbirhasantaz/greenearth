@@ -388,7 +388,16 @@ async function startServer() {
   const PORT = 3000;
 
   // Middleware
-  app.use(express.json());
+  app.use(express.json({ limit: "15mb" }));
+
+  // Set up uploads directory
+  const uploadsDir = path.join(process.cwd(), "public", "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // Serve static files from public/uploads
+  app.use("/uploads", express.static(uploadsDir));
 
   // Helper file paths
   const getFilePath = (filename: string) => path.join(DATA_DIR, filename);
@@ -416,6 +425,59 @@ async function startServer() {
       res.json({ success: true, token: "green-earth-admin-token-2026" });
     } else {
       res.status(401).json({ success: false, error: "Invalid username or password" });
+    }
+  });
+
+  // Upload API: handles base64 image uploads from Admin Portal
+  app.post("/api/upload", (req, res) => {
+    try {
+      const { image, filename } = req.body;
+      if (!image) {
+        return res.status(400).json({ error: "No image data provided" });
+      }
+
+      // Check for size limits (e.g. 15MB)
+      const sizeInBytes = Buffer.byteLength(image, 'utf8');
+      const maxSizeInBytes = 15 * 1024 * 1024; // 15MB
+      if (sizeInBytes > maxSizeInBytes) {
+        return res.status(400).json({ error: "Image size exceeds 15MB limit" });
+      }
+
+      // The image is expected to be a base64 encoded string
+      const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).json({ error: "Invalid base64 image data" });
+      }
+
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, "base64");
+
+      // Extract extension
+      let extension = "png";
+      if (mimeType.includes("jpeg") || mimeType.includes("jpg")) {
+        extension = "jpg";
+      } else if (mimeType.includes("gif")) {
+        extension = "gif";
+      } else if (mimeType.includes("webp")) {
+        extension = "webp";
+      } else if (mimeType.includes("svg")) {
+        extension = "svg";
+      }
+
+      const cleanFilename = (filename || "upload")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      const uniqueFilename = `${cleanFilename}_${Date.now()}.${extension}`;
+      const filePath = path.join(uploadsDir, uniqueFilename);
+
+      fs.writeFileSync(filePath, buffer);
+
+      // Return the public URL
+      res.json({ success: true, url: `/uploads/${uniqueFilename}` });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      res.status(500).json({ error: err.message || "Failed to upload image" });
     }
   });
 

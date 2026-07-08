@@ -6,6 +6,7 @@ import {
   Eye, FileText, Download, ShieldCheck, Globe
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem } from '../types';
+import ImageUploadInput from '../components/ImageUploadInput';
 
 interface Volunteer {
   id: string;
@@ -1248,16 +1249,15 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         />
                       </div>
 
-                      {/* Image URL */}
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Banner Image URL</label>
-                        <input
-                          type="url"
+                      {/* Image URL with Upload Option */}
+                      <div className="sm:col-span-2">
+                        <ImageUploadInput
+                          label="Banner Image"
                           value={projImage}
-                          onChange={(e) => setProjImage(e.target.value)}
+                          onChange={setProjImage}
                           placeholder="https://images.unsplash.com/..."
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
-                          required
+                          filenamePrefix="project"
+                          isBangla={isBangla}
                         />
                       </div>
 
@@ -1530,14 +1530,14 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Main Cover Image URL</label>
-                        <input
-                          type="url"
+                      <div className="sm:col-span-2">
+                        <ImageUploadInput
+                          label="Main Cover Image"
                           value={blogImage}
-                          onChange={(e) => setBlogImage(e.target.value)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
-                          required
+                          onChange={setBlogImage}
+                          placeholder="https://images.unsplash.com/..."
+                          filenamePrefix="blog"
+                          isBangla={isBangla}
                         />
                       </div>
 
@@ -1845,14 +1845,14 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Leader Photo URL</label>
-                        <input
-                          type="url"
+                      <div className="sm:col-span-2">
+                        <ImageUploadInput
+                          label="Leader Photo"
                           value={teamImage}
-                          onChange={(e) => setTeamImage(e.target.value)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
-                          required
+                          onChange={setTeamImage}
+                          placeholder="https://images.unsplash.com/..."
+                          filenamePrefix="team"
+                          isBangla={isBangla}
                         />
                       </div>
 
@@ -2005,15 +2005,14 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         />
                       </div>
 
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Image CDN URL</label>
-                        <input
-                          type="url"
+                      <div className="sm:col-span-2">
+                        <ImageUploadInput
+                          label="Gallery Image"
                           value={galImage}
-                          onChange={(e) => setGalImage(e.target.value)}
+                          onChange={setGalImage}
                           placeholder="https://images.unsplash.com/..."
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
-                          required
+                          filenamePrefix="gallery"
+                          isBangla={isBangla}
                         />
                       </div>
                     </div>
@@ -2288,14 +2287,14 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </h4>
 
                     <div className="grid grid-cols-1 gap-4">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Background Image URL</label>
-                        <input
-                          type="url"
+                      <div>
+                        <ImageUploadInput
+                          label="Hero Background Image"
                           value={setHeroImgUrl}
-                          onChange={(e) => setSetHeroImgUrl(e.target.value)}
-                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
-                          required
+                          onChange={setSetHeroImgUrl}
+                          placeholder="https://images.unsplash.com/..."
+                          filenamePrefix="hero"
+                          isBangla={isBangla}
                         />
                       </div>
 
