@@ -15,6 +15,7 @@ interface HeaderProps {
   isBangla: boolean;
   setIsBangla: (b: boolean) => void;
   onDonateClick: () => void;
+  settings?: any;
 }
 
 export default function Header({
@@ -22,7 +23,8 @@ export default function Header({
   setCurrentPage,
   isBangla,
   setIsBangla,
-  onDonateClick
+  onDonateClick,
+  settings
 }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,7 +80,7 @@ export default function Header({
           className="focus:outline-none cursor-pointer"
           aria-label="Green Earth Home"
         >
-          <Logo size="sm" showWordmark={true} />
+          <Logo size="sm" showWordmark={true} settings={settings} />
         </button>
 
         {/* Desktop Nav links */}

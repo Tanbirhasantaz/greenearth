@@ -10,9 +10,10 @@ import { Mail, Phone, MapPin, Send, Facebook, Instagram, Linkedin, Youtube, Info
 interface ContactProps {
   isBangla: boolean;
   onFormSuccess: (title: string, msg: string) => void;
+  settings?: any;
 }
 
-export default function Contact({ isBangla, onFormSuccess }: ContactProps) {
+export default function Contact({ isBangla, onFormSuccess, settings }: ContactProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -115,7 +116,10 @@ export default function Contact({ isBangla, onFormSuccess }: ContactProps) {
                 {isBangla ? 'কার্যালয়' : 'Headquarters'}
               </h3>
               <p className="font-sans text-xs text-gray-500 leading-relaxed">
-                {isBangla ? '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।' : '42, Road 11, Banani, Dhaka-1213, Bangladesh.'}
+                {isBangla 
+                  ? (settings?.addressBn || '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।') 
+                  : (settings?.address || '42, Road 11, Banani, Dhaka-1213, Bangladesh.')
+                }
               </p>
             </div>
 
@@ -125,7 +129,7 @@ export default function Contact({ isBangla, onFormSuccess }: ContactProps) {
                 {isBangla ? 'ফোন করুন' : 'Call Us'}
               </h3>
               <p className="font-sans text-xs text-gray-500 leading-relaxed">
-                +880 1712-345678<br />+880 2-9876543
+                {settings?.phone || '+880 1712-345678'}<br />+880 2-9876543
               </p>
             </div>
 
@@ -135,7 +139,7 @@ export default function Contact({ isBangla, onFormSuccess }: ContactProps) {
                 {isBangla ? 'ইমেইল লিখুন' : 'Email Us'}
               </h3>
               <p className="font-sans text-xs text-gray-500 leading-relaxed break-all">
-                info@greenearth-bd.org<br />support@greenearth-bd.org
+                {settings?.email || 'info@greenearth-bd.org'}<br />support@greenearth-bd.org
               </p>
             </div>
           </div>

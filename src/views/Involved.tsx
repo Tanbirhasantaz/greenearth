@@ -10,9 +10,10 @@ import { Award, Heart, CheckCircle, Info, Lock, ArrowRight, User, Mail, Phone, C
 interface InvolvedProps {
   isBangla: boolean;
   onFormSuccess: (title: string, message: string) => void;
+  settings?: any;
 }
 
-export default function Involved({ isBangla, onFormSuccess }: InvolvedProps) {
+export default function Involved({ isBangla, onFormSuccess, settings }: InvolvedProps) {
   // Volunteer Form State
   const [volName, setVolName] = useState('');
   const [volEmail, setVolEmail] = useState('');
@@ -562,10 +563,18 @@ export default function Involved({ isBangla, onFormSuccess }: InvolvedProps) {
                 <div className="flex justify-between items-center pb-2 border-b border-gray-200/50">
                   <span className="text-gray-400 font-bold uppercase">Account No</span>
                   <div className="flex items-center gap-1">
-                    <span className="font-black text-gray-800">01712345678</span>
+                    <span className="font-black text-gray-800">
+                      {paymentMethod === 'bkash' 
+                        ? (settings?.bkashNo || '01712345678') 
+                        : (settings?.nagadNo || '01712345678')
+                      }
+                    </span>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText('01712345678');
+                        const walletNo = paymentMethod === 'bkash' 
+                          ? (settings?.bkashNo || '01712345678') 
+                          : (settings?.nagadNo || '01712345678');
+                        navigator.clipboard.writeText(walletNo);
                         alert('Copied!');
                       }}
                       className="text-gray-400 hover:text-gray-700"

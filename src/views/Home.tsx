@@ -61,6 +61,7 @@ interface HomeProps {
   onProjectClick: (project: Project) => void;
   onBlogClick: (post: BlogPost) => void;
   onDonateClick: () => void;
+  settings?: any;
 }
 
 export default function Home({
@@ -68,7 +69,8 @@ export default function Home({
   isBangla,
   onProjectClick,
   onBlogClick,
-  onDonateClick
+  onDonateClick,
+  settings
 }: HomeProps) {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
@@ -157,7 +159,7 @@ export default function Home({
         <div className="absolute inset-y-0 right-0 w-full lg:w-1/2 z-0 pointer-events-none">
           {/* Main Hero Image */}
           <img
-            src={IMAGES.hero}
+            src={settings?.heroImgUrl || IMAGES.hero}
             alt="Bangladesh Landscape"
             className="w-full h-full object-cover opacity-65 sm:opacity-80 lg:opacity-100"
             referrerPolicy="no-referrer"
@@ -180,7 +182,12 @@ export default function Home({
               className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#6BBF3A]/10 text-[#1F5E2E] border border-[#6BBF3A]/20 text-xs font-mono font-bold tracking-wider uppercase"
             >
               <Leaf size={14} className="text-[#6BBF3A]" />
-              <span>{isBangla ? 'একটি সুন্দর ভবিষ্যৎ গড়তে' : 'For a sustainable tomorrow'}</span>
+              <span>
+                {isBangla 
+                  ? (settings?.heroTaglineBn || 'একটি সুন্দর ভবিষ্যৎ গড়তে') 
+                  : (settings?.heroTagline || 'For a sustainable tomorrow')
+                }
+              </span>
             </motion.div>
 
             {/* Headline */}
@@ -190,17 +197,10 @@ export default function Home({
               transition={{ delay: 0.1, duration: 0.6 }}
               className="font-sans text-4xl sm:text-5xl lg:text-6xl font-black text-[#1F5E2E] leading-tight"
             >
-              {isBangla ? (
-                <>
-                  পরিচ্ছন্ন, সবুজ এবং <br />
-                  <span className="text-[#6BBF3A]">টেকসই বাংলাদেশ</span>
-                </>
-              ) : (
-                <>
-                  Cleaner, Greener & <br />
-                  <span className="text-[#6BBF3A]">Sustainable Future</span>
-                </>
-              )}
+              {isBangla 
+                ? (settings?.heroTitleBn || 'পরিচ্ছন্ন, সবুজ এবং টেকসই বাংলাদেশ') 
+                : (settings?.heroTitle || 'Cleaner, Greener & Sustainable Future')
+              }
             </motion.h1>
 
             {/* Paragraph Bio */}
@@ -210,11 +210,10 @@ export default function Home({
               transition={{ delay: 0.2, duration: 0.6 }}
               className="font-sans text-base sm:text-lg text-gray-600 leading-relaxed"
             >
-              {isBangla ? (
-                'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।'
-              ) : (
-                'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.'
-              )}
+              {isBangla 
+                ? (settings?.heroBioBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।') 
+                : (settings?.heroBio || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.')
+              }
             </motion.p>
 
             {/* CTA Buttons */}
@@ -255,25 +254,25 @@ export default function Home({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCounter
-              target={12450}
+              target={Number(settings?.statTreesTarget) || 12450}
               suffix="+"
               label={isBangla ? 'রোপণকৃত চারাগাছ' : 'Trees Planted'}
               isBangla={isBangla}
             />
             <StatCounter
-              target={68}
+              target={Number(settings?.statVillagesTarget) || 68}
               suffix="+"
               label={isBangla ? 'উপকৃত গ্রাম' : 'Villages Powered'}
               isBangla={isBangla}
             />
             <StatCounter
-              target={850}
+              target={Number(settings?.statVolunteersTarget) || 850}
               suffix="+"
               label={isBangla ? 'সক্রিয় স্বেচ্ছাসেবী' : 'Active Volunteers'}
               isBangla={isBangla}
             />
             <StatCounter
-              target={35}
+              target={Number(settings?.statWaterTarget) || 35}
               suffix="+"
               label={isBangla ? 'বিশুদ্ধ পানির প্ল্যান্ট' : 'Safe Water Projects'}
               isBangla={isBangla}

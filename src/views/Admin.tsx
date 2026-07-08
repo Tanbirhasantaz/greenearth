@@ -39,22 +39,48 @@ interface ContactSubmission {
 }
 
 interface OrgSettings {
-  username: string;
-  orgName: string;
-  tagline: string;
-  taglineBn: string;
-  phone: string;
-  email: string;
-  address: string;
+  username?: string;
+  orgName?: string;
+  tagline?: string;
+  taglineBn?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  addressBn?: string;
+  aboutText?: string;
+  aboutTextBn?: string;
+  heroImgUrl?: string;
+  heroTagline?: string;
+  heroTaglineBn?: string;
+  heroTitle?: string;
+  heroTitleBn?: string;
+  heroBio?: string;
+  heroBioBn?: string;
+  statTreesTarget?: string;
+  statVillagesTarget?: string;
+  statVolunteersTarget?: string;
+  statWaterTarget?: string;
+  aboutStory1?: string;
+  aboutStory1Bn?: string;
+  aboutStory2?: string;
+  aboutStory2Bn?: string;
+  aboutMission?: string;
+  aboutMissionBn?: string;
+  aboutVision?: string;
+  aboutVisionBn?: string;
+  bkashNo?: string;
+  nagadNo?: string;
 }
 
 type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'subscribers' | 'contacts' | 'settings';
 
 interface AdminProps {
   isBangla?: boolean;
+  settings?: any;
+  onSettingsSaved?: () => void;
 }
 
-export default function Admin({ isBangla = false }: AdminProps) {
+export default function Admin({ isBangla = false, settings: parentSettings, onSettingsSaved }: AdminProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -143,7 +169,39 @@ export default function Admin({ isBangla = false }: AdminProps) {
   const [setPhone, setSetPhone] = useState('');
   const [setEmail, setSetEmail] = useState('');
   const [setAddress, setSetAddress] = useState('');
+  const [setAddressBn, setSetAddressBn] = useState('');
   const [setNewPassword, setSetNewPassword] = useState('');
+
+  // Additional dynamic page settings state variables
+  const [setAboutText, setSetAboutText] = useState('');
+  const [setAboutTextBn, setSetAboutTextBn] = useState('');
+  const [setHeroImgUrl, setSetHeroImgUrl] = useState('');
+  const [setHeroTagline, setSetHeroTagline] = useState('');
+  const [setHeroTaglineBn, setSetHeroTaglineBn] = useState('');
+  const [setHeroTitle, setSetHeroTitle] = useState('');
+  const [setHeroTitleBn, setSetHeroTitleBn] = useState('');
+  const [setHeroBio, setSetHeroBio] = useState('');
+  const [setHeroBioBn, setSetHeroBioBn] = useState('');
+
+  // Stat targets state variables
+  const [setStatTreesTarget, setSetStatTreesTarget] = useState('');
+  const [setStatVillagesTarget, setSetStatVillagesTarget] = useState('');
+  const [setStatVolunteersTarget, setSetStatVolunteersTarget] = useState('');
+  const [setStatWaterTarget, setSetStatWaterTarget] = useState('');
+
+  // About story, mission, vision state variables
+  const [setAboutStory1, setSetAboutStory1] = useState('');
+  const [setAboutStory1Bn, setSetAboutStory1Bn] = useState('');
+  const [setAboutStory2, setSetAboutStory2] = useState('');
+  const [setAboutStory2Bn, setSetAboutStory2Bn] = useState('');
+  const [setAboutMission, setSetAboutMission] = useState('');
+  const [setAboutMissionBn, setSetAboutMissionBn] = useState('');
+  const [setAboutVision, setSetAboutVision] = useState('');
+  const [setAboutVisionBn, setSetAboutVisionBn] = useState('');
+
+  // Payment details state variables
+  const [setBkashNo, setSetBkashNo] = useState('');
+  const [setNagadNo, setSetNagadNo] = useState('');
 
   // Auto check authentication
   useEffect(() => {
@@ -191,6 +249,33 @@ export default function Admin({ isBangla = false }: AdminProps) {
         setSetPhone(resSettings.phone || '');
         setSetEmail(resSettings.email || '');
         setSetAddress(resSettings.address || '');
+        setSetAddressBn(resSettings.addressBn || '');
+        setSetAboutText(resSettings.aboutText || '');
+        setSetAboutTextBn(resSettings.aboutTextBn || '');
+        setSetHeroImgUrl(resSettings.heroImgUrl || '');
+        setSetHeroTagline(resSettings.heroTagline || '');
+        setSetHeroTaglineBn(resSettings.heroTaglineBn || '');
+        setSetHeroTitle(resSettings.heroTitle || '');
+        setSetHeroTitleBn(resSettings.heroTitleBn || '');
+        setSetHeroBio(resSettings.heroBio || '');
+        setSetHeroBioBn(resSettings.heroBioBn || '');
+
+        setSetStatTreesTarget(resSettings.statTreesTarget || '12450');
+        setSetStatVillagesTarget(resSettings.statVillagesTarget || '68');
+        setSetStatVolunteersTarget(resSettings.statVolunteersTarget || '850');
+        setSetStatWaterTarget(resSettings.statWaterTarget || '35');
+
+        setSetAboutStory1(resSettings.aboutStory1 || '');
+        setSetAboutStory1Bn(resSettings.aboutStory1Bn || '');
+        setSetAboutStory2(resSettings.aboutStory2 || '');
+        setSetAboutStory2Bn(resSettings.aboutStory2Bn || '');
+        setSetAboutMission(resSettings.aboutMission || '');
+        setSetAboutMissionBn(resSettings.aboutMissionBn || '');
+        setSetAboutVision(resSettings.aboutVision || '');
+        setSetAboutVisionBn(resSettings.aboutVisionBn || '');
+
+        setSetBkashNo(resSettings.bkashNo || '01712345678');
+        setSetNagadNo(resSettings.nagadNo || '01712345678');
       }
     } catch (err) {
       console.error('Error loading admin data', err);
@@ -689,7 +774,34 @@ export default function Admin({ isBangla = false }: AdminProps) {
       taglineBn: setTaglineBn,
       phone: setPhone,
       email: setEmail,
-      address: setAddress
+      address: setAddress,
+      addressBn: setAddressBn,
+      aboutText: setAboutText,
+      aboutTextBn: setAboutTextBn,
+      heroImgUrl: setHeroImgUrl,
+      heroTagline: setHeroTagline,
+      heroTaglineBn: setHeroTaglineBn,
+      heroTitle: setHeroTitle,
+      heroTitleBn: setHeroTitleBn,
+      heroBio: setHeroBio,
+      heroBioBn: setHeroBioBn,
+
+      statTreesTarget: setStatTreesTarget,
+      statVillagesTarget: setStatVillagesTarget,
+      statVolunteersTarget: setStatVolunteersTarget,
+      statWaterTarget: setStatWaterTarget,
+
+      aboutStory1: setAboutStory1,
+      aboutStory1Bn: setAboutStory1Bn,
+      aboutStory2: setAboutStory2,
+      aboutStory2Bn: setAboutStory2Bn,
+      aboutMission: setAboutMission,
+      aboutMissionBn: setAboutMissionBn,
+      aboutVision: setAboutVision,
+      aboutVisionBn: setAboutVisionBn,
+
+      bkashNo: setBkashNo,
+      nagadNo: setNagadNo
     };
 
     if (setNewPassword.trim()) {
@@ -706,6 +818,9 @@ export default function Admin({ isBangla = false }: AdminProps) {
         setSetNewPassword('');
         alert('Settings saved successfully!');
         fetchAllData();
+        if (onSettingsSaved) {
+          onSettingsSaved();
+        }
       }
     } catch (err) {
       console.error(err);
@@ -2061,90 +2176,410 @@ export default function Admin({ isBangla = false }: AdminProps) {
 
             {/* --- SYSTEM SETTINGS TAB --- */}
             {activeTab === 'settings' && (
-              <div className="max-w-2xl mx-auto" id="settings-tab">
-                <form onSubmit={handleSettingsSave} className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6 text-left">
-                  <h3 className="text-lg font-black text-[#1F5E2E] border-b border-gray-100 pb-3 flex items-center gap-1.5">
-                    <Settings size={20} className="text-[#6BBF3A]" />
-                    <span>System Settings & Org Config</span>
-                  </h3>
+              <div className="max-w-4xl mx-auto" id="settings-tab">
+                <form onSubmit={handleSettingsSave} className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-8 text-left">
+                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
+                    <h3 className="text-xl font-black text-[#1F5E2E] flex items-center gap-1.5">
+                      <Settings size={24} className="text-[#6BBF3A]" />
+                      <span>{isBangla ? 'সিস্টেম সেটিংস ও পৃষ্ঠা এডিটর' : 'System Settings & Page Editor'}</span>
+                    </h3>
+                    <p className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider">
+                      {isBangla ? 'সমস্ত তথ্য পরিবর্তনযোগ্য' : 'Full Content Control'}
+                    </p>
+                  </div>
 
-                  <div className="grid grid-cols-1 gap-5">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Organization Name</label>
-                      <input
-                        type="text"
-                        value={setOrgName}
-                        onChange={(e) => setSetOrgName(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800 font-bold"
-                        required
-                      />
+                  {/* SECTION 1: GENERAL BRANDING */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                      {isBangla ? '১. সাধারণ ব্র্যান্ডিং' : '1. General Branding'}
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5 md:col-span-1">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Organization Name</label>
+                        <input
+                          type="text"
+                          value={setOrgName}
+                          onChange={(e) => setSetOrgName(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 md:col-span-1">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Tagline (EN)</label>
+                        <input
+                          type="text"
+                          value={setTagline}
+                          onChange={(e) => setSetTagline(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 md:col-span-1">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Tagline (BN)</label>
+                        <input
+                          type="text"
+                          value={setTaglineBn}
+                          onChange={(e) => setSetTaglineBn(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          required
+                        />
+                      </div>
                     </div>
+                  </div>
 
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tagline (EN)</label>
-                      <input
-                        type="text"
-                        value={setTagline}
-                        onChange={(e) => setSetTagline(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
-                        required
-                      />
-                    </div>
+                  {/* SECTION 2: CONTACT DETAILS */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                      {isBangla ? '২. যোগাযোগের তথ্য ও ফুটার' : '2. Contact & Footer Details'}
+                    </h4>
 
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tagline (BN)</label>
-                      <input
-                        type="text"
-                        value={setTaglineBn}
-                        onChange={(e) => setSetTaglineBn(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Phone Hotline</label>
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hotline Phone</label>
                         <input
                           type="text"
                           value={setPhone}
                           onChange={(e) => setSetPhone(e.target.value)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800 font-mono font-bold"
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
                           required
                         />
                       </div>
-
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Hotline Email</label>
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hotline Email</label>
                         <input
                           type="email"
                           value={setEmail}
                           onChange={(e) => setSetEmail(e.target.value)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">HQ Address (EN)</label>
+                        <input
+                          type="text"
+                          value={setAddress}
+                          onChange={(e) => setSetAddress(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">HQ Address (BN)</label>
+                        <input
+                          type="text"
+                          value={setAddressBn}
+                          onChange={(e) => setSetAddressBn(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
                           required
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {/* SECTION 3: HOME PAGE HERO */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                      {isBangla ? '৩. হোম পেজ হিরো সেকশন' : '3. Home Page Hero & Story'}
+                    </h4>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Background Image URL</label>
+                        <input
+                          type="url"
+                          value={setHeroImgUrl}
+                          onChange={(e) => setSetHeroImgUrl(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Badge Tagline (EN)</label>
+                          <input
+                            type="text"
+                            value={setHeroTagline}
+                            onChange={(e) => setSetHeroTagline(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Badge Tagline (BN)</label>
+                          <input
+                            type="text"
+                            value={setHeroTaglineBn}
+                            onChange={(e) => setSetHeroTaglineBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Display Title (EN)</label>
+                          <input
+                            type="text"
+                            value={setHeroTitle}
+                            onChange={(e) => setSetHeroTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Display Title (BN)</label>
+                          <input
+                            type="text"
+                            value={setHeroTitleBn}
+                            onChange={(e) => setSetHeroTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Brief Bio (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={setHeroBio}
+                            onChange={(e) => setSetHeroBio(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Brief Bio (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={setHeroBioBn}
+                            onChange={(e) => setSetHeroBioBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Home About Section Intro (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutText}
+                            onChange={(e) => setSetAboutText(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Home About Section Intro (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutTextBn}
+                            onChange={(e) => setSetAboutTextBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 4: ABOUT PAGE DETAILED CONTENT */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                      {isBangla ? '৪. আমাদের সম্পর্কে পৃষ্ঠা বিবরণ' : '4. About Us Page Sections'}
+                    </h4>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Establishment Story P1 (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutStory1}
+                            onChange={(e) => setSetAboutStory1(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Establishment Story P1 (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutStory1Bn}
+                            onChange={(e) => setSetAboutStory1Bn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Establishment Story P2 (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutStory2}
+                            onChange={(e) => setSetAboutStory2(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Establishment Story P2 (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutStory2Bn}
+                            onChange={(e) => setSetAboutStory2Bn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Core Mission (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutMission}
+                            onChange={(e) => setSetAboutMission(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Core Mission (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutMissionBn}
+                            onChange={(e) => setSetAboutMissionBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Core Vision (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutVision}
+                            onChange={(e) => setSetAboutVision(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Core Vision (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={setAboutVisionBn}
+                            onChange={(e) => setSetAboutVisionBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 5: PROJECTS TARGET COUNTERS */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                      {isBangla ? '৫. প্রজেক্টস লাইভ কাউন্টার স্ট্যাটস' : '5. Project Impact Target Numbers'}
+                    </h4>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Trees Planted</label>
+                        <input
+                          type="number"
+                          value={setStatTreesTarget}
+                          onChange={(e) => setSetStatTreesTarget(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Powered Villages</label>
+                        <input
+                          type="number"
+                          value={setStatVillagesTarget}
+                          onChange={(e) => setSetStatVillagesTarget(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Volunteers</label>
+                        <input
+                          type="number"
+                          value={setStatVolunteersTarget}
+                          onChange={(e) => setSetStatVolunteersTarget(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Water Projects</label>
+                        <input
+                          type="number"
+                          value={setStatWaterTarget}
+                          onChange={(e) => setSetStatWaterTarget(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 6: PAYMENT WALLETS */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                      {isBangla ? '৬. পেমেন্ট ওয়ালেট নম্বর সমূহ' : '6. Get Involved Donation Wallets'}
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">bKash Merchant/Personal No.</label>
+                        <input
+                          type="text"
+                          value={setBkashNo}
+                          onChange={(e) => setSetBkashNo(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Nagad Wallet No.</label>
+                        <input
+                          type="text"
+                          value={setNagadNo}
+                          onChange={(e) => setSetNagadNo(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 7: SECURITY CREDENTIALS */}
+                  <div className="bg-[#FEF2F2] rounded-2xl p-6 border border-red-100 space-y-4">
+                    <h4 className="text-sm font-black text-red-800 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      {isBangla ? '৭. নিরাপত্তা পাসওয়ার্ড পরিবর্তন' : '7. Admin Security Credentials'}
+                    </h4>
 
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">HQ Address</label>
-                      <input
-                        type="text"
-                        value={setAddress}
-                        onChange={(e) => setSetAddress(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 pt-4 border-t border-gray-100">
-                      <label className="text-xs font-bold text-red-500 uppercase tracking-wider">Update Admin Portal Password</label>
+                      <label className="text-[11px] font-bold text-red-600 uppercase tracking-wider">Update Admin Password</label>
                       <input
                         type="password"
                         value={setNewPassword}
                         onChange={(e) => setSetNewPassword(e.target.value)}
                         placeholder="Leave blank to keep current password"
-                        className="w-full bg-gray-50 border border-red-100 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                        className="w-full bg-white border border-red-200 rounded-xl py-2 px-3 text-xs text-gray-800"
                       />
                     </div>
                   </div>
@@ -2152,9 +2587,9 @@ export default function Admin({ isBangla = false }: AdminProps) {
                   <div className="flex justify-end pt-4 border-t border-gray-100">
                     <button
                       type="submit"
-                      className="py-3.5 px-8 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-sm font-bold cursor-pointer shadow hover:shadow-lg transition-all"
+                      className="py-3.5 px-8 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-xs font-black cursor-pointer shadow hover:shadow-lg transition-all uppercase tracking-wider"
                     >
-                      Save Configuration
+                      {isBangla ? 'কনফিগারেশন সংরক্ষণ করুন' : 'Save Complete Configuration'}
                     </button>
                   </div>
                 </form>

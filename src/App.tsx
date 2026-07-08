@@ -34,6 +34,7 @@ export default function App() {
   // Page states
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isBangla, setIsBangla] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
 
   // Modal active states
   const [activeProject, setActiveProject] = useState<Project | null>(null);
@@ -48,6 +49,23 @@ export default function App() {
 
   // Floating back-to-top trigger state
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Fetch settings dynamically
+  const fetchSettings = () => {
+    fetch('/api/settings')
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to load settings');
+      })
+      .then((data) => {
+        setSettings(data);
+      })
+      .catch((err) => console.log('Using default settings:', err));
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   // Monitor scroll height for back-to-top trigger
   useEffect(() => {
@@ -98,14 +116,15 @@ export default function App() {
             onProjectClick={setActiveProject}
             onBlogClick={setActiveBlog}
             onDonateClick={handleDonateTrigger}
+            settings={settings}
           />
         );
       case 'about':
-        return <About isBangla={isBangla} />;
+        return <About isBangla={isBangla} settings={settings} />;
       case 'projects':
         return <Projects isBangla={isBangla} onProjectClick={setActiveProject} />;
       case 'involved':
-        return <Involved isBangla={isBangla} onFormSuccess={handleSuccessTrigger} />;
+        return <Involved isBangla={isBangla} onFormSuccess={handleSuccessTrigger} settings={settings} />;
       case 'blog':
         return <Blog isBangla={isBangla} onBlogClick={setActiveBlog} />;
       case 'gallery':
@@ -119,9 +138,9 @@ export default function App() {
           />
         );
       case 'contact':
-        return <Contact isBangla={isBangla} onFormSuccess={handleSuccessTrigger} />;
+        return <Contact isBangla={isBangla} onFormSuccess={handleSuccessTrigger} settings={settings} />;
       case 'admin':
-        return <Admin isBangla={isBangla} />;
+        return <Admin isBangla={isBangla} settings={settings} onSettingsSaved={fetchSettings} />;
       default:
         return (
           <Home
@@ -130,6 +149,7 @@ export default function App() {
             onProjectClick={setActiveProject}
             onBlogClick={setActiveBlog}
             onDonateClick={handleDonateTrigger}
+            settings={settings}
           />
         );
     }
@@ -145,6 +165,7 @@ export default function App() {
         isBangla={isBangla}
         setIsBangla={setIsBangla}
         onDonateClick={handleDonateTrigger}
+        settings={settings}
       />
 
       {/* 2. Main Page Container with smooth Page Transitions */}
@@ -168,6 +189,7 @@ export default function App() {
         setCurrentPage={setCurrentPage}
         isBangla={isBangla}
         onSubscribeSuccess={handleSuccessTrigger}
+        settings={settings}
       />
 
       {/* --- FLOATING CONTROLS --- */}

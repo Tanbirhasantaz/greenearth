@@ -12,12 +12,14 @@ interface FooterProps {
   setCurrentPage: (page: Page) => void;
   isBangla: boolean;
   onSubscribeSuccess: (title: string, msg: string) => void;
+  settings?: any;
 }
 
 export default function Footer({
   setCurrentPage,
   isBangla,
-  onSubscribeSuccess
+  onSubscribeSuccess,
+  settings
 }: FooterProps) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -77,11 +79,11 @@ export default function Footer({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
         {/* Col 1: Bio & Socials */}
         <div className="flex flex-col gap-5">
-          <Logo size="sm" showWordmark={true} lightMode={true} />
+          <Logo size="sm" showWordmark={true} lightMode={true} settings={settings} />
           <p className="text-green-100 font-sans text-sm leading-relaxed">
             {isBangla 
-              ? 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।' 
-              : 'Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.'
+              ? (settings?.aboutTextBn || 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।') 
+              : (settings?.aboutText || 'Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.')
             }
           </p>
 
@@ -157,18 +159,18 @@ export default function Footer({
               <MapPin size={18} className="text-[#6BBF3A] shrink-0 mt-0.5" />
               <span>
                 {isBangla 
-                  ? '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।' 
-                  : '42, Road 11, Banani, Dhaka-1213, Bangladesh.'
+                  ? (settings?.addressBn || '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।') 
+                  : (settings?.address || '42, Road 11, Banani, Dhaka-1213, Bangladesh.')
                 }
               </span>
             </li>
             <li className="flex gap-3 items-center">
               <Phone size={18} className="text-[#6BBF3A] shrink-0" />
-              <span>+880 1712-345678</span>
+              <span>{settings?.phone || '+880 1712-345678'}</span>
             </li>
             <li className="flex gap-3 items-center">
               <Mail size={18} className="text-[#6BBF3A] shrink-0" />
-              <span className="break-all">info@greenearth-bd.org</span>
+              <span className="break-all">{settings?.email || 'info@greenearth-bd.org'}</span>
             </li>
           </ul>
 

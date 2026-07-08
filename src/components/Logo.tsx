@@ -10,13 +10,15 @@ interface LogoProps {
   showWordmark?: boolean;
   lightMode?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  settings?: any;
 }
 
 export default function Logo({
   className = '',
   showWordmark = true,
   lightMode = false,
-  size = 'md'
+  size = 'md',
+  settings
 }: LogoProps) {
   // Dimensions based on size
   const sizes = {
@@ -27,6 +29,14 @@ export default function Logo({
   };
 
   const dim = sizes[size];
+
+  // Dynamic branding
+  const orgName = settings?.orgName || 'Green Earth';
+  const tagline = settings?.tagline || 'Cleaner, Greener & Sustainable';
+
+  const words = orgName.split(' ');
+  const firstWord = words[0] || '';
+  const restOfName = words.slice(1).join(' ') || '';
 
   return (
     <div className={`flex items-center gap-3 select-none ${className}`} id="ge-logo">
@@ -194,12 +204,12 @@ export default function Logo({
       {/* Wordmark (Green Earth) */}
       {showWordmark && (
         <div className="flex flex-col">
-          <span className={`font-sans font-extrabold leading-none tracking-tight ${dim.text} flex items-center`}>
-            <span className="text-[#6BBF3A]">Green</span>
-            <span className={`${lightMode ? 'text-white' : 'text-[#1F5E2E]'}`}>Earth</span>
+          <span className={`font-sans font-extrabold leading-none tracking-tight ${dim.text} flex items-center gap-1`}>
+            <span className="text-[#6BBF3A]">{firstWord}</span>
+            <span className={`${lightMode ? 'text-white' : 'text-[#1F5E2E]'}`}>{restOfName}</span>
           </span>
           <span className={`font-mono tracking-wider font-semibold uppercase opacity-90 ${dim.subtext} ${lightMode ? 'text-green-200' : 'text-gray-500'}`}>
-            Cleaner, Greener & Sustainable
+            {tagline}
           </span>
         </div>
       )}
