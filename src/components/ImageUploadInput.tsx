@@ -1,5 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase Client if env vars are present (cast to any for Vite meta types compatibility)
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseBucket = (import.meta as any).env.VITE_SUPABASE_BUCKET || 'green-earth-images';
+
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 interface ImageUploadInputProps {
   label: string;
@@ -34,6 +42,52 @@ export default function ImageUploadInput({
       return;
     }
 
+    // --- SUPABASE STORAGE DIRECT UPLOAD ---
+    if (supabase) {
+      setIsUploading(true);
+      setError(null);
+
+      try {
+        // Clean and prepare filename to avoid issues with special characters
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_').toLowerCase();
+        const uniqueName = `${filenamePrefix}_${Date.now()}_${cleanName}`;
+
+        // Upload the file to the bucket
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(supabaseBucket)
+          .upload(uniqueName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from(supabaseBucket)
+          .getPublicUrl(uniqueName);
+
+        if (urlData && urlData.publicUrl) {
+          onChange(urlData.publicUrl);
+        } else {
+          throw new Error('Failed to retrieve public URL from Supabase Storage.');
+        }
+      } catch (err: any) {
+        console.error('Supabase Storage upload error:', err);
+        setError(
+          isBangla
+            ? `সুপাবেস-এ আপলোড ব্যর্থ হয়েছে: ${err.message || err}`
+            : `Supabase upload failed: ${err.message || err}`
+        );
+      } finally {
+        setIsUploading(false);
+      }
+      return;
+    }
+
+    // --- FALLBACK LOCAL API UPLOAD (For Local Development) ---
     setIsUploading(true);
     setError(null);
 
@@ -56,22 +110,29 @@ export default function ImageUploadInput({
         });
 
         if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || 'Upload failed');
+          const errText = await response.text();
+          let parsedError = 'Upload failed';
+          try {
+            const errData = JSON.parse(errText);
+            parsedError = errData.error || parsedError;
+          } catch {
+            parsedError = `HTTP ${response.status}: Server did not return JSON. Please configure Supabase on Vercel.`;
+          }
+          throw new Error(parsedError);
         }
 
         const data = await response.json();
-        if (data.success && data.url) {
+        if (data && data.success && data.url) {
           onChange(data.url);
         } else {
-          throw new Error('No URL returned from server');
+          throw new Error('No URL returned from server or response was null.');
         }
       } catch (err: any) {
-        console.error('Upload error:', err);
+        console.error('Local upload API error:', err);
         setError(
           isBangla
-            ? 'ছবি আপলোড করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।'
-            : `Failed to upload image: ${err.message || 'Server error'}`
+            ? 'ছবি আপলোড করতে সমস্যা হয়েছে। লাইভ সাইটে আপলোড করার জন্য সুপাবেস (Supabase) কনফিগার করুন।'
+            : `Failed to upload image: ${err.message || 'Server error'}. If you are on Vercel, please configure Supabase.`
         );
       } finally {
         setIsUploading(false);

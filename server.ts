@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
+import { createClient } from "@supabase/supabase-js";
 
 // Define the root folder for data files
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -399,6 +400,18 @@ async function startServer() {
   // Serve static files from public/uploads
   app.use("/uploads", express.static(uploadsDir));
 
+  // Initialize Supabase client if configured for server-side upload fallback
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+  const supabaseBucket = process.env.SUPABASE_BUCKET || process.env.VITE_SUPABASE_BUCKET || "green-earth-images";
+  const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+  if (supabase) {
+    console.log("Supabase storage is configured server-side. Uploads will be written to:", supabaseBucket);
+  } else {
+    console.log("Using local filesystem for uploads (fallback).");
+  }
+
   // Helper file paths
   const getFilePath = (filename: string) => path.join(DATA_DIR, filename);
 
@@ -429,7 +442,7 @@ async function startServer() {
   });
 
   // Upload API: handles base64 image uploads from Admin Portal
-  app.post("/api/upload", (req, res) => {
+  app.post("/api/upload", async (req, res) => {
     try {
       const { image, filename } = req.body;
       if (!image) {
@@ -465,6 +478,32 @@ async function startServer() {
         extension = "svg";
       }
 
+      // --- SUPABASE STORAGE UPLOAD ---
+      if (supabase) {
+        const cleanFilename = (filename || "upload")
+          .replace(/[^a-z0-9]/gi, "_")
+          .toLowerCase();
+        const uniqueFilename = `${cleanFilename}_${Date.now()}.${extension}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(supabaseBucket)
+          .upload(uniqueFilename, buffer, {
+            contentType: mimeType,
+            duplex: 'half'
+          } as any);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from(supabaseBucket)
+          .getPublicUrl(uniqueFilename);
+
+        return res.json({ success: true, url: urlData.publicUrl });
+      }
+
+      // --- FALLBACK LOCAL FILESYSTEM UPLOAD ---
       const cleanFilename = (filename || "upload")
         .replace(/[^a-z0-9]/gi, "_")
         .toLowerCase();
