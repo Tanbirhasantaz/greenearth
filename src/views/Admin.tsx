@@ -83,7 +83,7 @@ interface AdminProps {
 
 export default function Admin({ isBangla = false, settings: parentSettings, onSettingsSaved }: AdminProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
@@ -292,7 +292,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email: loginEmail, password })
       });
       const data = await response.json();
       if (data.success) {
@@ -850,12 +850,12 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
           <form onSubmit={handleLogin} className="space-y-5 font-sans">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'ইউজারনেম' : 'Username'}</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'ইমেইল অ্যাড্রেস' : 'Email Address'}</label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder={isBangla ? 'যেমন: admin' : 'e.g. admin'}
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder={isBangla ? 'যেমন: greenearthbd.25@gmail.com' : 'e.g. greenearthbd.25@gmail.com'}
                 className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-semibold"
                 required
               />
@@ -884,8 +884,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                       {isBangla ? 'অনুমোদন ব্যর্থ হয়েছে' : 'Authentication Failed'}
                     </h4>
                     <p className="text-xs text-red-600 font-semibold leading-relaxed">
-                      {isBangla && (loginError === 'Invalid username or password' || loginError === 'Invalid credentials')
-                        ? 'ভুল ইউজারনেম অথবা পাসওয়ার্ড' 
+                      {isBangla && (loginError === 'Invalid username or password' || loginError === 'Invalid credentials' || loginError === 'Invalid email or password')
+                        ? 'ভুল ইমেইল অথবা পাসওয়ার্ড' 
                         : loginError}
                     </p>
                   </div>
@@ -900,36 +900,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               <span>{isBangla ? 'প্রবেশ করুন' : 'Authenticate'}</span>
             </button>
           </form>
-
-          {/* Quick Demo Credentials Help */}
-          <div className="mt-6 border-t border-gray-100 pt-5 text-center">
-            <p className="text-xs text-gray-500 font-semibold mb-2.5">
-              {isBangla 
-                ? 'অনুমোদিত ডেমো অ্যাকাউন্ট দিয়ে দ্রুত প্রবেশ করতে চান?' 
-                : 'Want to log in quickly with the demo account?'}
-            </p>
-            <div className="bg-gray-50 border border-gray-200/60 rounded-2xl p-3.5 mb-3 text-left font-sans">
-              <div className="flex justify-between text-xs text-gray-600 font-semibold mb-1.5">
-                <span>{isBangla ? 'ইউজারনেম' : 'Username'}:</span>
-                <span className="font-mono bg-gray-200/75 text-gray-800 px-2 py-0.5 rounded text-[11px] font-bold">admin</span>
-              </div>
-              <div className="flex justify-between text-xs text-gray-600 font-semibold">
-                <span>{isBangla ? 'পাসওয়ার্ড' : 'Password'}:</span>
-                <span className="font-mono bg-gray-200/75 text-gray-800 px-2 py-0.5 rounded text-[11px] font-bold">greenearth2026</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setUsername('admin');
-                setPassword('greenearth2026');
-              }}
-              className="inline-flex items-center gap-1.5 text-xs text-[#1F5E2E] hover:text-[#2E7D32] font-bold transition-all bg-[#6BBF3A]/10 hover:bg-[#6BBF3A]/20 px-4 py-2 rounded-full cursor-pointer"
-            >
-              <ShieldCheck size={14} className="stroke-[2.5]" />
-              <span>{isBangla ? 'স্বয়ংক্রিয়ভাবে ফর্ম পূরণ করুন' : 'Autofill Credentials'}</span>
-            </button>
-          </div>
 
           <div className="mt-6 text-center">
             <p className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">

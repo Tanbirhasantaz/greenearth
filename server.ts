@@ -429,15 +429,18 @@ async function startServer() {
      API ROUTES (JSON CRUD)
      ============================================== */
 
-  // Auth: Simple Admin Login validation
+  // Auth: Secure Admin Login validation
   app.post("/api/admin/login", (req, res) => {
-    const { username, password } = req.body;
-    const settings = readData<{ username: string; password: string }>("settings.json");
+    const { email, password } = req.body;
+    const settings = readData<{ password?: string }>("settings.json");
 
-    if (username === settings.username && password === settings.password) {
+    const secureEmail = "greenearthbd.25@gmail.com";
+    const securePassword = settings.password || "greenearth2026";
+
+    if (email === secureEmail && password === securePassword) {
       res.json({ success: true, token: "green-earth-admin-token-2026" });
     } else {
-      res.status(401).json({ success: false, error: "Invalid username or password" });
+      res.status(401).json({ success: false, error: "Invalid email or password" });
     }
   });
 
