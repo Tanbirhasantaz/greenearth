@@ -4,6 +4,11 @@
  */
 
 import { PROJECTS, BLOG_POSTS, TEAM_MEMBERS, GALLERY_ITEMS } from './data';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 // Helper to initialize local storage databases if not already present
 export const initStorage = () => {
@@ -45,7 +50,52 @@ export const initStorage = () => {
   }
 };
 
-// Handle fallback responses locally
+// Cloud helper read/write methods to synchronize data globally on client-only hosts like Vercel
+async function cloudRead<T>(filename: string, localStorageKey: string, defaultValue: T): Promise<T> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('key_value_store')
+        .select('value')
+        .eq('key', filename)
+        .maybeSingle();
+      if (!error && data && data.value) {
+        // Synchronize local storage cache
+        localStorage.setItem(localStorageKey, JSON.stringify(data.value));
+        return data.value as T;
+      } else if (error) {
+        console.warn(`[Client CloudSync] Supabase read error for ${filename}:`, error.message);
+      }
+    } catch (err) {
+      console.error(`[Client CloudSync] Error reading ${filename} from Supabase:`, err);
+    }
+  }
+  // Fallback to localStorage
+  const localData = localStorage.getItem(localStorageKey);
+  return localData ? JSON.parse(localData) as T : defaultValue;
+}
+
+async function cloudWrite<T>(filename: string, localStorageKey: string, data: T): Promise<void> {
+  // Update local cache first for optimistic responsiveness
+  localStorage.setItem(localStorageKey, JSON.stringify(data));
+  
+  if (supabase) {
+    try {
+      const { error } = await supabase
+        .from('key_value_store')
+        .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
+      if (error) {
+        console.error(`[Client CloudSync] Error writing ${filename} to Supabase:`, error.message);
+      } else {
+        console.log(`[Client CloudSync] Successfully wrote ${filename} to Supabase.`);
+      }
+    } catch (err) {
+      console.error(`[Client CloudSync] Error writing ${filename} to Supabase:`, err);
+    }
+  }
+}
+
+// Handle fallback responses locally with cloud-sync synchronization
 async function handleFallback(url: string, init?: RequestInit): Promise<Response> {
   initStorage();
 
@@ -68,7 +118,8 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 1. Admin login fallback
   if (path === '/api/admin/login' && method === 'POST') {
     const { username, email, password } = body || {};
-    const storedPassword = localStorage.getItem('green-earth-admin-password') || 'greenearth2026';
+    const settings = await cloudRead<any>('settings.json', 'ge_db_settings', {});
+    const storedPassword = settings?.password || 'greenearth2026';
     const identifier = (username || email || '').trim().toLowerCase();
     if ((identifier === 'admin' || identifier === 'greenearthbd.25@gmail.com') && password === storedPassword) {
       responseData = { success: true, token: 'demo-token-client-2026' };
@@ -81,20 +132,22 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 2. Settings fallback
   else if (path === '/api/settings') {
     if (method === 'GET') {
-      responseData = JSON.parse(localStorage.getItem('ge_db_settings') || '{}');
+      responseData = await cloudRead<any>('settings.json', 'ge_db_settings', {});
     } else if (method === 'POST') {
-      localStorage.setItem('ge_db_settings', JSON.stringify(body));
+      const current = await cloudRead<any>('settings.json', 'ge_db_settings', {});
+      const updated = { ...current, ...body };
+      await cloudWrite('settings.json', 'ge_db_settings', updated);
       if (body?.password) {
         localStorage.setItem('green-earth-admin-password', body.password);
       }
-      responseData = { success: true };
+      responseData = { success: true, settings: updated };
     }
   }
   
   // 3. Projects fallback
   else if (path === '/api/projects' || path.startsWith('/api/projects/')) {
     const id = path.split('/').pop();
-    const projects = JSON.parse(localStorage.getItem('ge_db_projects') || '[]');
+    const projects = await cloudRead<any[]>('projects.json', 'ge_db_projects', PROJECTS);
     
     if (method === 'GET') {
       responseData = projects;
@@ -103,15 +156,16 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       if (newProject?.id) {
         const idx = projects.findIndex((p: any) => p.id === newProject.id);
         if (idx !== -1) projects[idx] = newProject;
+        else projects.unshift(newProject);
       } else {
         newProject.id = 'proj-' + Date.now();
         projects.unshift(newProject);
       }
-      localStorage.setItem('ge_db_projects', JSON.stringify(projects));
-      responseData = { success: true };
+      await cloudWrite('projects.json', 'ge_db_projects', projects);
+      responseData = { success: true, project: newProject };
     } else if (method === 'DELETE' && id && id !== 'projects') {
       const updated = projects.filter((p: any) => p.id !== id);
-      localStorage.setItem('ge_db_projects', JSON.stringify(updated));
+      await cloudWrite('projects.json', 'ge_db_projects', updated);
       responseData = { success: true };
     }
   }
@@ -119,7 +173,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 4. Blogs fallback
   else if (path === '/api/blogs' || path.startsWith('/api/blogs/')) {
     const id = path.split('/').pop();
-    const blogs = JSON.parse(localStorage.getItem('ge_db_blogs') || '[]');
+    const blogs = await cloudRead<any[]>('blogs.json', 'ge_db_blogs', BLOG_POSTS);
     
     if (method === 'GET') {
       responseData = blogs;
@@ -128,17 +182,18 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       if (newBlog?.id) {
         const idx = blogs.findIndex((b: any) => b.id === newBlog.id);
         if (idx !== -1) blogs[idx] = newBlog;
+        else blogs.unshift(newBlog);
       } else {
         newBlog.id = 'blog-' + Date.now();
         newBlog.date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         newBlog.dateBn = new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' });
         blogs.unshift(newBlog);
       }
-      localStorage.setItem('ge_db_blogs', JSON.stringify(blogs));
-      responseData = { success: true };
+      await cloudWrite('blogs.json', 'ge_db_blogs', blogs);
+      responseData = { success: true, blog: newBlog };
     } else if (method === 'DELETE' && id && id !== 'blogs') {
       const updated = blogs.filter((b: any) => b.id !== id);
-      localStorage.setItem('ge_db_blogs', JSON.stringify(updated));
+      await cloudWrite('blogs.json', 'ge_db_blogs', updated);
       responseData = { success: true };
     }
   }
@@ -146,7 +201,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 5. Team fallback
   else if (path === '/api/team' || path.startsWith('/api/team/')) {
     const id = path.split('/').pop();
-    const team = JSON.parse(localStorage.getItem('ge_db_team') || '[]');
+    const team = await cloudRead<any[]>('team.json', 'ge_db_team', TEAM_MEMBERS);
     
     if (method === 'GET') {
       responseData = team;
@@ -155,15 +210,16 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       if (newMember?.id) {
         const idx = team.findIndex((t: any) => t.id === newMember.id);
         if (idx !== -1) team[idx] = newMember;
+        else team.push(newMember);
       } else {
         newMember.id = 'team-' + Date.now();
         team.push(newMember);
       }
-      localStorage.setItem('ge_db_team', JSON.stringify(team));
-      responseData = { success: true };
+      await cloudWrite('team.json', 'ge_db_team', team);
+      responseData = { success: true, teamMember: newMember };
     } else if (method === 'DELETE' && id && id !== 'team') {
       const updated = team.filter((t: any) => t.id !== id);
-      localStorage.setItem('ge_db_team', JSON.stringify(updated));
+      await cloudWrite('team.json', 'ge_db_team', updated);
       responseData = { success: true };
     }
   }
@@ -171,7 +227,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 6. Gallery fallback
   else if (path === '/api/gallery' || path.startsWith('/api/gallery/')) {
     const id = path.split('/').pop();
-    const gallery = JSON.parse(localStorage.getItem('ge_db_gallery') || '[]');
+    const gallery = await cloudRead<any[]>('gallery.json', 'ge_db_gallery', GALLERY_ITEMS);
     
     if (method === 'GET') {
       responseData = gallery;
@@ -180,15 +236,16 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       if (newItem?.id) {
         const idx = gallery.findIndex((g: any) => g.id === newItem.id);
         if (idx !== -1) gallery[idx] = newItem;
+        else gallery.push(newItem);
       } else {
         newItem.id = 'gal-' + Date.now();
         gallery.unshift(newItem);
       }
-      localStorage.setItem('ge_db_gallery', JSON.stringify(gallery));
-      responseData = { success: true };
+      await cloudWrite('gallery.json', 'ge_db_gallery', gallery);
+      responseData = { success: true, galleryItem: newItem };
     } else if (method === 'DELETE' && id && id !== 'gallery') {
       const updated = gallery.filter((g: any) => g.id !== id);
-      localStorage.setItem('ge_db_gallery', JSON.stringify(updated));
+      await cloudWrite('gallery.json', 'ge_db_gallery', updated);
       responseData = { success: true };
     }
   }
@@ -196,7 +253,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 7. Volunteers fallback
   else if (path === '/api/volunteers' || path.startsWith('/api/volunteers/')) {
     const id = path.split('/').pop();
-    const volunteers = JSON.parse(localStorage.getItem('ge_db_volunteers') || '[]');
+    const volunteers = await cloudRead<any[]>('volunteers.json', 'ge_db_volunteers', []);
     
     if (method === 'GET') {
       responseData = volunteers;
@@ -204,7 +261,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       const volunteer = {
         ...body,
         id: body?.id || 'vol-' + Date.now(),
-        date: body?.date || new Date().toISOString().split('T')[0]
+        date: body?.date || new Date().toISOString()
       };
       const idx = volunteers.findIndex((v: any) => v.id === volunteer.id);
       if (idx !== -1) {
@@ -212,11 +269,11 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       } else {
         volunteers.unshift(volunteer);
       }
-      localStorage.setItem('ge_db_volunteers', JSON.stringify(volunteers));
-      responseData = { success: true };
+      await cloudWrite('volunteers.json', 'ge_db_volunteers', volunteers);
+      responseData = { success: true, volunteer };
     } else if (method === 'DELETE' && id && id !== 'volunteers') {
       const updated = volunteers.filter((v: any) => v.id !== id);
-      localStorage.setItem('ge_db_volunteers', JSON.stringify(updated));
+      await cloudWrite('volunteers.json', 'ge_db_volunteers', updated);
       responseData = { success: true };
     }
   }
@@ -224,7 +281,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 8. Donations fallback
   else if (path === '/api/donations' || path.startsWith('/api/donations/')) {
     const id = path.split('/').pop();
-    const donations = JSON.parse(localStorage.getItem('ge_db_donations') || '[]');
+    const donations = await cloudRead<any[]>('donations.json', 'ge_db_donations', []);
     
     if (method === 'GET') {
       responseData = donations;
@@ -232,7 +289,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       const donation = {
         ...body,
         id: body?.id || 'don-' + Date.now(),
-        date: body?.date || new Date().toISOString().split('T')[0]
+        date: body?.date || new Date().toISOString()
       };
       const idx = donations.findIndex((d: any) => d.id === donation.id);
       if (idx !== -1) {
@@ -240,18 +297,18 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       } else {
         donations.unshift(donation);
       }
-      localStorage.setItem('ge_db_donations', JSON.stringify(donations));
-      responseData = { success: true };
+      await cloudWrite('donations.json', 'ge_db_donations', donations);
+      responseData = { success: true, donation };
     } else if (method === 'DELETE' && id && id !== 'donations') {
       const updated = donations.filter((d: any) => d.id !== id);
-      localStorage.setItem('ge_db_donations', JSON.stringify(updated));
+      await cloudWrite('donations.json', 'ge_db_donations', updated);
       responseData = { success: true };
     }
   }
   
   // 9. Subscribers fallback
   else if (path === '/api/subscribers') {
-    const subscribers = JSON.parse(localStorage.getItem('ge_db_subscribers') || '[]');
+    const subscribers = await cloudRead<any[]>('subscribers.json', 'ge_db_subscribers', []);
     
     if (method === 'GET') {
       responseData = subscribers;
@@ -262,12 +319,12 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       };
       if (body?.email && !subscribers.some((s: any) => s.email === body.email)) {
         subscribers.unshift(newSub);
-        localStorage.setItem('ge_db_subscribers', JSON.stringify(subscribers));
+        await cloudWrite('subscribers.json', 'ge_db_subscribers', subscribers);
       }
       responseData = { success: true };
     } else if (method === 'DELETE') {
       const updated = subscribers.filter((s: any) => s.email !== body?.email);
-      localStorage.setItem('ge_db_subscribers', JSON.stringify(updated));
+      await cloudWrite('subscribers.json', 'ge_db_subscribers', updated);
       responseData = { success: true };
     }
   }
@@ -275,22 +332,27 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   // 10. Contacts fallback
   else if (path === '/api/contacts' || path.startsWith('/api/contacts/')) {
     const id = path.split('/').pop();
-    const contacts = JSON.parse(localStorage.getItem('ge_db_contacts') || '[]');
+    const contacts = await cloudRead<any[]>('contacts.json', 'ge_db_contacts', []);
     
     if (method === 'GET') {
       responseData = contacts;
     } else if (method === 'POST') {
       const newContact = {
         ...body,
-        id: 'contact-' + Date.now(),
-        date: new Date().toISOString().split('T')[0]
+        id: body?.id || 'contact-' + Date.now(),
+        date: body?.date || new Date().toISOString()
       };
-      contacts.unshift(newContact);
-      localStorage.setItem('ge_db_contacts', JSON.stringify(contacts));
-      responseData = { success: true };
+      const idx = contacts.findIndex((c: any) => c.id === newContact.id);
+      if (idx !== -1) {
+        contacts[idx] = newContact;
+      } else {
+        contacts.unshift(newContact);
+      }
+      await cloudWrite('contacts.json', 'ge_db_contacts', contacts);
+      responseData = { success: true, contact: newContact };
     } else if (method === 'DELETE' && id && id !== 'contacts') {
       const updated = contacts.filter((c: any) => c.id !== id);
-      localStorage.setItem('ge_db_contacts', JSON.stringify(updated));
+      await cloudWrite('contacts.json', 'ge_db_contacts', updated);
       responseData = { success: true };
     }
   }
