@@ -1318,7 +1318,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           <div>
                             <h4 className="font-bold text-[#1F5E2E] text-sm">{don.name}</h4>
                             <p className="text-xs text-gray-400 font-mono mt-0.5">
-                              Via {don.paymentMethod.toUpperCase()} (TX: {don.transId || 'N/A'})
+                              Via {(don.paymentMethod || 'N/A').toUpperCase()} (TX: {don.transId || 'N/A'})
                             </p>
                           </div>
                           <span className="font-black text-[#1F5E2E] text-sm">
@@ -1932,7 +1932,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             )}
                           </td>
                           <td className="py-4 px-4 text-xs text-gray-400 font-mono">
-                            {new Date(don.date).toLocaleDateString()}
+                            {don.date ? new Date(don.date).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex gap-1.5">
