@@ -67,9 +67,10 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
 
   // 1. Admin login fallback
   if (path === '/api/admin/login' && method === 'POST') {
-    const { username, password } = body || {};
+    const { username, email, password } = body || {};
     const storedPassword = localStorage.getItem('green-earth-admin-password') || 'greenearth2026';
-    if (username === 'admin' && password === storedPassword) {
+    const identifier = (username || email || '').trim().toLowerCase();
+    if ((identifier === 'admin' || identifier === 'greenearthbd.25@gmail.com') && password === storedPassword) {
       responseData = { success: true, token: 'demo-token-client-2026' };
     } else {
       status = 401;
@@ -315,7 +316,9 @@ if (typeof window !== 'undefined') {
         const contentType = response.headers.get('content-type') || '';
         
         // If the server fails, returned a 404, or returned an HTML fallback (Vercel SPA routing)
-        if (!response.ok || contentType.includes('text/html') || response.status === 404) {
+        // We only fallback for error status codes if the response is NOT a valid JSON API error payload
+        const isJson = contentType.includes('application/json');
+        if ((!response.ok && !isJson) || response.status === 404 || contentType.includes('text/html')) {
           return await handleFallback(urlStr, init);
         }
         return response;

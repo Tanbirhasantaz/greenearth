@@ -486,7 +486,9 @@ async function startServer() {
     const secureEmail = "greenearthbd.25@gmail.com";
     const securePassword = settings.password || "greenearth2026";
 
-    if (email === secureEmail && password === securePassword) {
+    const normalizedEmail = (email || "").trim().toLowerCase();
+
+    if (normalizedEmail === secureEmail && password === securePassword) {
       console.log("LOGIN SUCCESSFUL");
       res.json({ success: true, token: "green-earth-admin-token-2026" });
     } else {
