@@ -250,36 +250,36 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
       // Seed settings inputs
       if (resSettings) {
-        setSetOrgName(resSettings.orgName || '');
-        setSetTagline(resSettings.tagline || '');
-        setSetTaglineBn(resSettings.taglineBn || '');
-        setSetPhone(resSettings.phone || '');
-        setSetEmail(resSettings.email || '');
-        setSetAddress(resSettings.address || '');
-        setSetAddressBn(resSettings.addressBn || '');
-        setSetAboutText(resSettings.aboutText || '');
-        setSetAboutTextBn(resSettings.aboutTextBn || '');
-        setSetHeroImgUrl(resSettings.heroImgUrl || '');
-        setSetHeroTagline(resSettings.heroTagline || '');
-        setSetHeroTaglineBn(resSettings.heroTaglineBn || '');
-        setSetHeroTitle(resSettings.heroTitle || '');
-        setSetHeroTitleBn(resSettings.heroTitleBn || '');
-        setSetHeroBio(resSettings.heroBio || '');
-        setSetHeroBioBn(resSettings.heroBioBn || '');
+        setSetOrgName(resSettings.orgName || 'Green Earth');
+        setSetTagline(resSettings.tagline || 'Cleaner, Greener & Sustainable Future');
+        setSetTaglineBn(resSettings.taglineBn || 'পরিচ্ছন্ন, সবুজ ও টেকসই ভবিষ্যৎ');
+        setSetPhone(resSettings.phone || '+880 1712-345678');
+        setSetEmail(resSettings.email || 'info@greenearth-bd.org');
+        setSetAddress(resSettings.address || '42, Road 11, Banani, Dhaka-1213, Bangladesh.');
+        setSetAddressBn(resSettings.addressBn || '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।');
+        setSetAboutText(resSettings.aboutText || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.');
+        setSetAboutTextBn(resSettings.aboutTextBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।');
+        setSetHeroImgUrl(resSettings.heroImgUrl || '/src/assets/images/hero_landscape_bangladesh_1783444495014.jpg');
+        setSetHeroTagline(resSettings.heroTagline || 'For a sustainable tomorrow');
+        setSetHeroTaglineBn(resSettings.heroTaglineBn || 'একটি সুন্দর ভবিষ্যৎ গড়তে');
+        setSetHeroTitle(resSettings.heroTitle || 'Cleaner, Greener & Sustainable Future');
+        setSetHeroTitleBn(resSettings.heroTitleBn || 'পরিচ্ছন্ন, সবুজ এবং টেকসই বাংলাদেশ');
+        setSetHeroBio(resSettings.heroBio || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.');
+        setSetHeroBioBn(resSettings.heroBioBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।');
 
         setSetStatTreesTarget(resSettings.statTreesTarget || '12450');
         setSetStatVillagesTarget(resSettings.statVillagesTarget || '68');
         setSetStatVolunteersTarget(resSettings.statVolunteersTarget || '850');
         setSetStatWaterTarget(resSettings.statWaterTarget || '35');
 
-        setSetAboutStory1(resSettings.aboutStory1 || '');
-        setSetAboutStory1Bn(resSettings.aboutStory1Bn || '');
-        setSetAboutStory2(resSettings.aboutStory2 || '');
-        setSetAboutStory2Bn(resSettings.aboutStory2Bn || '');
-        setSetAboutMission(resSettings.aboutMission || '');
-        setSetAboutMissionBn(resSettings.aboutMissionBn || '');
-        setSetAboutVision(resSettings.aboutVision || '');
-        setSetAboutVisionBn(resSettings.aboutVisionBn || '');
+        setSetAboutStory1(resSettings.aboutStory1 || 'Bangladesh is on the immediate frontline of the global climate crisis. Rising sea levels, salinity in drinking water, and severe riverbanks erosion displacement are displacement risks that threaten millions of lives in this low-lying delta. Founded in early 2024 by a passionate group of university environmental scientists and student groups, Green Earth was born to create pragmatic, local ecological responses.');
+        setSetAboutStory1Bn(resSettings.aboutStory1Bn || 'জলবায়ু পরিবর্তনের ঝুঁকিতে থাকা বাংলাদেশ বিশ্বের অন্যতম ঝুঁকিপূর্ণ অঞ্চলের একটি। বঙ্গোপসাগরের ঘূর্ণিঝড়, ক্রমাগত লবণাক্ত পানি প্রবেশ, আর উত্তরবঙ্গের নদীভাঙন ধ্বংস করছে মানুষের স্বপ্ন ও জীবন। ঠিক এই ক্রান্তিলগ্নে ২০২৪ সালে ঢাকা বিশ্ববিদ্যালয়ের একদল পরিবেশ বিজ্ঞানী ও ছাত্র স্বেচ্ছাসেবীদের হাত ধরে গ্রিন আর্থের বীজ রোপণ করা হয়।');
+        setSetAboutStory2(resSettings.aboutStory2 || 'Our design philosophy is centered around bottom-up community action. We believe that true conservation happens when local villagers own and protect the projects. Over the past years, our projects have bridged scientific groundwater tests with grassroot plantation drives, setting a blueprint for localized delta conservation.');
+        setSetAboutStory2Bn(resSettings.aboutStory2Bn || 'আমরা বিশ্বাস করি, ঠান্ডা কর্পোরেট অফিস বা সেমিনার কক্ষে পরিবেশ সুরক্ষা অসম্ভব। প্রকৃত পরিবেশবান্ধব বাংলাদেশ গড়তে আমাদের মাঠ পর্যায়ে মানুষের সাথে কাজ করতে হবে। তাই আমরা সুন্দরবন ও উত্তরের নদী চরাঞ্চলে সরাসরি মানুষের কাছে পৌঁছাই এবং তাদের সহায়তায় প্রকল্পসমূহ সচল রাখি।');
+        setSetAboutMission(resSettings.aboutMission || 'To restore coastal eco-barriers, deliver clean solar energy grids, and guarantee safe, arsenic-free drinking water through community ownership.');
+        setSetAboutMissionBn(resSettings.aboutMissionBn || 'স্থানীয় অংশীদারিত্বের মাধ্যমে বৃক্ষরোপণ, নবায়নযোগ্য জ্বালানির ব্যবহার এবং আর্সেনিকমুক্ত নিরাপদ পানির টেকসই সংস্থান নিশ্চিত করা।');
+        setSetAboutVision(resSettings.aboutVision || 'A climate-resilient Bangladesh where every household shares clean air, pure drinking water, and infinite solar electricity.');
+        setSetAboutVisionBn(resSettings.aboutVisionBn || 'এমন এক বাংলাদেশের সবুজ রূপান্তর, যেখানে প্রতিটি মানুষের জন্য থাকবে বিশুদ্ধ পানি, পরিচ্ছন্ন বায়ু এবং পরিবেশবান্ধব জ্বালানি।');
 
         setSetBkashNo(resSettings.bkashNo || '01712345678');
         setSetNagadNo(resSettings.nagadNo || '01712345678');
@@ -2378,7 +2378,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setOrgName}
                           onChange={(e) => setSetOrgName(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5 md:col-span-1">
@@ -2388,7 +2387,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setTagline}
                           onChange={(e) => setSetTagline(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5 md:col-span-1">
@@ -2398,7 +2396,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setTaglineBn}
                           onChange={(e) => setSetTaglineBn(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          required
                         />
                       </div>
                     </div>
@@ -2419,7 +2416,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setPhone}
                           onChange={(e) => setSetPhone(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -2429,7 +2425,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setEmail}
                           onChange={(e) => setSetEmail(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -2439,7 +2434,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setAddress}
                           onChange={(e) => setSetAddress(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -2449,7 +2443,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setAddressBn}
                           onChange={(e) => setSetAddressBn(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          required
                         />
                       </div>
                     </div>
@@ -2482,7 +2475,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setHeroTagline}
                             onChange={(e) => setSetHeroTagline(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2492,7 +2484,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setHeroTaglineBn}
                             onChange={(e) => setSetHeroTaglineBn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                            required
                           />
                         </div>
 
@@ -2503,7 +2494,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setHeroTitle}
                             onChange={(e) => setSetHeroTitle(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2513,7 +2503,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setHeroTitleBn}
                             onChange={(e) => setSetHeroTitleBn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                            required
                           />
                         </div>
 
@@ -2524,7 +2513,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setHeroBio}
                             onChange={(e) => setSetHeroBio(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2534,7 +2522,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setHeroBioBn}
                             onChange={(e) => setSetHeroBioBn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
 
@@ -2545,7 +2532,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutText}
                             onChange={(e) => setSetAboutText(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2555,7 +2541,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutTextBn}
                             onChange={(e) => setSetAboutTextBn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                       </div>
@@ -2578,7 +2563,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutStory1}
                             onChange={(e) => setSetAboutStory1(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2588,7 +2572,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutStory1Bn}
                             onChange={(e) => setSetAboutStory1Bn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
 
@@ -2599,7 +2582,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutStory2}
                             onChange={(e) => setSetAboutStory2(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2609,7 +2591,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutStory2Bn}
                             onChange={(e) => setSetAboutStory2Bn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
 
@@ -2620,7 +2601,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutMission}
                             onChange={(e) => setSetAboutMission(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2630,7 +2610,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutMissionBn}
                             onChange={(e) => setSetAboutMissionBn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
 
@@ -2641,7 +2620,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutVision}
                             onChange={(e) => setSetAboutVision(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
@@ -2651,7 +2629,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutVisionBn}
                             onChange={(e) => setSetAboutVisionBn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            required
                           />
                         </div>
                       </div>
@@ -2673,7 +2650,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setStatTreesTarget}
                           onChange={(e) => setSetStatTreesTarget(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -2683,7 +2659,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setStatVillagesTarget}
                           onChange={(e) => setSetStatVillagesTarget(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -2693,7 +2668,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setStatVolunteersTarget}
                           onChange={(e) => setSetStatVolunteersTarget(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -2703,7 +2677,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setStatWaterTarget}
                           onChange={(e) => setSetStatWaterTarget(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
-                          required
                         />
                       </div>
                     </div>
@@ -2724,7 +2697,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setBkashNo}
                           onChange={(e) => setSetBkashNo(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
-                          required
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
@@ -2734,7 +2706,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setNagadNo}
                           onChange={(e) => setSetNagadNo(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
-                          required
                         />
                       </div>
                     </div>
