@@ -308,8 +308,9 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       } else {
         setLoginError(data.error || 'Invalid credentials');
       }
-    } catch (err) {
-      setLoginError('Server network connection failed');
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setLoginError(isBangla ? `সার্ভার সংযোগ ব্যর্থ হয়েছে: ${err.message || err}` : `Server network connection failed: ${err.message || err}`);
     }
   };
 
@@ -352,7 +353,14 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: signUpEmail.trim().toLowerCase(), password: signUpPassword })
       });
-      const data = await response.json();
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error(`Invalid response format from server (Status: ${response.status})`);
+      }
+
       if (data.success) {
         setSignUpSuccess(
           isBangla
@@ -371,8 +379,9 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       } else {
         setSignUpError(data.error || 'Registration failed');
       }
-    } catch (err) {
-      setSignUpError('Server network connection failed');
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      setSignUpError(isBangla ? `সার্ভার সংযোগ ব্যর্থ হয়েছে: ${err.message || err}` : `Server network connection failed: ${err.message || err}`);
     }
   };
 
