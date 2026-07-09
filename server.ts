@@ -480,14 +480,17 @@ async function startServer() {
   // Auth: Secure Admin Login validation
   app.post("/api/admin/login", async (req, res) => {
     const { email, password } = req.body;
+    console.log("LOGIN REQUEST RECEIVED:", { email });
     const settings = await readData<{ password?: string }>("settings.json");
 
     const secureEmail = "greenearthbd.25@gmail.com";
     const securePassword = settings.password || "greenearth2026";
 
     if (email === secureEmail && password === securePassword) {
+      console.log("LOGIN SUCCESSFUL");
       res.json({ success: true, token: "green-earth-admin-token-2026" });
     } else {
+      console.log("LOGIN FAILED: Invalid credentials");
       res.status(401).json({ success: false, error: "Invalid email or password" });
     }
   });
@@ -496,9 +499,11 @@ async function startServer() {
   app.post("/api/admin/signup", async (req, res) => {
     try {
       const { email, password } = req.body;
+      console.log("SIGNUP REQUEST RECEIVED:", { email });
       const secureEmail = "greenearthbd.25@gmail.com";
 
       if (email !== secureEmail) {
+        console.log("SIGNUP FAILED: Unauthorized email");
         return res.status(403).json({ 
           success: false, 
           error: "Only greenearthbd.25@gmail.com is authorized to register as administrator." 
@@ -506,6 +511,7 @@ async function startServer() {
       }
 
       if (!password || password.length < 6) {
+        console.log("SIGNUP FAILED: Password too short");
         return res.status(400).json({ 
           success: false, 
           error: "Password must be at least 6 characters long." 
@@ -515,6 +521,7 @@ async function startServer() {
       const settings = await readData<{ password?: string; registered?: boolean }>("settings.json");
 
       if (settings.registered) {
+        console.log("SIGNUP FAILED: Admin already registered");
         return res.status(400).json({ 
           success: false, 
           error: "Admin is already registered. Please log in with your credentials." 
@@ -529,6 +536,7 @@ async function startServer() {
       };
 
       await writeData("settings.json", updatedSettings);
+      console.log("SIGNUP SUCCESSFUL");
 
       res.json({ success: true, message: "Admin registration successful! You can now log in." });
     } catch (err: any) {

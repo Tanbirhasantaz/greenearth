@@ -300,7 +300,17 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password })
       });
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error(`Invalid response format from server (Status: ${response.status})`);
+      }
+
+      if (!data) {
+        throw new Error("Server returned an empty or invalid response");
+      }
+
       if (data.success) {
         localStorage.setItem('green-earth-admin-token-2026', data.token);
         setIsAuthenticated(true);
@@ -359,6 +369,10 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         data = await response.json();
       } catch (jsonErr) {
         throw new Error(`Invalid response format from server (Status: ${response.status})`);
+      }
+
+      if (!data) {
+        throw new Error("Server returned an empty or invalid response");
       }
 
       if (data.success) {
