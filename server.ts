@@ -416,12 +416,44 @@ async function startServer() {
   const getFilePath = (filename: string) => path.join(DATA_DIR, filename);
 
   // Helper read/write methods
-  const readData = <T>(filename: string): T => {
+  const readData = async <T>(filename: string): Promise<T> => {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from("key_value_store")
+          .select("value")
+          .eq("key", filename)
+          .maybeSingle();
+        if (!error && data && data.value) {
+          return data.value as T;
+        }
+      } catch (err) {
+        console.error(`Error reading ${filename} from Supabase:`, err);
+      }
+    }
     const raw = fs.readFileSync(getFilePath(filename), "utf-8");
     return JSON.parse(raw) as T;
   };
 
-  const writeData = <T>(filename: string, data: T): void => {
+  const writeData = async <T>(filename: string, data: T): Promise<void> => {
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from("key_value_store")
+          .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
+        if (error) {
+          console.error(`Error writing ${filename} to Supabase:`, error);
+        } else {
+          // Keep local filesystem in sync as fallback
+          try {
+            fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
+          } catch {}
+          return;
+        }
+      } catch (err) {
+        console.error(`Error writing ${filename} to Supabase:`, err);
+      }
+    }
     fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
   };
 
@@ -430,9 +462,9 @@ async function startServer() {
      ============================================== */
 
   // Auth: Secure Admin Login validation
-  app.post("/api/admin/login", (req, res) => {
+  app.post("/api/admin/login", async (req, res) => {
     const { email, password } = req.body;
-    const settings = readData<{ password?: string }>("settings.json");
+    const settings = await readData<{ password?: string }>("settings.json");
 
     const secureEmail = "greenearthbd.25@gmail.com";
     const securePassword = settings.password || "greenearth2026";
@@ -441,6 +473,51 @@ async function startServer() {
       res.json({ success: true, token: "green-earth-admin-token-2026" });
     } else {
       res.status(401).json({ success: false, error: "Invalid email or password" });
+    }
+  });
+
+  // Auth: Secure Admin Registration (Sign Up)
+  app.post("/api/admin/signup", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const secureEmail = "greenearthbd.25@gmail.com";
+
+      if (email !== secureEmail) {
+        return res.status(403).json({ 
+          success: false, 
+          error: "Only greenearthbd.25@gmail.com is authorized to register as administrator." 
+        });
+      }
+
+      if (!password || password.length < 6) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Password must be at least 6 characters long." 
+        });
+      }
+
+      const settings = await readData<{ password?: string; registered?: boolean }>("settings.json");
+
+      if (settings.registered) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Admin is already registered. Please log in with your credentials." 
+        });
+      }
+
+      // Update password and mark as registered
+      const updatedSettings = {
+        ...settings,
+        password: password,
+        registered: true
+      };
+
+      await writeData("settings.json", updatedSettings);
+
+      res.json({ success: true, message: "Admin registration successful! You can now log in." });
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      res.status(500).json({ success: false, error: "Internal server error during registration." });
     }
   });
 
@@ -524,12 +601,12 @@ async function startServer() {
   });
 
   // Projects API
-  app.get("/api/projects", (req, res) => {
-    res.json(readData("projects.json"));
+  app.get("/api/projects", async (req, res) => {
+    res.json(await readData("projects.json"));
   });
 
-  app.post("/api/projects", (req, res) => {
-    const projects = readData<any[]>("projects.json");
+  app.post("/api/projects", async (req, res) => {
+    const projects = await readData<any[]>("projects.json");
     const newProject = req.body;
 
     if (!newProject.id) {
@@ -544,24 +621,24 @@ async function startServer() {
       }
     }
 
-    writeData("projects.json", projects);
+    await writeData("projects.json", projects);
     res.json({ success: true, project: newProject });
   });
 
-  app.delete("/api/projects/:id", (req, res) => {
-    const projects = readData<any[]>("projects.json");
+  app.delete("/api/projects/:id", async (req, res) => {
+    const projects = await readData<any[]>("projects.json");
     const filtered = projects.filter((p) => p.id !== req.params.id);
-    writeData("projects.json", filtered);
+    await writeData("projects.json", filtered);
     res.json({ success: true });
   });
 
   // Blogs API
-  app.get("/api/blogs", (req, res) => {
-    res.json(readData("blogs.json"));
+  app.get("/api/blogs", async (req, res) => {
+    res.json(await readData("blogs.json"));
   });
 
-  app.post("/api/blogs", (req, res) => {
-    const blogs = readData<any[]>("blogs.json");
+  app.post("/api/blogs", async (req, res) => {
+    const blogs = await readData<any[]>("blogs.json");
     const newBlog = req.body;
 
     if (!newBlog.id) {
@@ -576,24 +653,24 @@ async function startServer() {
       }
     }
 
-    writeData("blogs.json", blogs);
+    await writeData("blogs.json", blogs);
     res.json({ success: true, blog: newBlog });
   });
 
-  app.delete("/api/blogs/:id", (req, res) => {
-    const blogs = readData<any[]>("blogs.json");
+  app.delete("/api/blogs/:id", async (req, res) => {
+    const blogs = await readData<any[]>("blogs.json");
     const filtered = blogs.filter((b) => b.id !== req.params.id);
-    writeData("blogs.json", filtered);
+    await writeData("blogs.json", filtered);
     res.json({ success: true });
   });
 
   // Team API
-  app.get("/api/team", (req, res) => {
-    res.json(readData("team.json"));
+  app.get("/api/team", async (req, res) => {
+    res.json(await readData("team.json"));
   });
 
-  app.post("/api/team", (req, res) => {
-    const team = readData<any[]>("team.json");
+  app.post("/api/team", async (req, res) => {
+    const team = await readData<any[]>("team.json");
     const newMember = req.body;
 
     if (!newMember.id) {
@@ -608,24 +685,24 @@ async function startServer() {
       }
     }
 
-    writeData("team.json", team);
+    await writeData("team.json", team);
     res.json({ success: true, teamMember: newMember });
   });
 
-  app.delete("/api/team/:id", (req, res) => {
-    const team = readData<any[]>("team.json");
+  app.delete("/api/team/:id", async (req, res) => {
+    const team = await readData<any[]>("team.json");
     const filtered = team.filter((t) => t.id !== req.params.id);
-    writeData("team.json", filtered);
+    await writeData("team.json", filtered);
     res.json({ success: true });
   });
 
   // Gallery API
-  app.get("/api/gallery", (req, res) => {
-    res.json(readData("gallery.json"));
+  app.get("/api/gallery", async (req, res) => {
+    res.json(await readData("gallery.json"));
   });
 
-  app.post("/api/gallery", (req, res) => {
-    const gallery = readData<any[]>("gallery.json");
+  app.post("/api/gallery", async (req, res) => {
+    const gallery = await readData<any[]>("gallery.json");
     const newItem = req.body;
 
     if (!newItem.id) {
@@ -640,120 +717,120 @@ async function startServer() {
       }
     }
 
-    writeData("gallery.json", gallery);
+    await writeData("gallery.json", gallery);
     res.json({ success: true, galleryItem: newItem });
   });
 
-  app.delete("/api/gallery/:id", (req, res) => {
-    const gallery = readData<any[]>("gallery.json");
+  app.delete("/api/gallery/:id", async (req, res) => {
+    const gallery = await readData<any[]>("gallery.json");
     const filtered = gallery.filter((g) => g.id !== req.params.id);
-    writeData("gallery.json", filtered);
+    await writeData("gallery.json", filtered);
     res.json({ success: true });
   });
 
   // Volunteers API (Submissions)
-  app.get("/api/volunteers", (req, res) => {
-    res.json(readData("volunteers.json"));
+  app.get("/api/volunteers", async (req, res) => {
+    res.json(await readData("volunteers.json"));
   });
 
-  app.post("/api/volunteers", (req, res) => {
-    const volunteers = readData<any[]>("volunteers.json");
+  app.post("/api/volunteers", async (req, res) => {
+    const volunteers = await readData<any[]>("volunteers.json");
     const newVol = req.body;
     newVol.id = "vol-" + Date.now();
     newVol.date = new Date().toISOString();
     volunteers.unshift(newVol); // Newest first
 
-    writeData("volunteers.json", volunteers);
+    await writeData("volunteers.json", volunteers);
     res.json({ success: true, volunteer: newVol });
   });
 
-  app.delete("/api/volunteers/:id", (req, res) => {
-    const volunteers = readData<any[]>("volunteers.json");
+  app.delete("/api/volunteers/:id", async (req, res) => {
+    const volunteers = await readData<any[]>("volunteers.json");
     const filtered = volunteers.filter((v) => v.id !== req.params.id);
-    writeData("volunteers.json", filtered);
+    await writeData("volunteers.json", filtered);
     res.json({ success: true });
   });
 
   // Donations API (Submissions)
-  app.get("/api/donations", (req, res) => {
-    res.json(readData("donations.json"));
+  app.get("/api/donations", async (req, res) => {
+    res.json(await readData("donations.json"));
   });
 
-  app.post("/api/donations", (req, res) => {
-    const donations = readData<any[]>("donations.json");
+  app.post("/api/donations", async (req, res) => {
+    const donations = await readData<any[]>("donations.json");
     const newDon = req.body;
     newDon.id = "don-" + Date.now();
     newDon.date = new Date().toISOString();
     newDon.status = newDon.status || "verified"; // Auto-verify or wait for transaction verification
     donations.unshift(newDon); // Newest first
 
-    writeData("donations.json", donations);
+    await writeData("donations.json", donations);
     res.json({ success: true, donation: newDon });
   });
 
-  app.delete("/api/donations/:id", (req, res) => {
-    const donations = readData<any[]>("donations.json");
+  app.delete("/api/donations/:id", async (req, res) => {
+    const donations = await readData<any[]>("donations.json");
     const filtered = donations.filter((d) => d.id !== req.params.id);
-    writeData("donations.json", filtered);
+    await writeData("donations.json", filtered);
     res.json({ success: true });
   });
 
   // Subscribers API
-  app.get("/api/subscribers", (req, res) => {
-    res.json(readData("subscribers.json"));
+  app.get("/api/subscribers", async (req, res) => {
+    res.json(await readData("subscribers.json"));
   });
 
-  app.post("/api/subscribers", (req, res) => {
-    const subscribers = readData<string[]>("subscribers.json");
+  app.post("/api/subscribers", async (req, res) => {
+    const subscribers = await readData<string[]>("subscribers.json");
     const { email } = req.body;
 
     if (email && !subscribers.includes(email)) {
       subscribers.unshift(email);
-      writeData("subscribers.json", subscribers);
+      await writeData("subscribers.json", subscribers);
     }
     res.json({ success: true });
   });
 
-  app.delete("/api/subscribers", (req, res) => {
+  app.delete("/api/subscribers", async (req, res) => {
     const { email } = req.body;
-    const subscribers = readData<string[]>("subscribers.json");
+    const subscribers = await readData<string[]>("subscribers.json");
     const filtered = subscribers.filter((e) => e !== email);
-    writeData("subscribers.json", filtered);
+    await writeData("subscribers.json", filtered);
     res.json({ success: true });
   });
 
   // Contacts API (Submissions)
-  app.get("/api/contacts", (req, res) => {
-    res.json(readData("contacts.json"));
+  app.get("/api/contacts", async (req, res) => {
+    res.json(await readData("contacts.json"));
   });
 
-  app.post("/api/contacts", (req, res) => {
-    const contacts = readData<any[]>("contacts.json");
+  app.post("/api/contacts", async (req, res) => {
+    const contacts = await readData<any[]>("contacts.json");
     const newContact = req.body;
     newContact.id = "cont-" + Date.now();
     newContact.date = new Date().toISOString();
     contacts.unshift(newContact); // Newest first
 
-    writeData("contacts.json", contacts);
+    await writeData("contacts.json", contacts);
     res.json({ success: true, contact: newContact });
   });
 
-  app.delete("/api/contacts/:id", (req, res) => {
-    const contacts = readData<any[]>("contacts.json");
+  app.delete("/api/contacts/:id", async (req, res) => {
+    const contacts = await readData<any[]>("contacts.json");
     const filtered = contacts.filter((c) => c.id !== req.params.id);
-    writeData("contacts.json", filtered);
+    await writeData("contacts.json", filtered);
     res.json({ success: true });
   });
 
   // Settings API
-  app.get("/api/settings", (req, res) => {
-    res.json(readData("settings.json"));
+  app.get("/api/settings", async (req, res) => {
+    res.json(await readData("settings.json"));
   });
 
-  app.post("/api/settings", (req, res) => {
-    const current = readData<any>("settings.json");
+  app.post("/api/settings", async (req, res) => {
+    const current = await readData<any>("settings.json");
     const updated = { ...current, ...req.body };
-    writeData("settings.json", updated);
+    await writeData("settings.json", updated);
     res.json({ success: true, settings: updated });
   });
 

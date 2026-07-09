@@ -86,6 +86,12 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [loginEmail, setLoginEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [signUpError, setSignUpError] = useState('');
+  const [signUpSuccess, setSignUpSuccess] = useState('');
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
 
   // Datasets loaded from server
@@ -304,6 +310,69 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       }
     } catch (err) {
       setLoginError('Server network connection failed');
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignUpError('');
+    setSignUpSuccess('');
+
+    const authorizedEmail = "greenearthbd.25@gmail.com";
+    if (signUpEmail.trim().toLowerCase() !== authorizedEmail) {
+      setSignUpError(
+        isBangla
+          ? 'শুধুমাত্র greenearthbd.25@gmail.com ইমেইলটি অ্যাডমিন হিসেবে নিবন্ধিত হতে পারবে।'
+          : 'Only greenearthbd.25@gmail.com is authorized to register as administrator.'
+      );
+      return;
+    }
+
+    if (signUpPassword.length < 6) {
+      setSignUpError(
+        isBangla
+          ? 'পাসওয়ার্ড অবশ্যই কমপক্ষে ৬ অক্ষরের হতে হবে।'
+          : 'Password must be at least 6 characters long.'
+      );
+      return;
+    }
+
+    if (signUpPassword !== signUpConfirmPassword) {
+      setSignUpError(
+        isBangla
+          ? 'পাসওয়ার্ড দুটি মেলেনি!'
+          : 'Passwords do not match!'
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signUpEmail.trim().toLowerCase(), password: signUpPassword })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSignUpSuccess(
+          isBangla
+            ? 'অ্যাডমিন অ্যাকাউন্ট সফলভাবে নিবন্ধিত হয়েছে! এখন লগইন করুন।'
+            : 'Administrator registered successfully! Please log in.'
+        );
+        // Clear sign up fields
+        setSignUpEmail('');
+        setSignUpPassword('');
+        setSignUpConfirmPassword('');
+        // Automatically switch to login after 3 seconds
+        setTimeout(() => {
+          setIsSignUp(false);
+          setSignUpSuccess('');
+        }, 3000);
+      } else {
+        setSignUpError(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      setSignUpError('Server network connection failed');
     }
   };
 
@@ -848,58 +917,172 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
             <p className="font-mono text-xs text-gray-400 font-bold uppercase tracking-wider">{isBangla ? 'প্রশাসনিক প্রবেশাধিকার' : 'Administrative Access'}</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5 font-sans">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'ইমেইল অ্যাড্রেস' : 'Email Address'}</label>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder={isBangla ? 'যেমন: greenearthbd.25@gmail.com' : 'e.g. greenearthbd.25@gmail.com'}
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-semibold"
-                required
-              />
-            </div>
+          {/* Tab Selection */}
+          <div className="flex border-b border-gray-100 mb-6 font-sans text-sm">
+            <button
+              onClick={() => { setIsSignUp(false); setLoginError(''); setSignUpError(''); }}
+              className={`flex-1 pb-3 text-center font-bold tracking-wide transition-all ${
+                !isSignUp 
+                  ? 'border-b-2 border-[#1F5E2E] text-[#1F5E2E]' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {isBangla ? 'লগইন করুন' : 'Sign In'}
+            </button>
+            <button
+              onClick={() => { setIsSignUp(true); setLoginError(''); setSignUpError(''); }}
+              className={`flex-1 pb-3 text-center font-bold tracking-wide transition-all ${
+                isSignUp 
+                  ? 'border-b-2 border-[#1F5E2E] text-[#1F5E2E]' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {isBangla ? 'অ্যাডমিন সাইন আপ' : 'Admin Sign Up'}
+            </button>
+          </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'পাসওয়ার্ড' : 'Password'}</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800"
-                required
-              />
-            </div>
+          {!isSignUp ? (
+            <form onSubmit={handleLogin} className="space-y-5 font-sans">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'ইমেইল অ্যাড্রেস' : 'Email Address'}</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder={isBangla ? 'যেমন: greenearthbd.25@gmail.com' : 'e.g. greenearthbd.25@gmail.com'}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-semibold"
+                  required
+                />
+              </div>
 
-            {loginError && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl text-left" id="login-error-alert">
-                <div className="flex items-start gap-3">
-                  <div className="text-red-500 shrink-0 mt-0.5">
-                    <X size={16} className="stroke-[3]" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-red-800 uppercase tracking-wider mb-0.5">
-                      {isBangla ? 'অনুমোদন ব্যর্থ হয়েছে' : 'Authentication Failed'}
-                    </h4>
-                    <p className="text-xs text-red-600 font-semibold leading-relaxed">
-                      {isBangla && (loginError === 'Invalid username or password' || loginError === 'Invalid credentials' || loginError === 'Invalid email or password')
-                        ? 'ভুল ইমেইল অথবা পাসওয়ার্ড' 
-                        : loginError}
-                    </p>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'পাসওয়ার্ড' : 'Password'}</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800"
+                  required
+                />
+              </div>
+
+              {loginError && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl text-left" id="login-error-alert">
+                  <div className="flex items-start gap-3">
+                    <div className="text-red-500 shrink-0 mt-0.5">
+                      <X size={16} className="stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-red-800 uppercase tracking-wider mb-0.5">
+                        {isBangla ? 'অনুমোদন ব্যর্থ হয়েছে' : 'Authentication Failed'}
+                      </h4>
+                      <p className="text-xs text-red-600 font-semibold leading-relaxed">
+                        {isBangla && (loginError === 'Invalid username or password' || loginError === 'Invalid credentials' || loginError === 'Invalid email or password')
+                          ? 'ভুল ইমেইল অথবা পাসওয়ার্ড' 
+                          : loginError}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <button
-              type="submit"
-              className="w-full bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-bold py-4 rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
-            >
-              <span>{isBangla ? 'প্রবেশ করুন' : 'Authenticate'}</span>
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="w-full bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-bold py-4 rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+              >
+                <span>{isBangla ? 'প্রবেশ করুন' : 'Authenticate'}</span>
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSignUp} className="space-y-5 font-sans">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'ইমেইল অ্যাড্রেস' : 'Email Address'}</label>
+                <input
+                  type="email"
+                  value={signUpEmail}
+                  onChange={(e) => setSignUpEmail(e.target.value)}
+                  placeholder="greenearthbd.25@gmail.com"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-semibold"
+                  required
+                />
+                <p className="text-[10px] text-gray-400 mt-1 font-semibold">
+                  {isBangla 
+                    ? '* শুধুমাত্র অনুমোদিত ইমেইলটিই অ্যাডমিন হতে পারবে।' 
+                    : '* Only the authorized email can be registered.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'নতুন পাসওয়ার্ড' : 'New Password'}</label>
+                <input
+                  type="password"
+                  value={signUpPassword}
+                  onChange={(e) => setSignUpPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{isBangla ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm Password'}</label>
+                <input
+                  type="password"
+                  value={signUpConfirmPassword}
+                  onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800"
+                  required
+                />
+              </div>
+
+              {signUpError && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl text-left" id="signup-error-alert">
+                  <div className="flex items-start gap-3">
+                    <div className="text-red-500 shrink-0 mt-0.5">
+                      <X size={16} className="stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-red-800 uppercase tracking-wider mb-0.5">
+                        {isBangla ? 'নিবন্ধন ব্যর্থ হয়েছে' : 'Registration Failed'}
+                      </h4>
+                      <p className="text-xs text-red-600 font-semibold leading-relaxed">
+                        {signUpError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {signUpSuccess && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-xl text-left" id="signup-success-alert">
+                  <div className="flex items-start gap-3">
+                    <div className="text-green-500 shrink-0 mt-0.5">
+                      <svg className="h-4 w-4 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-green-800 uppercase tracking-wider mb-0.5">
+                        {isBangla ? 'নিবন্ধন সফল হয়েছে' : 'Registration Successful'}
+                      </h4>
+                      <p className="text-xs text-green-600 font-semibold leading-relaxed font-semibold">
+                        {signUpSuccess}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-bold py-4 rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+              >
+                <span>{isBangla ? 'নিবন্ধন সম্পন্ন করুন' : 'Register Administrator'}</span>
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">

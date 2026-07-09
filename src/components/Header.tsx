@@ -160,18 +160,20 @@ export default function Header({
       {/* Mobile Slide-In Navigation Drawer */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <g id="mobile-drawer-wrapper">
+          <>
             {/* Backdrop */}
             <motion.div
+              key="mobile-backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 top-[60px] bg-black z-30 lg:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
-
+ 
             {/* Menu drawer */}
             <motion.div
+              key="mobile-drawer"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -186,7 +188,7 @@ export default function Header({
                 </span>
                 <div className="h-0.5 bg-[#6BBF3A]/30 rounded-full" />
               </div>
-
+ 
               {/* Links */}
               <div className="flex flex-col gap-2 flex-1">
                 {navLinks.map((link) => (
@@ -203,7 +205,7 @@ export default function Header({
                   </button>
                 ))}
               </div>
-
+ 
               {/* Footer inside mobile menu */}
               <div className="pt-6 border-t border-gray-200 mt-auto flex flex-col gap-4">
                 <button
@@ -219,7 +221,7 @@ export default function Header({
                 </div>
               </div>
             </motion.div>
-          </g>
+          </>
         )}
       </AnimatePresence>
     </header>
