@@ -159,7 +159,7 @@ export default function Home({
         <div className="absolute inset-y-0 right-0 w-full lg:w-1/2 z-0 pointer-events-none">
           {/* Main Hero Image */}
           <img
-            src={settings?.heroImgUrl || IMAGES.hero}
+            src={(settings?.heroImgUrl && !settings.heroImgUrl.startsWith('/src/')) ? settings.heroImgUrl : IMAGES.hero}
             alt="Bangladesh Landscape"
             className="w-full h-full object-cover opacity-65 sm:opacity-80 lg:opacity-100"
             referrerPolicy="no-referrer"

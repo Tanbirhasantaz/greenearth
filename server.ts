@@ -481,14 +481,15 @@ async function startServer() {
   app.post("/api/admin/login", async (req, res) => {
     const { email, password } = req.body;
     console.log("LOGIN REQUEST RECEIVED:", { email });
-    const settings = await readData<{ password?: string }>("settings.json");
+    const settings = await readData<{ username?: string; password?: string }>("settings.json");
 
     const secureEmail = "greenearthbd.25@gmail.com";
+    const dbUsername = (settings.username || "admin").trim().toLowerCase();
     const securePassword = settings.password || "greenearth2026";
 
     const normalizedEmail = (email || "").trim().toLowerCase();
 
-    if (normalizedEmail === secureEmail && password === securePassword) {
+    if ((normalizedEmail === secureEmail || normalizedEmail === dbUsername || normalizedEmail === "admin") && password === securePassword) {
       console.log("LOGIN SUCCESSFUL");
       res.json({ success: true, token: "green-earth-admin-token-2026" });
     } else {

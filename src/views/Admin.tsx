@@ -298,7 +298,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password })
+        body: JSON.stringify({ email: loginEmail.trim().toLowerCase(), password })
       });
       let data;
       try {
@@ -974,6 +974,9 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                   onChange={(e) => setLoginEmail(e.target.value)}
                   placeholder={isBangla ? 'যেমন: greenearthbd.25@gmail.com' : 'e.g. greenearthbd.25@gmail.com'}
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-semibold"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
                   required
                 />
               </div>
