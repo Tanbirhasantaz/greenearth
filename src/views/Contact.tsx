@@ -129,7 +129,7 @@ export default function Contact({ isBangla, onFormSuccess, settings }: ContactPr
                 {isBangla ? 'ফোন করুন' : 'Call Us'}
               </h3>
               <p className="font-sans text-xs text-gray-500 leading-relaxed">
-                {settings?.phone || '+880 1751601039'}<br />
+                {settings?.phone || '+880 1751601039'}<br /> +8801521716419
               </p>
             </div>
 
@@ -139,7 +139,7 @@ export default function Contact({ isBangla, onFormSuccess, settings }: ContactPr
                 {isBangla ? 'ইমেইল লিখুন' : 'Email Us'}
               </h3>
               <p className="font-sans text-xs text-gray-500 leading-relaxed break-all">
-                {settings?.email || 'greenearthbd.25@gmail.com'}<br />support@greenearth-bd.org
+                {settings?.email || 'greenearthbd.25@gmail.com'}<br />
               </p>
             </div>
           </div>
