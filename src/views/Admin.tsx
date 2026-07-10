@@ -327,8 +327,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       setSubscribers(resSubs);
       setContacts(resContacts);
       setSettings(resSettings);
-      setMilestonesList(resMilestones);
-      setCoreValuesList(resCoreValues);
+      setMilestonesList(Array.isArray(resMilestones) ? resMilestones : []);
+      setCoreValuesList(Array.isArray(resCoreValues) ? resCoreValues : []);
 
       // Seed settings inputs
       if (resSettings) {
@@ -3546,7 +3546,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-150 text-xs text-gray-700">
-                        {coreValuesList.map((val) => (
+                        {Array.isArray(coreValuesList) && coreValuesList.map((val) => (
                           <tr key={val.id} className="hover:bg-gray-50/50 transition-all font-medium">
                             <td className="py-4 px-6 font-bold text-gray-900">{val.iconName || 'Leaf'}</td>
                             <td className="py-4 px-6 font-bold text-gray-900">{val.title}</td>
@@ -3575,7 +3575,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                                       message: `Are you sure you want to delete core value: "${val.title}"?`,
                                       onConfirm: async () => {
                                         try {
-                                          const res = await fetch(`/api/corevalues?id=${val.id}`, { method: 'DELETE' });
+                                          const res = await fetch(`/api/corevalues/${val.id}`, { method: 'DELETE' });
                                           if (res.ok) fetchAllData();
                                         } catch (err) {
                                           console.error(err);
@@ -3594,7 +3594,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         ))}
                       </tbody>
                     </table>
-                    {coreValuesList.length === 0 && (
+                    {(!Array.isArray(coreValuesList) || coreValuesList.length === 0) && (
                       <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No Core Values found.</p>
                     )}
                   </div>
@@ -3774,7 +3774,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-150 text-xs text-gray-700">
-                        {milestonesList.map((m) => (
+                        {Array.isArray(milestonesList) && milestonesList.map((m) => (
                           <tr key={m.id} className="hover:bg-gray-50/50 transition-all font-medium">
                             <td className="py-4 px-6 font-bold text-[#1F5E2E]">{m.year}</td>
                             <td className="py-4 px-6 font-bold text-gray-900">{m.title}</td>
@@ -3804,7 +3804,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                                       message: `Are you sure you want to delete milestone: "${m.title}"?`,
                                       onConfirm: async () => {
                                         try {
-                                          const res = await fetch(`/api/milestones?id=${m.id}`, { method: 'DELETE' });
+                                          const res = await fetch(`/api/milestones/${m.id}`, { method: 'DELETE' });
                                           if (res.ok) fetchAllData();
                                         } catch (err) {
                                           console.error(err);
@@ -3823,7 +3823,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         ))}
                       </tbody>
                     </table>
-                    {milestonesList.length === 0 && (
+                    {(!Array.isArray(milestonesList) || milestonesList.length === 0) && (
                       <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No Milestones found.</p>
                     )}
                   </div>

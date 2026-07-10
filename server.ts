@@ -1038,9 +1038,11 @@ async function startServer() {
     res.json({ success: true, milestone: newMilestone });
   });
 
-  app.delete("/api/milestones/:id", async (req, res) => {
+  app.delete("/api/milestones/:id?", async (req, res) => {
+    const id = req.params.id || req.query.id;
+    if (!id) return res.status(400).json({ error: "Missing ID" });
     const milestones = await readData<any[]>("milestones.json");
-    const filtered = milestones.filter((m) => m.id !== req.params.id);
+    const filtered = milestones.filter((m) => m.id !== id);
     await writeData("milestones.json", filtered);
     res.json({ success: true });
   });
@@ -1070,9 +1072,11 @@ async function startServer() {
     res.json({ success: true, coreValue: newValue });
   });
 
-  app.delete("/api/corevalues/:id", async (req, res) => {
+  app.delete("/api/corevalues/:id?", async (req, res) => {
+    const id = req.params.id || req.query.id;
+    if (!id) return res.status(400).json({ error: "Missing ID" });
     const corevalues = await readData<any[]>("corevalues.json");
-    const filtered = corevalues.filter((v) => v.id !== req.params.id);
+    const filtered = corevalues.filter((v) => v.id !== id);
     await writeData("corevalues.json", filtered);
     res.json({ success: true });
   });
