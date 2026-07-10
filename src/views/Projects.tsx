@@ -13,10 +13,10 @@ interface ProjectsProps {
   onProjectClick: (project: Project) => void;
 }
 
-type ProjectCategoryFilter = 'all' | 'plantation' | 'renewable' | 'water' | 'waste' | 'awareness';
+type ProjectCategoryFilter = string;
 
 export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
-  const [activeCategory, setActiveCategory] = useState<ProjectCategoryFilter>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
 
   // Dynamic fetch on mount
@@ -34,7 +34,7 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
       .catch((err) => console.log('Using static projects fallback:', err));
   }, []);
 
-  const categories = [
+  const defaultCategories = [
     { id: 'all', label: 'All', labelBn: 'সব প্রকল্প' },
     { id: 'plantation', label: 'Tree Plantation', labelBn: 'বৃক্ষরোপণ' },
     { id: 'renewable', label: 'Solar & Renewable', labelBn: 'সৌর ও নবায়নযোগ্য' },
@@ -42,6 +42,17 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
     { id: 'waste', label: 'Waste Management', labelBn: 'বর্জ্য অপসারণ' },
     { id: 'awareness', label: 'Awareness Campaigns', labelBn: 'সচেতনতা অভিযান' }
   ];
+
+  const categories = [...defaultCategories];
+  projectsList.forEach((proj) => {
+    if (proj.category && !categories.some(c => c.id === proj.category)) {
+      categories.push({
+        id: proj.category,
+        label: proj.categoryLabel || proj.category,
+        labelBn: proj.categoryLabelBn || proj.categoryLabel || proj.category
+      });
+    }
+  });
 
   // Filter projects based on choice
   const filteredProjects = activeCategory === 'all'

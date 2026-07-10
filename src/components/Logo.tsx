@@ -42,11 +42,19 @@ export default function Logo({
     <div className={`flex items-center gap-3 select-none ${className}`} id="ge-logo">
       {/* SVG Icon part of the Logo */}
       <div className={`relative ${dim.svg} flex items-center justify-center`}>
-        <svg
-          viewBox="0 0 500 500"
-          className="w-full h-full transform transition-transform hover:rotate-3 duration-500"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        {settings?.logoUrl ? (
+          <img
+            src={settings.logoUrl}
+            alt={orgName}
+            className="w-full h-full object-cover rounded-full shadow-sm border border-gray-100"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <svg
+            viewBox="0 0 500 500"
+            className="w-full h-full transform transition-transform hover:rotate-3 duration-500"
+            xmlns="http://www.w3.org/2000/svg"
+          >
           <defs>
             {/* Soft background Sunburst gradient */}
             <radialGradient id="sunburstGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
@@ -199,6 +207,7 @@ export default function Logo({
             />
           </g>
         </svg>
+        )}
       </div>
 
       {/* Wordmark (Green Earth) */}

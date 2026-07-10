@@ -125,7 +125,9 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   // 1. Projects Form Fields
   const [projTitle, setProjTitle] = useState('');
   const [projTitleBn, setProjTitleBn] = useState('');
-  const [projCategory, setProjCategory] = useState<'plantation' | 'renewable' | 'water' | 'waste' | 'awareness'>('plantation');
+  const [projCategory, setProjCategory] = useState<string>('plantation');
+  const [customCategory, setCustomCategory] = useState('');
+  const [customCategoryBn, setCustomCategoryBn] = useState('');
   const [projLocation, setProjLocation] = useState('');
   const [projLocationBn, setProjLocationBn] = useState('');
   const [projStatus, setProjStatus] = useState<'ongoing' | 'completed'>('ongoing');
@@ -189,6 +191,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [setAddress, setSetAddress] = useState('');
   const [setAddressBn, setSetAddressBn] = useState('');
   const [setNewPassword, setSetNewPassword] = useState('');
+  const [setLogoUrl, setSetLogoUrl] = useState('');
 
   // Additional dynamic page settings state variables
   const [setAboutText, setSetAboutText] = useState('');
@@ -270,6 +273,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         setSetEmail(resSettings.email || 'info@greenearth-bd.org');
         setSetAddress(resSettings.address || '42, Road 11, Banani, Dhaka-1213, Bangladesh.');
         setSetAddressBn(resSettings.addressBn || '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।');
+        setSetLogoUrl(resSettings.logoUrl || '');
         setSetAboutText(resSettings.aboutText || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.');
         setSetAboutTextBn(resSettings.aboutTextBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।');
         setSetHeroImgUrl(resSettings.heroImgUrl || '/src/assets/images/hero_landscape_bangladesh_1783444495014.jpg');
@@ -439,13 +443,23 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       awareness: 'কমিউনিটি সচেতনতা'
     };
 
+    const finalCategory = projCategory === 'custom' 
+      ? customCategory.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') 
+      : projCategory;
+    const finalCategoryLabel = projCategory === 'custom' 
+      ? customCategory.trim() 
+      : (categories[projCategory] || projCategory);
+    const finalCategoryLabelBn = projCategory === 'custom' 
+      ? customCategoryBn.trim() 
+      : (categoriesBn[projCategory] || projCategory);
+
     const payload = {
       id: editingId || undefined,
       title: projTitle,
       titleBn: projTitleBn,
-      category: projCategory,
-      categoryLabel: categories[projCategory],
-      categoryLabelBn: categoriesBn[projCategory],
+      category: finalCategory,
+      categoryLabel: finalCategoryLabel,
+      categoryLabelBn: finalCategoryLabelBn,
       location: projLocation,
       locationBn: projLocationBn,
       status: projStatus,
@@ -484,7 +498,18 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     setEditingId(p.id);
     setProjTitle(p.title);
     setProjTitleBn(p.titleBn);
-    setProjCategory(p.category);
+    
+    const isPredefined = ['plantation', 'renewable', 'water', 'waste', 'awareness'].includes(p.category);
+    if (isPredefined) {
+      setProjCategory(p.category);
+      setCustomCategory('');
+      setCustomCategoryBn('');
+    } else {
+      setProjCategory('custom');
+      setCustomCategory(p.categoryLabel || p.category);
+      setCustomCategoryBn(p.categoryLabelBn || p.category);
+    }
+
     setProjLocation(p.location);
     setProjLocationBn(p.locationBn);
     setProjStatus(p.status);
@@ -522,6 +547,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     setProjTitle('');
     setProjTitleBn('');
     setProjCategory('plantation');
+    setCustomCategory('');
+    setCustomCategoryBn('');
     setProjLocation('');
     setProjLocationBn('');
     setProjStatus('ongoing');
@@ -958,6 +985,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       email: setEmail,
       address: setAddress,
       addressBn: setAddressBn,
+      logoUrl: setLogoUrl,
       aboutText: setAboutText,
       aboutTextBn: setAboutTextBn,
       heroImgUrl: setHeroImgUrl,
@@ -1469,7 +1497,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Category</label>
                         <select
                           value={projCategory}
-                          onChange={(e) => setProjCategory(e.target.value as any)}
+                          onChange={(e) => setProjCategory(e.target.value)}
                           className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-700"
                         >
                           <option value="plantation">Tree Plantation (বৃক্ষরোপণ)</option>
@@ -1477,8 +1505,39 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           <option value="water">Water Conservation (পানি সংরক্ষণ)</option>
                           <option value="waste">Waste & Recycling (বর্জ্য ও রিসাইক্লিং)</option>
                           <option value="awareness">Awareness Campaign (সচেতনতা অভিযান)</option>
+                          <option value="custom">Custom Category / কাস্টম ক্যাটাগরি</option>
                         </select>
                       </div>
+
+                      {projCategory === 'custom' && (
+                        <>
+                          {/* Custom Category EN */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Custom Category Name (EN)</label>
+                            <input
+                              type="text"
+                              value={customCategory}
+                              onChange={(e) => setCustomCategory(e.target.value)}
+                              placeholder="e.g. Biodiversity Conservation"
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                              required
+                            />
+                          </div>
+
+                          {/* Custom Category BN */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Custom Category Name (BN)</label>
+                            <input
+                              type="text"
+                              value={customCategoryBn}
+                              onChange={(e) => setCustomCategoryBn(e.target.value)}
+                              placeholder="যেমন: জীববৈচিত্র্য সংরক্ষণ"
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                              required
+                            />
+                          </div>
+                        </>
+                      )}
 
                       {/* Status */}
                       <div className="flex flex-col gap-1.5">
@@ -2671,6 +2730,17 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
                         />
                       </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-200/60">
+                      <ImageUploadInput
+                        label={isBangla ? "অর্গানাইজেশনের লোগো বা ছবি" : "Organization Logo or Photo"}
+                        value={setLogoUrl}
+                        onChange={setSetLogoUrl}
+                        placeholder="/src/assets/images/logo_placeholder.png"
+                        filenamePrefix="logo"
+                        isBangla={isBangla}
+                      />
                     </div>
                   </div>
 
