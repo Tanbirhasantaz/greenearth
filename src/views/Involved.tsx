@@ -524,8 +524,8 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
             </p>
             <div className="flex gap-4 items-center">
               <span className="text-xs font-mono font-bold text-gray-400">EMAIL ENQUIRIES:</span>
-              <a href="mailto:partners@greenearth-bd.org" className="text-sm font-sans font-bold text-[#1F5E2E] hover:underline">
-                partners@greenearth-bd.org
+              <a href="mailto:greenearthbd.25@gmail.com" className="text-sm font-sans font-bold text-[#1F5E2E] hover:underline">
+                greenearthbd.25@gmail.com
               </a>
             </div>
           </div>
@@ -565,15 +565,15 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                   <div className="flex items-center gap-1">
                     <span className="font-black text-gray-800">
                       {paymentMethod === 'bkash' 
-                        ? (settings?.bkashNo || '01712345678') 
-                        : (settings?.nagadNo || '01712345678')
+                        ? (settings?.bkashNo || '+8801751601039') 
+                        : (settings?.nagadNo || '+8801751601039')
                       }
                     </span>
                     <button
                       onClick={() => {
                         const walletNo = paymentMethod === 'bkash' 
-                          ? (settings?.bkashNo || '01712345678') 
-                          : (settings?.nagadNo || '01712345678');
+                          ? (settings?.bkashNo || '+8801751601039') 
+                          : (settings?.nagadNo || '+8801751601039');
                         navigator.clipboard.writeText(walletNo);
                         alert('Copied!');
                       }}
