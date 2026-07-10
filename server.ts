@@ -24,7 +24,9 @@ function initializeDataFiles() {
     subscribers: path.join(DATA_DIR, "subscribers.json"),
     contacts: path.join(DATA_DIR, "contacts.json"),
     settings: path.join(DATA_DIR, "settings.json"),
-    testimonials: path.join(DATA_DIR, "testimonials.json")
+    testimonials: path.join(DATA_DIR, "testimonials.json"),
+    milestones: path.join(DATA_DIR, "milestones.json"),
+    corevalues: path.join(DATA_DIR, "corevalues.json")
   };
 
   // 1. Initial Projects
@@ -419,6 +421,79 @@ function initializeDataFiles() {
       }
     ];
     fs.writeFileSync(filePaths.testimonials, JSON.stringify(initialTestimonials, null, 2));
+  }
+
+  // 11. Initial Milestones
+  if (!fs.existsSync(filePaths.milestones)) {
+    const initialMilestones = [
+      {
+        id: "mile-1",
+        year: "2024",
+        yearBn: "২০২৪",
+        title: "The Seed is Planted",
+        titleBn: "যাত্রার সূচনা",
+        description: "Green Earth was founded by a passionate group of environmental scientists and student volunteers in Dhaka to tackle urban pollution and local tree loss.",
+        descriptionBn: "শহরের পরিবেশ দূষণ ও সবুজ গাছপালার ঘাটতি মোকাবিলায় ঢাকা বিশ্ববিদ্যালয় থেকে একদল পরিবেশ বিজ্ঞানী ও ছাত্র স্বেচ্ছাসেবীর উদ্যোগে গ্রিন আর্থ প্রতিষ্ঠিত হয়।"
+      },
+      {
+        id: "mile-2",
+        year: "2025",
+        yearBn: "২০২৫",
+        title: "Coastal Shields Project",
+        titleBn: "উপকূলীয় সুরক্ষা প্রকল্প",
+        description: "Launched our first mega coastal mangrove plantation in Satkhira, placing 10,000+ Keora and Gewa saplings alongside local coastal guardians.",
+        descriptionBn: "সাতক্ষীরায় প্রথম বৃহৎ উপকূলীয় ম্যানগ্রোভ রোপণ শুরু হয়, যেখানে স্থানীয়দের অংশীদারিত্বে ১০,০০০টিরও বেশি চারা রোপণ করা হয়।"
+      },
+      {
+        id: "mile-3",
+        year: "2026",
+        yearBn: "২০২৬",
+        title: "Solar Power for Education",
+        titleBn: "শিক্ষায় সৌরবিদ্যুৎ",
+        description: "Successfully expanded our renewable initiative to power 15 remote char schools with sustainable, off-grid clean solar micro-grids.",
+        descriptionBn: "চরাঞ্চলের ১৫টি প্রত্যন্ত প্রাথমিক বিদ্যালয়কে সম্পূর্ণ টেকসই, অফ-গ্রিড সৌর মাইক্রো-গ্রিডের আওতায় সফলভাবে আনা হয়েছে।"
+      }
+    ];
+    fs.writeFileSync(filePaths.milestones, JSON.stringify(initialMilestones, null, 2));
+  }
+
+  // 12. Initial Core Values
+  if (!fs.existsSync(filePaths.corevalues)) {
+    const initialCoreValues = [
+      {
+        id: "val-1",
+        title: "Sustainability First",
+        titleBn: "স্থায়িত্বই প্রধান",
+        description: "Every project we model aims for long-term ecological balance and locally independent operational self-sufficiency.",
+        descriptionBn: "আমাদের প্রতিটি প্রকল্পের লক্ষ্য দীর্ঘমেয়াদী পরিবেশগত ভারসাম্য এবং স্থানীয়ভাবে স্বাবলম্বী পরিচালনা নিশ্চিত করা।",
+        iconName: "Leaf"
+      },
+      {
+        id: "val-2",
+        title: "Community Driven",
+        titleBn: "জনগণের অংশীদারিত্ব",
+        description: "We believe real change starts bottom-up. Local villagers own, manage, and scale all eco-solutions we launch together.",
+        descriptionBn: "আমরা বিশ্বাস করি প্রকৃত পরিবর্তন তৃণমূল থেকে শুরু হয়। স্থানীয় গ্রামবাসীরা আমাদের সমস্ত পরিবেশ-বান্ধব সমাধান পরিচালনা করেন।",
+        iconName: "Users"
+      },
+      {
+        id: "val-3",
+        title: "Radical Transparency",
+        titleBn: "চরম স্বচ্ছতা",
+        description: "Every Taka donated is logged, tracked, and visible on demand. Financial files and impact measurements are fully open.",
+        descriptionBn: "অনুদানকৃত প্রতিটি টাকার হিসাব রাখা হয় এবং জনসমক্ষে প্রকাশ করা হয়। আর্থিক বিবরণী ও প্রভাব পরিমাপ সকলের জন্য উন্মুক্ত।",
+        iconName: "TrendingUp"
+      },
+      {
+        id: "val-4",
+        title: "Eco-Innovation",
+        titleBn: "পরিবেশগত উদ্ভাবন",
+        description: "Blending traditional Bengali soil wisdom with modern scientific monitoring tools, satellite mapping, and clean energy tech.",
+        descriptionBn: "ঐতিহ্যবাহী বাঙালি মাটির চাষবাসের জ্ঞানের সাথে আধুনিক বৈজ্ঞানিক পর্যবেক্ষণ, স্যাটেলাইট ম্যাপিং এবং নবায়নযোগ্য জ্বালানির সমন্বয়।",
+        iconName: "Award"
+      }
+    ];
+    fs.writeFileSync(filePaths.corevalues, JSON.stringify(initialCoreValues, null, 2));
   }
 }
 
@@ -936,6 +1011,70 @@ async function startServer() {
     const updated = { ...current, ...req.body };
     await writeData("settings.json", updated);
     res.json({ success: true, settings: updated });
+  });
+
+  // Milestones API
+  app.get("/api/milestones", async (req, res) => {
+    res.json(await readData("milestones.json"));
+  });
+
+  app.post("/api/milestones", async (req, res) => {
+    const milestones = await readData<any[]>("milestones.json");
+    const newMilestone = req.body;
+
+    if (!newMilestone.id) {
+      newMilestone.id = "mile-" + Date.now();
+      milestones.push(newMilestone);
+    } else {
+      const idx = milestones.findIndex((m) => m.id === newMilestone.id);
+      if (idx !== -1) {
+        milestones[idx] = newMilestone;
+      } else {
+        milestones.push(newMilestone);
+      }
+    }
+
+    await writeData("milestones.json", milestones);
+    res.json({ success: true, milestone: newMilestone });
+  });
+
+  app.delete("/api/milestones/:id", async (req, res) => {
+    const milestones = await readData<any[]>("milestones.json");
+    const filtered = milestones.filter((m) => m.id !== req.params.id);
+    await writeData("milestones.json", filtered);
+    res.json({ success: true });
+  });
+
+  // Core Values API
+  app.get("/api/corevalues", async (req, res) => {
+    res.json(await readData("corevalues.json"));
+  });
+
+  app.post("/api/corevalues", async (req, res) => {
+    const corevalues = await readData<any[]>("corevalues.json");
+    const newValue = req.body;
+
+    if (!newValue.id) {
+      newValue.id = "val-" + Date.now();
+      corevalues.push(newValue);
+    } else {
+      const idx = corevalues.findIndex((v) => v.id === newValue.id);
+      if (idx !== -1) {
+        corevalues[idx] = newValue;
+      } else {
+        corevalues.push(newValue);
+      }
+    }
+
+    await writeData("corevalues.json", corevalues);
+    res.json({ success: true, coreValue: newValue });
+  });
+
+  app.delete("/api/corevalues/:id", async (req, res) => {
+    const corevalues = await readData<any[]>("corevalues.json");
+    const filtered = corevalues.filter((v) => v.id !== req.params.id);
+    await writeData("corevalues.json", filtered);
+    res.json({ success: true });
   });
 
   /* ==============================================

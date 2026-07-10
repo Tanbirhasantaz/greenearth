@@ -15,6 +15,8 @@ interface AboutProps {
 
 export default function About({ isBangla, settings }: AboutProps) {
   const [teamList, setTeamList] = React.useState<any[]>(TEAM_MEMBERS);
+  const [milestonesList, setMilestonesList] = React.useState<any[]>(MILESTONES);
+  const [coreValuesList, setCoreValuesList] = React.useState<any[]>(CORE_VALUES);
 
   React.useEffect(() => {
     fetch('/api/team')
@@ -28,6 +30,30 @@ export default function About({ isBangla, settings }: AboutProps) {
         }
       })
       .catch((err) => console.log('Using static team leaders fallback:', err));
+
+    fetch('/api/milestones')
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error('Milestones fail');
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setMilestonesList(data);
+        }
+      })
+      .catch((err) => console.log('Using static milestones fallback:', err));
+
+    fetch('/api/corevalues')
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error('Core values fail');
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setCoreValuesList(data);
+        }
+      })
+      .catch((err) => console.log('Using static core values fallback:', err));
   }, []);
 
   // Map core values to their respective icons
@@ -44,15 +70,15 @@ export default function About({ isBangla, settings }: AboutProps) {
       <section className="relative py-16 overflow-hidden bg-gradient-to-b from-[#1F5E2E]/10 to-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 flex flex-col items-center gap-4">
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block">
-            {isBangla ? 'আমাদের পরিচয়' : 'Who We Are'}
+            {isBangla ? (settings?.aboutHeroLabelBn || 'আমাদের পরিচয়') : (settings?.aboutHeroLabel || 'Who We Are')}
           </span>
           <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-black text-[#1F5E2E]">
-            {isBangla ? 'আমাদের গল্প ও শক্তি' : 'Our Story, Mission & Values'}
+            {isBangla ? (settings?.aboutHeroTitleBn || 'আমাদের গল্প ও শক্তি') : (settings?.aboutHeroTitle || 'Our Story, Mission & Values')}
           </h1>
           <p className="font-sans text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed">
             {isBangla
-              ? 'গ্রিন আর্থ হলো স্থানীয় সম্প্রদায়ের নেতৃত্বাধীন পরিবেশ উন্নয়নমূলক জোট, যা মাঠ পর্যায়ে সবুজ রূপান্তর আনয়ন করছে।'
-              : 'Empowering local custodians to combat sea level rise, manage single-use waste, and establish off-grid solar-powered schools.'
+              ? (settings?.aboutHeroSubBn || 'গ্রিন আর্থ হলো স্থানীয় সম্প্রদায়ের নেতৃত্বাধীন পরিবেশ উন্নয়নমূলক জোট, যা মাঠ পর্যায়ে সবুজ রূপান্তর আনয়ন করছে।')
+              : (settings?.aboutHeroSub || 'Empowering local custodians to combat sea level rise, manage single-use waste, and establish off-grid solar-powered schools.')
             }
           </p>
           <div className="h-1 w-16 bg-[#6BBF3A] rounded-full mt-2" />
@@ -65,7 +91,7 @@ export default function About({ isBangla, settings }: AboutProps) {
           {/* Story Text */}
           <div className="lg:col-span-7 flex flex-col gap-5 text-left">
             <h2 className="font-sans text-2xl md:text-3xl font-extrabold text-[#1F5E2E]">
-              {isBangla ? 'আমাদের প্রতিষ্ঠার প্রেক্ষাপট' : 'How We Started'}
+              {isBangla ? (settings?.aboutStoryTitleBn || 'আমাদের প্রতিষ্ঠার প্রেক্ষাপট') : (settings?.aboutStoryTitle || 'How We Started')}
             </h2>
             <div className="font-sans text-gray-600 leading-relaxed space-y-4 text-sm md:text-base">
               <p>
@@ -135,16 +161,16 @@ export default function About({ isBangla, settings }: AboutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="max-w-2xl mx-auto mb-12">
             <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
-              {isBangla ? 'আমাদের আদর্শ' : 'Our Principles'}
+              {isBangla ? (settings?.aboutPrinciplesLabelBn || 'আমাদের আদর্শ') : (settings?.aboutPrinciplesLabel || 'Our Principles')}
             </span>
             <h2 className="font-sans text-2xl sm:text-3xl font-extrabold text-[#1F5E2E]">
-              {isBangla ? 'যে মূল্যবোধের ওপর আমরা দাঁড়িয়ে' : 'Our Core Organizational Values'}
+              {isBangla ? (settings?.aboutPrinciplesTitleBn || 'যে মূল্যবোধের ওপর আমরা দাঁড়িয়ে') : (settings?.aboutPrinciplesTitle || 'Our Core Organizational Values')}
             </h2>
             <div className="h-1 w-12 bg-[#6BBF3A] mx-auto rounded-full mt-3" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {CORE_VALUES.map((val) => (
+            {coreValuesList.map((val) => (
               <div key={val.id} className="bg-white border border-gray-100 rounded-3xl p-6 text-left shadow-sm hover:shadow-md transition-all">
                 <div className="p-3 bg-[#6BBF3A]/10 text-[#1F5E2E] rounded-2xl w-fit mb-5">
                   {iconMap[val.iconName] || <Leaf size={24} />}
@@ -165,17 +191,17 @@ export default function About({ isBangla, settings }: AboutProps) {
       <section className="py-20 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" id="journey-timeline">
         <div className="text-center mb-16">
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
-            {isBangla ? 'আমাদের অর্জন' : 'Our Milestones'}
+            {isBangla ? (settings?.aboutMilestonesLabelBn || 'আমাদের অর্জন') : (settings?.aboutMilestonesLabel || 'Our Milestones')}
           </span>
           <h2 className="font-sans text-2xl sm:text-3xl font-extrabold text-[#1F5E2E]">
-            {isBangla ? 'আজ পর্যন্ত আমাদের পথচলা' : 'The Milestones of Our Journey'}
+            {isBangla ? (settings?.aboutMilestonesTitleBn || 'আজ পর্যন্ত আমাদের পথচলা') : (settings?.aboutMilestonesTitle || 'The Milestones of Our Journey')}
           </h2>
           <div className="h-1 w-12 bg-[#6BBF3A] mx-auto rounded-full mt-3" />
         </div>
 
         {/* Timeline Layout */}
         <div className="relative border-l-4 border-[#6BBF3A]/20 ml-4 sm:ml-32 pl-8 space-y-12 py-4 text-left">
-          {MILESTONES.map((mile) => (
+          {milestonesList.map((mile) => (
             <div key={mile.id} className="relative">
               {/* Year Marker */}
               <div className="absolute -left-20 sm:-left-44 top-0.5 bg-[#6BBF3A] text-white font-mono font-extrabold text-sm sm:text-base py-1 px-3 sm:px-4 rounded-full shadow tracking-wider text-center w-16 sm:w-28">
@@ -204,10 +230,10 @@ export default function About({ isBangla, settings }: AboutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="max-w-2xl mx-auto mb-16">
             <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
-              {isBangla ? 'আমাদের অভিভাবক' : 'Our Team Leaders'}
+              {isBangla ? (settings?.aboutTeamLabelBn || 'আমাদের অভিভাবক') : (settings?.aboutTeamLabel || 'Our Team Leaders')}
             </span>
             <h2 className="font-sans text-3xl font-extrabold text-[#1F5E2E]">
-              {isBangla ? 'সবুজ আন্দোলনের পেছনের মুখ' : 'The Visionaries Behind Green Earth'}
+              {isBangla ? (settings?.aboutTeamTitleBn || 'সবুজ আন্দোলনের পেছনের মুখ') : (settings?.aboutTeamTitle || 'The Visionaries Behind Green Earth')}
             </h2>
             <div className="h-1 w-12 bg-[#6BBF3A] mx-auto rounded-full mt-3" />
           </div>

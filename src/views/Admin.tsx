@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, LayoutDashboard, Trees, BookOpen, Users, Heart, Image as ImageIcon, 
   Mail, Settings, Plus, Edit, Trash2, LogOut, Search, Check, X, Phone, MapPin, 
-  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare
+  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Milestone
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
 import ImageUploadInput from '../components/ImageUploadInput';
@@ -71,9 +71,29 @@ interface OrgSettings {
   aboutVisionBn?: string;
   bkashNo?: string;
   nagadNo?: string;
+  aboutHeroLabel?: string;
+  aboutHeroLabelBn?: string;
+  aboutHeroTitle?: string;
+  aboutHeroTitleBn?: string;
+  aboutHeroSub?: string;
+  aboutHeroSubBn?: string;
+  aboutStoryTitle?: string;
+  aboutStoryTitleBn?: string;
+  aboutPrinciplesLabel?: string;
+  aboutPrinciplesLabelBn?: string;
+  aboutPrinciplesTitle?: string;
+  aboutPrinciplesTitleBn?: string;
+  aboutMilestonesLabel?: string;
+  aboutMilestonesLabelBn?: string;
+  aboutMilestonesTitle?: string;
+  aboutMilestonesTitleBn?: string;
+  aboutTeamLabel?: string;
+  aboutTeamLabelBn?: string;
+  aboutTeamTitle?: string;
+  aboutTeamTitleBn?: string;
 }
 
-type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings';
+type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones';
 
 interface AdminProps {
   isBangla?: boolean;
@@ -220,6 +240,47 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [setAboutVision, setSetAboutVision] = useState('');
   const [setAboutVisionBn, setSetAboutVisionBn] = useState('');
 
+  // New About page headers and labels state variables
+  const [setAboutHeroLabel, setSetAboutHeroLabel] = useState('');
+  const [setAboutHeroLabelBn, setSetAboutHeroLabelBn] = useState('');
+  const [setAboutHeroTitle, setSetAboutHeroTitle] = useState('');
+  const [setAboutHeroTitleBn, setSetAboutHeroTitleBn] = useState('');
+  const [setAboutHeroSub, setSetAboutHeroSub] = useState('');
+  const [setAboutHeroSubBn, setSetAboutHeroSubBn] = useState('');
+  const [setAboutStoryTitle, setSetAboutStoryTitle] = useState('');
+  const [setAboutStoryTitleBn, setSetAboutStoryTitleBn] = useState('');
+  const [setAboutPrinciplesLabel, setSetAboutPrinciplesLabel] = useState('');
+  const [setAboutPrinciplesLabelBn, setSetAboutPrinciplesLabelBn] = useState('');
+  const [setAboutPrinciplesTitle, setSetAboutPrinciplesTitle] = useState('');
+  const [setAboutPrinciplesTitleBn, setSetAboutPrinciplesTitleBn] = useState('');
+  const [setAboutMilestonesLabel, setSetAboutMilestonesLabel] = useState('');
+  const [setAboutMilestonesLabelBn, setSetAboutMilestonesLabelBn] = useState('');
+  const [setAboutMilestonesTitle, setSetAboutMilestonesTitle] = useState('');
+  const [setAboutMilestonesTitleBn, setSetAboutMilestonesTitleBn] = useState('');
+  const [setAboutTeamLabel, setSetAboutTeamLabel] = useState('');
+  const [setAboutTeamLabelBn, setSetAboutTeamLabelBn] = useState('');
+  const [setAboutTeamTitle, setSetAboutTeamTitle] = useState('');
+  const [setAboutTeamTitleBn, setSetAboutTeamTitleBn] = useState('');
+
+  // Milestones and Core Values dataset list states
+  const [milestonesList, setMilestonesList] = useState<any[]>([]);
+  const [coreValuesList, setCoreValuesList] = useState<any[]>([]);
+
+  // Milestone Form Fields
+  const [mileYear, setMileYear] = useState('');
+  const [mileYearBn, setMileYearBn] = useState('');
+  const [mileTitle, setMileTitle] = useState('');
+  const [mileTitleBn, setMileTitleBn] = useState('');
+  const [mileDesc, setMileDesc] = useState('');
+  const [mileDescBn, setMileDescBn] = useState('');
+
+  // Core Value Form Fields
+  const [valTitle, setValTitle] = useState('');
+  const [valTitleBn, setValTitleBn] = useState('');
+  const [valDesc, setValDesc] = useState('');
+  const [valDescBn, setValDescBn] = useState('');
+  const [valIconName, setValIconName] = useState('Leaf');
+
   // Payment details state variables
   const [setBkashNo, setSetBkashNo] = useState('');
   const [setNagadNo, setSetNagadNo] = useState('');
@@ -239,7 +300,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     try {
       const [
         resProj, resBlogs, resTeam, resGallery, 
-        resVols, resDons, resSubs, resContacts, resSettings, resTests
+        resVols, resDons, resSubs, resContacts, resSettings, resTests,
+        resMilestones, resCoreValues
       ] = await Promise.all([
         fetch('/api/projects').then((r) => r.json()),
         fetch('/api/blogs').then((r) => r.json()),
@@ -250,7 +312,9 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         fetch('/api/subscribers').then((r) => r.json()),
         fetch('/api/contacts').then((r) => r.json()),
         fetch('/api/settings').then((r) => r.json()),
-        fetch('/api/testimonials').then((r) => r.json()).catch(() => [])
+        fetch('/api/testimonials').then((r) => r.json()).catch(() => []),
+        fetch('/api/milestones').then((r) => r.json()).catch(() => []),
+        fetch('/api/corevalues').then((r) => r.json()).catch(() => [])
       ]);
 
       setProjects(resProj);
@@ -263,6 +327,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       setSubscribers(resSubs);
       setContacts(resContacts);
       setSettings(resSettings);
+      setMilestonesList(resMilestones);
+      setCoreValuesList(resCoreValues);
 
       // Seed settings inputs
       if (resSettings) {
@@ -300,6 +366,28 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
         setSetBkashNo(resSettings.bkashNo || '01712345678');
         setSetNagadNo(resSettings.nagadNo || '01712345678');
+
+        // New About Page Headers Seeding
+        setSetAboutHeroLabel(resSettings.aboutHeroLabel || 'Who We Are');
+        setSetAboutHeroLabelBn(resSettings.aboutHeroLabelBn || 'আমাদের পরিচয়');
+        setSetAboutHeroTitle(resSettings.aboutHeroTitle || 'Our Story, Mission & Values');
+        setSetAboutHeroTitleBn(resSettings.aboutHeroTitleBn || 'আমাদের গল্প ও শক্তি');
+        setSetAboutHeroSub(resSettings.aboutHeroSub || 'Empowering local custodians to combat sea level rise, manage single-use waste, and establish off-grid solar-powered schools.');
+        setSetAboutHeroSubBn(resSettings.aboutHeroSubBn || 'গ্রিন আর্থ হলো স্থানীয় সম্প্রদায়ের নেতৃত্বাধীন পরিবেশ উন্নয়নমূলক জোট, যা মাঠ পর্যায়ে সবুজ রূপান্তর আনয়ন করছে।');
+        setSetAboutStoryTitle(resSettings.aboutStoryTitle || 'How We Started');
+        setSetAboutStoryTitleBn(resSettings.aboutStoryTitleBn || 'আমাদের প্রতিষ্ঠার প্রেক্ষাপট');
+        setSetAboutPrinciplesLabel(resSettings.aboutPrinciplesLabel || 'Our Principles');
+        setSetAboutPrinciplesLabelBn(resSettings.aboutPrinciplesLabelBn || 'আমাদের আদর্শ');
+        setSetAboutPrinciplesTitle(resSettings.aboutPrinciplesTitle || 'Our Core Organizational Values');
+        setSetAboutPrinciplesTitleBn(resSettings.aboutPrinciplesTitleBn || 'যে মূল্যবোধের ওপর আমরা দাঁড়িয়ে');
+        setSetAboutMilestonesLabel(resSettings.aboutMilestonesLabel || 'Our Milestones');
+        setSetAboutMilestonesLabelBn(resSettings.aboutMilestonesLabelBn || 'আমাদের অর্জন');
+        setSetAboutMilestonesTitle(resSettings.aboutMilestonesTitle || 'The Milestones of Our Journey');
+        setSetAboutMilestonesTitleBn(resSettings.aboutMilestonesTitleBn || 'আজ পর্যন্ত আমাদের পথচলা');
+        setSetAboutTeamLabel(resSettings.aboutTeamLabel || 'Our Team Leaders');
+        setSetAboutTeamLabelBn(resSettings.aboutTeamLabelBn || 'আমাদের অভিভাবক');
+        setSetAboutTeamTitle(resSettings.aboutTeamTitle || 'The Visionaries Behind Green Earth');
+        setSetAboutTeamTitleBn(resSettings.aboutTeamTitleBn || 'সবুজ আন্দোলনের পেছনের মুখ');
       }
     } catch (err) {
       console.error('Error loading admin data', err);
@@ -1011,7 +1099,28 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       aboutVisionBn: setAboutVisionBn,
 
       bkashNo: setBkashNo,
-      nagadNo: setNagadNo
+      nagadNo: setNagadNo,
+
+      aboutHeroLabel: setAboutHeroLabel,
+      aboutHeroLabelBn: setAboutHeroLabelBn,
+      aboutHeroTitle: setAboutHeroTitle,
+      aboutHeroTitleBn: setAboutHeroTitleBn,
+      aboutHeroSub: setAboutHeroSub,
+      aboutHeroSubBn: setAboutHeroSubBn,
+      aboutStoryTitle: setAboutStoryTitle,
+      aboutStoryTitleBn: setAboutStoryTitleBn,
+      aboutPrinciplesLabel: setAboutPrinciplesLabel,
+      aboutPrinciplesLabelBn: setAboutPrinciplesLabelBn,
+      aboutPrinciplesTitle: setAboutPrinciplesTitle,
+      aboutPrinciplesTitleBn: setAboutPrinciplesTitleBn,
+      aboutMilestonesLabel: setAboutMilestonesLabel,
+      aboutMilestonesLabelBn: setAboutMilestonesLabelBn,
+      aboutMilestonesTitle: setAboutMilestonesTitle,
+      aboutMilestonesTitleBn: setAboutMilestonesTitleBn,
+      aboutTeamLabel: setAboutTeamLabel,
+      aboutTeamLabelBn: setAboutTeamLabelBn,
+      aboutTeamTitle: setAboutTeamTitle,
+      aboutTeamTitleBn: setAboutTeamTitleBn
     };
 
     if (setNewPassword.trim()) {
@@ -1259,6 +1368,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               { tab: 'volunteers', label: 'Volunteers List', icon: <Users size={18} />, count: volunteers.length },
               { tab: 'donations', label: 'Donations Audit', icon: <Heart size={18} />, count: donations.filter(d => d.status !== 'verified').length },
               { tab: 'team', label: 'Manage Team', icon: <Users size={18} /> },
+              { tab: 'corevalues', label: 'Manage Core Values', icon: <Award size={18} /> },
+              { tab: 'milestones', label: 'Manage Milestones', icon: <Milestone size={18} /> },
               { tab: 'gallery', label: 'Manage Gallery', icon: <ImageIcon size={18} /> },
               { tab: 'testimonials', label: 'Manage Testimonials', icon: <MessageSquare size={18} /> },
               { tab: 'subscribers', label: 'Subscribers', icon: <Mail size={18} />, count: subscribers.length },
@@ -1330,6 +1441,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               <option value="volunteers">Volunteers</option>
               <option value="donations">Donations</option>
               <option value="team">Team</option>
+              <option value="corevalues">Core Values</option>
+              <option value="milestones">Milestones</option>
               <option value="gallery">Gallery</option>
               <option value="testimonials">Testimonials</option>
               <option value="subscribers">Subscribers</option>
@@ -2974,6 +3087,211 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
                           />
                         </div>
+
+                        {/* Dynamic About Headers */}
+                        <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2 border-t border-gray-200 pt-4 mt-2">
+                          <span className="text-xs font-bold text-gray-700">About Page Hero Section Headers</span>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Badge Label (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutHeroLabel}
+                            onChange={(e) => setSetAboutHeroLabel(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Badge Label (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutHeroLabelBn}
+                            onChange={(e) => setSetAboutHeroLabelBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Title (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutHeroTitle}
+                            onChange={(e) => setSetAboutHeroTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Title (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutHeroTitleBn}
+                            onChange={(e) => setSetAboutHeroTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Subtitle (EN)</label>
+                          <textarea
+                            rows={2}
+                            value={setAboutHeroSub}
+                            onChange={(e) => setSetAboutHeroSub(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hero Subtitle (BN)</label>
+                          <textarea
+                            rows={2}
+                            value={setAboutHeroSubBn}
+                            onChange={(e) => setSetAboutHeroSubBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                          />
+                        </div>
+
+                        {/* Story Title */}
+                        <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2 border-t border-gray-200 pt-4 mt-2">
+                          <span className="text-xs font-bold text-gray-700">About Page Story Section</span>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Story Section Title (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutStoryTitle}
+                            onChange={(e) => setSetAboutStoryTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Story Section Title (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutStoryTitleBn}
+                            onChange={(e) => setSetAboutStoryTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+
+                        {/* Principles Headers */}
+                        <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2 border-t border-gray-200 pt-4 mt-2">
+                          <span className="text-xs font-bold text-gray-700">Core Principles Section Headers</span>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Principles Badge (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutPrinciplesLabel}
+                            onChange={(e) => setSetAboutPrinciplesLabel(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Principles Badge (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutPrinciplesLabelBn}
+                            onChange={(e) => setSetAboutPrinciplesLabelBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Principles Title (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutPrinciplesTitle}
+                            onChange={(e) => setSetAboutPrinciplesTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Principles Title (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutPrinciplesTitleBn}
+                            onChange={(e) => setSetAboutPrinciplesTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+
+                        {/* Milestones Headers */}
+                        <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2 border-t border-gray-200 pt-4 mt-2">
+                          <span className="text-xs font-bold text-gray-700">Milestones Section Headers</span>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Milestones Badge (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutMilestonesLabel}
+                            onChange={(e) => setSetAboutMilestonesLabel(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Milestones Badge (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutMilestonesLabelBn}
+                            onChange={(e) => setSetAboutMilestonesLabelBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Milestones Title (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutMilestonesTitle}
+                            onChange={(e) => setSetAboutMilestonesTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Milestones Title (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutMilestonesTitleBn}
+                            onChange={(e) => setSetAboutMilestonesTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+
+                        {/* Team Leaders Headers */}
+                        <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2 border-t border-gray-200 pt-4 mt-2">
+                          <span className="text-xs font-bold text-gray-700">Team Leaders Section Headers</span>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Team Badge (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutTeamLabel}
+                            onChange={(e) => setSetAboutTeamLabel(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Team Badge (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutTeamLabelBn}
+                            onChange={(e) => setSetAboutTeamLabelBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Team Title (EN)</label>
+                          <input
+                            type="text"
+                            value={setAboutTeamTitle}
+                            onChange={(e) => setSetAboutTeamTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Team Title (BN)</label>
+                          <input
+                            type="text"
+                            value={setAboutTeamTitleBn}
+                            onChange={(e) => setSetAboutTeamTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3064,6 +3382,452 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </button>
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* --- MANAGE CORE VALUES TAB --- */}
+            {activeTab === 'corevalues' && (
+              <div className="space-y-8" id="corevalues-tab">
+                {/* Header */}
+                <div className="flex justify-between items-center bg-white p-6 border border-gray-200 rounded-3xl shadow-sm">
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900">Manage Core Values</h3>
+                    <p className="text-xs text-gray-500">Add, edit or delete organization core values shown on the About Us page.</p>
+                  </div>
+                  {!isEditing && (
+                    <button
+                      onClick={() => {
+                        setIsEditing(true);
+                        setEditingId(null);
+                        setValTitle('');
+                        setValTitleBn('');
+                        setValDesc('');
+                        setValDescBn('');
+                        setValIconName('Leaf');
+                      }}
+                      className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-bold py-2 px-5 rounded-full text-xs cursor-pointer flex items-center gap-1.5 shadow"
+                    >
+                      <Plus size={16} />
+                      <span>Add Core Value</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Form (Add or Edit) */}
+                {isEditing && (
+                  <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6 text-left">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider">
+                      {editingId ? 'Edit Core Value' : 'Add New Core Value'}
+                    </h4>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const payload = {
+                          title: valTitle,
+                          titleBn: valTitleBn,
+                          description: valDesc,
+                          descriptionBn: valDescBn,
+                          iconName: valIconName
+                        };
+                        try {
+                          const url = editingId ? `/api/corevalues?id=${editingId}` : '/api/corevalues';
+                          const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload)
+                          });
+                          if (res.ok) {
+                            alert('Core Value saved successfully!');
+                            setIsEditing(false);
+                            setEditingId(null);
+                            fetchAllData();
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="space-y-4"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (EN)</label>
+                          <input
+                            type="text"
+                            required
+                            value={valTitle}
+                            onChange={(e) => setValTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            placeholder="e.g. Grassroots Leadership"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (BN)</label>
+                          <input
+                            type="text"
+                            required
+                            value={valTitleBn}
+                            onChange={(e) => setValTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            placeholder="যেমনঃ তৃণমূলের নেতৃত্ব"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (EN)</label>
+                          <textarea
+                            rows={3}
+                            required
+                            value={valDesc}
+                            onChange={(e) => setValDesc(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            placeholder="Explain the value..."
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (BN)</label>
+                          <textarea
+                            rows={3}
+                            required
+                            value={valDescBn}
+                            onChange={(e) => setValDescBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            placeholder="মূল্যবোধের বিবরণ দিন..."
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Icon Name</label>
+                          <select
+                            value={valIconName}
+                            onChange={(e) => setValIconName(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                          >
+                            <option value="Leaf">Leaf (পরিবেশ/সবুজ)</option>
+                            <option value="Users">Users (সম্প্রদায়/একতা)</option>
+                            <option value="TrendingUp">TrendingUp (উন্নতি/গতিশীলতা)</option>
+                            <option value="Award">Award (স্বীকৃতি/অর্জন)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditing(false);
+                            setEditingId(null);
+                          }}
+                          className="py-2.5 px-5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-full text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="py-2.5 px-6 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-xs font-bold transition-all cursor-pointer shadow hover:shadow-lg"
+                        >
+                          Save Value
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* List View */}
+                {!isEditing && (
+                  <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse font-sans">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                          <th className="py-4 px-6">Icon</th>
+                          <th className="py-4 px-6">Title (EN)</th>
+                          <th className="py-4 px-6">Title (BN)</th>
+                          <th className="py-4 px-6">Description (EN)</th>
+                          <th className="py-4 px-6 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-150 text-xs text-gray-700">
+                        {coreValuesList.map((val) => (
+                          <tr key={val.id} className="hover:bg-gray-50/50 transition-all font-medium">
+                            <td className="py-4 px-6 font-bold text-gray-900">{val.iconName || 'Leaf'}</td>
+                            <td className="py-4 px-6 font-bold text-gray-900">{val.title}</td>
+                            <td className="py-4 px-6 text-gray-600 font-bold">{val.titleBn}</td>
+                            <td className="py-4 px-6 text-gray-500 max-w-xs truncate">{val.description}</td>
+                            <td className="py-4 px-6 text-right">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setIsEditing(true);
+                                    setEditingId(val.id);
+                                    setValTitle(val.title);
+                                    setValTitleBn(val.titleBn || '');
+                                    setValDesc(val.description);
+                                    setValDescBn(val.descriptionBn || '');
+                                    setValIconName(val.iconName || 'Leaf');
+                                  }}
+                                  className="text-gray-500 hover:text-[#1F5E2E] p-1.5 rounded hover:bg-gray-100 cursor-pointer"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      title: 'Confirm Deletion',
+                                      message: `Are you sure you want to delete core value: "${val.title}"?`,
+                                      onConfirm: async () => {
+                                        try {
+                                          const res = await fetch(`/api/corevalues?id=${val.id}`, { method: 'DELETE' });
+                                          if (res.ok) fetchAllData();
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                        setConfirmModal(null);
+                                      }
+                                    });
+                                  }}
+                                  className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 cursor-pointer"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {coreValuesList.length === 0 && (
+                      <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No Core Values found.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- MANAGE MILESTONES TAB --- */}
+            {activeTab === 'milestones' && (
+              <div className="space-y-8" id="milestones-tab">
+                {/* Header */}
+                <div className="flex justify-between items-center bg-white p-6 border border-gray-200 rounded-3xl shadow-sm">
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900">Manage Milestones</h3>
+                    <p className="text-xs text-gray-500">Add, edit or delete journey milestones shown on the About Us page timeline.</p>
+                  </div>
+                  {!isEditing && (
+                    <button
+                      onClick={() => {
+                        setIsEditing(true);
+                        setEditingId(null);
+                        setMileYear('');
+                        setMileYearBn('');
+                        setMileTitle('');
+                        setMileTitleBn('');
+                        setMileDesc('');
+                        setMileDescBn('');
+                      }}
+                      className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-bold py-2 px-5 rounded-full text-xs cursor-pointer flex items-center gap-1.5 shadow"
+                    >
+                      <Plus size={16} />
+                      <span>Add Milestone</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Form (Add or Edit) */}
+                {isEditing && (
+                  <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6 text-left">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider">
+                      {editingId ? 'Edit Milestone' : 'Add New Milestone'}
+                    </h4>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const payload = {
+                          year: mileYear,
+                          yearBn: mileYearBn,
+                          title: mileTitle,
+                          titleBn: mileTitleBn,
+                          description: mileDesc,
+                          descriptionBn: mileDescBn
+                        };
+                        try {
+                          const url = editingId ? `/api/milestones?id=${editingId}` : '/api/milestones';
+                          const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload)
+                          });
+                          if (res.ok) {
+                            alert('Milestone saved successfully!');
+                            setIsEditing(false);
+                            setEditingId(null);
+                            fetchAllData();
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="space-y-4"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Year (EN)</label>
+                          <input
+                            type="text"
+                            required
+                            value={mileYear}
+                            onChange={(e) => setMileYear(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            placeholder="e.g. 2024"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Year (BN)</label>
+                          <input
+                            type="text"
+                            required
+                            value={mileYearBn}
+                            onChange={(e) => setMileYearBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            placeholder="যেমনঃ ২০২৪"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (EN)</label>
+                          <input
+                            type="text"
+                            required
+                            value={mileTitle}
+                            onChange={(e) => setMileTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            placeholder="e.g. Founded"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (BN)</label>
+                          <input
+                            type="text"
+                            required
+                            value={mileTitleBn}
+                            onChange={(e) => setMileTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                            placeholder="যেমনঃ প্রতিষ্ঠা"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (EN)</label>
+                          <textarea
+                            rows={3}
+                            required
+                            value={mileDesc}
+                            onChange={(e) => setMileDesc(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            placeholder="Milestone description..."
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (BN)</label>
+                          <textarea
+                            rows={3}
+                            required
+                            value={mileDescBn}
+                            onChange={(e) => setMileDescBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                            placeholder="অর্জনের বিবরণ দিন..."
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditing(false);
+                            setEditingId(null);
+                          }}
+                          className="py-2.5 px-5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-full text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="py-2.5 px-6 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-xs font-bold transition-all cursor-pointer shadow hover:shadow-lg"
+                        >
+                          Save Milestone
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* List View */}
+                {!isEditing && (
+                  <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse font-sans">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                          <th className="py-4 px-6">Year</th>
+                          <th className="py-4 px-6">Title (EN)</th>
+                          <th className="py-4 px-6">Title (BN)</th>
+                          <th className="py-4 px-6">Description (EN)</th>
+                          <th className="py-4 px-6 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-150 text-xs text-gray-700">
+                        {milestonesList.map((m) => (
+                          <tr key={m.id} className="hover:bg-gray-50/50 transition-all font-medium">
+                            <td className="py-4 px-6 font-bold text-[#1F5E2E]">{m.year}</td>
+                            <td className="py-4 px-6 font-bold text-gray-900">{m.title}</td>
+                            <td className="py-4 px-6 text-gray-600 font-bold">{m.titleBn}</td>
+                            <td className="py-4 px-6 text-gray-500 max-w-xs truncate">{m.description}</td>
+                            <td className="py-4 px-6 text-right">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setIsEditing(true);
+                                    setEditingId(m.id);
+                                    setMileYear(m.year);
+                                    setMileYearBn(m.yearBn || '');
+                                    setMileTitle(m.title);
+                                    setMileTitleBn(m.titleBn || '');
+                                    setMileDesc(m.description);
+                                    setMileDescBn(m.descriptionBn || '');
+                                  }}
+                                  className="text-gray-500 hover:text-[#1F5E2E] p-1.5 rounded hover:bg-gray-100 cursor-pointer"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      title: 'Confirm Deletion',
+                                      message: `Are you sure you want to delete milestone: "${m.title}"?`,
+                                      onConfirm: async () => {
+                                        try {
+                                          const res = await fetch(`/api/milestones?id=${m.id}`, { method: 'DELETE' });
+                                          if (res.ok) fetchAllData();
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                        setConfirmModal(null);
+                                      }
+                                    });
+                                  }}
+                                  className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 cursor-pointer"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {milestonesList.length === 0 && (
+                      <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No Milestones found.</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

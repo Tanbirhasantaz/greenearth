@@ -31,10 +31,74 @@ import Admin from './views/Admin';
 import { Page, Project, BlogPost, GalleryItem } from './types';
 
 export default function App() {
-  // Page states
-  const [currentPage, setCurrentPage] = useState<Page>('home');
+  // Helper to resolve hash router location
+  const getPageFromHash = (hash: string): Page => {
+    const p = hash.replace(/^#\/?/, '') as Page;
+    const validPages: Page[] = ['home', 'about', 'projects', 'involved', 'blog', 'gallery', 'contact', 'admin'];
+    if (validPages.includes(p)) {
+      return p;
+    }
+    return 'home';
+  };
+
+  // Page states initialized directly from URL hash
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    if (typeof window !== 'undefined') {
+      return getPageFromHash(window.location.hash);
+    }
+    return 'home';
+  });
   const [isBangla, setIsBangla] = useState(false);
   const [settings, setSettings] = useState<any>(null);
+
+  // Sync hash routing on window backward/forward navigations
+  useEffect(() => {
+    const handleHashChange = () => {
+      const page = getPageFromHash(window.location.hash);
+      setCurrentPage(page);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Sync state transitions to browser URL hash and page titles
+  useEffect(() => {
+    // 1. Sync URL hash
+    const currentHash = window.location.hash.replace(/^#\/?/, '');
+    if (currentHash !== currentPage) {
+      window.location.hash = `#/${currentPage}`;
+    }
+
+    // 2. Sync Dynamic Document Tab Title
+    const siteName = isBangla 
+      ? (settings?.orgNameBn || 'গ্রিন আর্থ') 
+      : (settings?.orgName || 'Green Earth');
+
+    const pageNamesEn: Record<Page, string> = {
+      home: 'Home',
+      about: 'About Us',
+      projects: 'Projects',
+      involved: 'Get Involved',
+      blog: 'Blog & News',
+      gallery: 'Gallery',
+      contact: 'Contact Us',
+      admin: 'Admin Panel',
+    };
+
+    const pageNamesBn: Record<Page, string> = {
+      home: 'হোম',
+      about: 'আমাদের সম্পর্কে',
+      projects: 'প্রকল্পসমূহ',
+      involved: 'অংশ নিন',
+      blog: 'ব্লগ ও খবর',
+      gallery: 'গ্যালারি',
+      contact: 'যোগাযোগ',
+      admin: 'অ্যাডমিন প্যানেল',
+    };
+
+    const pageTitle = isBangla ? pageNamesBn[currentPage] : pageNamesEn[currentPage];
+    document.title = `${siteName} | ${pageTitle}`;
+  }, [currentPage, isBangla, settings]);
 
   // Modal active states
   const [activeProject, setActiveProject] = useState<Project | null>(null);
