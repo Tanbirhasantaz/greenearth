@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { PROJECTS, BLOG_POSTS, TEAM_MEMBERS, GALLERY_ITEMS } from './data';
+import { PROJECTS, BLOG_POSTS, TEAM_MEMBERS, GALLERY_ITEMS, TESTIMONIALS } from './data';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
@@ -25,6 +25,9 @@ export const initStorage = () => {
   }
   if (!localStorage.getItem('ge_db_gallery')) {
     localStorage.setItem('ge_db_gallery', JSON.stringify(GALLERY_ITEMS));
+  }
+  if (!localStorage.getItem('ge_db_testimonials')) {
+    localStorage.setItem('ge_db_testimonials', JSON.stringify(TESTIMONIALS));
   }
   if (!localStorage.getItem('ge_db_volunteers')) {
     localStorage.setItem('ge_db_volunteers', JSON.stringify([]));
@@ -325,6 +328,39 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
     } else if (method === 'DELETE') {
       const updated = subscribers.filter((s: any) => s.email !== body?.email);
       await cloudWrite('subscribers.json', 'ge_db_subscribers', updated);
+      responseData = { success: true };
+    }
+  }
+  
+  // Testimonials fallback
+  else if (path === '/api/testimonials' || path.startsWith('/api/testimonials/')) {
+    const parts = path.split('/');
+    const id = parts.pop();
+    const testimonials = await cloudRead<any[]>('testimonials.json', 'ge_db_testimonials', TESTIMONIALS);
+
+    if (method === 'GET') {
+      responseData = testimonials;
+    } else if (method === 'POST') {
+      const newTestimonial = {
+        ...body,
+        id: body?.id || 'test-' + Date.now()
+      };
+      testimonials.push(newTestimonial);
+      await cloudWrite('testimonials.json', 'ge_db_testimonials', testimonials);
+      responseData = { success: true, testimonial: newTestimonial };
+    } else if (method === 'PUT' && id && id !== 'testimonials') {
+      const index = testimonials.findIndex((t: any) => t.id === id);
+      if (index !== -1) {
+        testimonials[index] = { ...testimonials[index], ...body };
+        await cloudWrite('testimonials.json', 'ge_db_testimonials', testimonials);
+        responseData = { success: true, testimonial: testimonials[index] };
+      } else {
+        status = 404;
+        responseData = { success: false, error: 'Testimonial not found' };
+      }
+    } else if (method === 'DELETE' && id && id !== 'testimonials') {
+      const updated = testimonials.filter((t: any) => t.id !== id);
+      await cloudWrite('testimonials.json', 'ge_db_testimonials', updated);
       responseData = { success: true };
     }
   }

@@ -23,7 +23,8 @@ function initializeDataFiles() {
     donations: path.join(DATA_DIR, "donations.json"),
     subscribers: path.join(DATA_DIR, "subscribers.json"),
     contacts: path.join(DATA_DIR, "contacts.json"),
-    settings: path.join(DATA_DIR, "settings.json")
+    settings: path.join(DATA_DIR, "settings.json"),
+    testimonials: path.join(DATA_DIR, "testimonials.json")
   };
 
   // 1. Initial Projects
@@ -378,6 +379,46 @@ function initializeDataFiles() {
       address: "42, Road 11, Banani, Dhaka-1213, Bangladesh."
     };
     fs.writeFileSync(filePaths.settings, JSON.stringify(initialSettings, null, 2));
+  }
+
+  // 10. Initial Testimonials
+  if (!fs.existsSync(filePaths.testimonials)) {
+    const initialTestimonials = [
+      {
+        id: "test-1",
+        quote: "The deep tube well installed by Green Earth has brought pure, arsenic-free water to our doorsteps. Our children no longer suffer from water-borne diseases, and we can lead healthy lives.",
+        quoteBn: "গ্রিন আর্থের স্থাপন করা গভীর নলকূপ আমাদের দোরগোড়ায় আর্সেনিকমুক্ত বিশুদ্ধ পানি এনে দিয়েছে। আমাদের বাচ্চারা এখন আর পেটের রোগে ভোগে না, আমরা সুস্থ আছি।",
+        author: "Morjina Begum",
+        authorBn: "মর্জিনা বেগম",
+        role: "Homemaker & Community Lead",
+        roleBn: "গৃহিণী ও স্থানীয় নেত্রী",
+        location: "Chandpur, Bangladesh",
+        locationBn: "চাঁদপুর, বাংলাদেশ"
+      },
+      {
+        id: "test-2",
+        quote: "Thanks to the solar panel systems, our school can now run computer tablets and fans during the extreme heat of summer. Attendances have skyrocketed, and students love coming here.",
+        quoteBn: "সৌরবিদ্যুৎ সিস্টেমের জন্য আমাদের স্কুলে কম্পিউটার ট্যাবলেট এবং ফ্যান চালানো যায়। গরমের দিনেও বাচ্চাদের উপস্থিতি অনেক বেড়ে গেছে এবং তারা স্কুলে আসতে ভালোবাসে।",
+        author: "Anisul Islam Talukder",
+        authorBn: "আনিসুল ইসলাম তালুকদার",
+        role: "Primary School Headmaster",
+        roleBn: "প্রাথমিক বিদ্যালয়ের প্রধান শিক্ষক",
+        location: "Kurigram Char, Bangladesh",
+        locationBn: "কুড়িগ্রাম চর, বাংলাদেশ"
+      },
+      {
+        id: "test-3",
+        quote: "Joining as a volunteer with Green Earth changed my perspective. Planting mangroves in Satkhira taught me how resilient our coastal people are, and how much we can achieve together.",
+        quoteBn: "গ্রিন আর্থ-এর একজন স্বেচ্ছাসেবী হিসেবে যোগ দেওয়া আমার জীবনকে বদলে দিয়েছে। সাতক্ষীরায় ম্যানগ্রোভ রোপণ করে আমি উপকূলের মানুষের সহনশীলতা এবং একতাবদ্ধতার জোর দেখেছি।",
+        author: "Tanvir Rahman",
+        authorBn: "তানভীর রহমান",
+        role: "Student, University of Dhaka",
+        roleBn: "ছাত্র, ঢাকা বিশ্ববিদ্যালয়",
+        location: "Dhaka, Bangladesh",
+        locationBn: "ঢাকা, বাংলাদেশ"
+      }
+    ];
+    fs.writeFileSync(filePaths.testimonials, JSON.stringify(initialTestimonials, null, 2));
   }
 }
 
@@ -846,6 +887,42 @@ async function startServer() {
     const contacts = await readData<any[]>("contacts.json");
     const filtered = contacts.filter((c) => c.id !== req.params.id);
     await writeData("contacts.json", filtered);
+    res.json({ success: true });
+  });
+
+  // Testimonials API
+  app.get("/api/testimonials", async (req, res) => {
+    res.json(await readData("testimonials.json"));
+  });
+
+  app.post("/api/testimonials", async (req, res) => {
+    const testimonials = await readData<any[]>("testimonials.json");
+    const newTestimonial = req.body;
+    if (!newTestimonial.id) {
+      newTestimonial.id = "test-" + Date.now();
+    }
+    testimonials.push(newTestimonial);
+    await writeData("testimonials.json", testimonials);
+    res.json({ success: true, testimonial: newTestimonial });
+  });
+
+  app.put("/api/testimonials/:id", async (req, res) => {
+    const testimonials = await readData<any[]>("testimonials.json");
+    const updatedTestimonial = req.body;
+    const index = testimonials.findIndex((t) => t.id === req.params.id);
+    if (index !== -1) {
+      testimonials[index] = { ...testimonials[index], ...updatedTestimonial };
+      await writeData("testimonials.json", testimonials);
+      res.json({ success: true, testimonial: testimonials[index] });
+    } else {
+      res.status(404).json({ success: false, error: "Testimonial not found" });
+    }
+  });
+
+  app.delete("/api/testimonials/:id", async (req, res) => {
+    const testimonials = await readData<any[]>("testimonials.json");
+    const filtered = testimonials.filter((t) => t.id !== req.params.id);
+    await writeData("testimonials.json", filtered);
     res.json({ success: true });
   });
 

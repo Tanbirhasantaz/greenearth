@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, LayoutDashboard, Trees, BookOpen, Users, Heart, Image as ImageIcon, 
   Mail, Settings, Plus, Edit, Trash2, LogOut, Search, Check, X, Phone, MapPin, 
-  Eye, FileText, Download, ShieldCheck, Globe
+  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare
 } from 'lucide-react';
-import { Project, BlogPost, TeamMember, GalleryItem } from '../types';
+import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
 import ImageUploadInput from '../components/ImageUploadInput';
 
 interface Volunteer {
@@ -73,7 +73,7 @@ interface OrgSettings {
   nagadNo?: string;
 }
 
-type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'subscribers' | 'contacts' | 'settings';
+type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings';
 
 interface AdminProps {
   isBangla?: boolean;
@@ -99,6 +99,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [subscribers, setSubscribers] = useState<string[]>([]);
@@ -169,6 +170,16 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [galImage, setGalImage] = useState('');
   const [galDate, setGalDate] = useState('');
 
+  // 4b. Testimonials Form Fields
+  const [testQuote, setTestQuote] = useState('');
+  const [testQuoteBn, setTestQuoteBn] = useState('');
+  const [testAuthor, setTestAuthor] = useState('');
+  const [testAuthorBn, setTestAuthorBn] = useState('');
+  const [testRole, setTestRole] = useState('');
+  const [testRoleBn, setTestRoleBn] = useState('');
+  const [testLocation, setTestLocation] = useState('');
+  const [testLocationBn, setTestLocationBn] = useState('');
+
   // 5. Settings Form Fields
   const [setOrgName, setSetOrgName] = useState('');
   const [setTagline, setSetTagline] = useState('');
@@ -225,7 +236,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     try {
       const [
         resProj, resBlogs, resTeam, resGallery, 
-        resVols, resDons, resSubs, resContacts, resSettings
+        resVols, resDons, resSubs, resContacts, resSettings, resTests
       ] = await Promise.all([
         fetch('/api/projects').then((r) => r.json()),
         fetch('/api/blogs').then((r) => r.json()),
@@ -235,13 +246,15 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         fetch('/api/donations').then((r) => r.json()),
         fetch('/api/subscribers').then((r) => r.json()),
         fetch('/api/contacts').then((r) => r.json()),
-        fetch('/api/settings').then((r) => r.json())
+        fetch('/api/settings').then((r) => r.json()),
+        fetch('/api/testimonials').then((r) => r.json()).catch(() => [])
       ]);
 
       setProjects(resProj);
       setBlogs(resBlogs);
       setTeam(resTeam);
       setGallery(resGallery);
+      setTestimonials(resTests);
       setVolunteers(resVols);
       setDonations(resDons);
       setSubscribers(resSubs);
@@ -767,6 +780,82 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     setGalDate('');
   };
 
+  // 4b. TESTIMONIAL CRUD
+  const handleTestimonialSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      id: editingId || undefined,
+      quote: testQuote,
+      quoteBn: testQuoteBn,
+      author: testAuthor,
+      authorBn: testAuthorBn,
+      role: testRole,
+      roleBn: testRoleBn,
+      location: testLocation,
+      locationBn: testLocationBn
+    };
+
+    try {
+      const url = editingId ? `/api/testimonials/${editingId}` : '/api/testimonials';
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setIsEditing(false);
+        setEditingId(null);
+        clearTestimonialForm();
+        fetchAllData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleTestimonialEdit = (t: Testimonial) => {
+    setEditingId(t.id);
+    setTestQuote(t.quote);
+    setTestQuoteBn(t.quoteBn);
+    setTestAuthor(t.author);
+    setTestAuthorBn(t.authorBn);
+    setTestRole(t.role);
+    setTestRoleBn(t.roleBn);
+    setTestLocation(t.location);
+    setTestLocationBn(t.locationBn);
+    setIsEditing(true);
+  };
+
+  const handleTestimonialDelete = (id: string) => {
+    setConfirmModal({
+      title: isBangla ? 'মন্তব্য মুছে ফেলা নিশ্চিত করুন' : 'Confirm Testimonial Deletion',
+      message: isBangla 
+        ? 'আপনি কি নিশ্চিতভাবে এই মন্তব্যটি মুছে ফেলতে চান? এটি পুনরায় ফিরিয়ে আনা সম্ভব নয়।' 
+        : 'Are you sure you want to delete this testimonial? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/testimonials/${id}`, { method: 'DELETE' });
+          if (res.ok) fetchAllData();
+        } catch (err) {
+          console.error(err);
+        }
+        setConfirmModal(null);
+      }
+    });
+  };
+
+  const clearTestimonialForm = () => {
+    setTestQuote('');
+    setTestQuoteBn('');
+    setTestAuthor('');
+    setTestAuthorBn('');
+    setTestRole('');
+    setTestRoleBn('');
+    setTestLocation('');
+    setTestLocationBn('');
+  };
+
   // 5. REGISTRATION DELETIONS & APPROVALS
   const handleVolunteerDelete = (id: string) => {
     setConfirmModal({
@@ -1143,6 +1232,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               { tab: 'donations', label: 'Donations Audit', icon: <Heart size={18} />, count: donations.filter(d => d.status !== 'verified').length },
               { tab: 'team', label: 'Manage Team', icon: <Users size={18} /> },
               { tab: 'gallery', label: 'Manage Gallery', icon: <ImageIcon size={18} /> },
+              { tab: 'testimonials', label: 'Manage Testimonials', icon: <MessageSquare size={18} /> },
               { tab: 'subscribers', label: 'Subscribers', icon: <Mail size={18} />, count: subscribers.length },
               { tab: 'contacts', label: 'Contact Inquiries', icon: <FileText size={18} />, count: contacts.length },
               { tab: 'settings', label: 'System Settings', icon: <Settings size={18} /> }
@@ -1213,6 +1303,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               <option value="donations">Donations</option>
               <option value="team">Team</option>
               <option value="gallery">Gallery</option>
+              <option value="testimonials">Testimonials</option>
               <option value="subscribers">Subscribers</option>
               <option value="contacts">Contact submissions</option>
               <option value="settings">Settings</option>
@@ -2247,6 +2338,185 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             >
                               <Trash2 size={10} />
                             </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- TESTIMONIALS MANAGEMENT TAB --- */}
+            {activeTab === 'testimonials' && (
+              <div className="space-y-6" id="testimonials-tab">
+                {isEditing ? (
+                  <form onSubmit={handleTestimonialSave} className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6 text-left">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                      <h3 className="text-lg font-black text-[#1F5E2E]">
+                        {editingId ? 'Edit Testimonial' : 'Add Testimonial'}
+                      </h3>
+                      <button type="button" onClick={() => { setIsEditing(false); setEditingId(null); }} className="text-gray-400 hover:text-gray-700">
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Author Name (EN)</label>
+                        <input
+                          type="text"
+                          value={testAuthor}
+                          onChange={(e) => setTestAuthor(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Author Name (BN)</label>
+                        <input
+                          type="text"
+                          value={testAuthorBn}
+                          onChange={(e) => setTestAuthorBn(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Role/Designation (EN)</label>
+                        <input
+                          type="text"
+                          value={testRole}
+                          onChange={(e) => setTestRole(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Role/Designation (BN)</label>
+                        <input
+                          type="text"
+                          value={testRoleBn}
+                          onChange={(e) => setTestRoleBn(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Location (EN)</label>
+                        <input
+                          type="text"
+                          value={testLocation}
+                          onChange={(e) => setTestLocation(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Location (BN)</label>
+                        <input
+                          type="text"
+                          value={testLocationBn}
+                          onChange={(e) => setTestLocationBn(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Quote (EN)</label>
+                        <textarea
+                          rows={3}
+                          value={testQuote}
+                          onChange={(e) => setTestQuote(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-800 resize-none"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Quote (BN)</label>
+                        <textarea
+                          rows={3}
+                          value={testQuoteBn}
+                          onChange={(e) => setTestQuoteBn(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-800 resize-none"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => { setIsEditing(false); setEditingId(null); }}
+                        className="py-3 px-6 border border-gray-300 rounded-full text-sm font-semibold text-gray-600 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="py-3 px-8 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-sm font-bold cursor-pointer"
+                      >
+                        {editingId ? 'Save Changes' : 'Add Testimonial'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-black text-[#1F5E2E]">Testimonials</h3>
+                      <button
+                        onClick={() => { clearTestimonialForm(); setIsEditing(true); }}
+                        className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-4 rounded-full text-xs font-bold cursor-pointer flex items-center gap-1"
+                      >
+                        <Plus size={14} />
+                        <span>Add Testimonial</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {testimonials.map((t) => (
+                        <div key={t.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow flex flex-col justify-between text-left h-full group relative animate-fadeIn">
+                          <div className="space-y-4">
+                            <span className="text-4xl text-[#6BBF3A]/20 font-serif leading-none select-none">“</span>
+                            <p className="font-sans text-sm text-gray-600 italic leading-relaxed mb-4">
+                              {t.quote}
+                            </p>
+                            <p className="font-sans text-xs text-gray-400 italic leading-relaxed border-t border-gray-100 pt-2">
+                              {t.quoteBn}
+                            </p>
+                          </div>
+                          
+                          <div className="mt-4 border-t border-gray-100 pt-3 flex justify-between items-end">
+                            <div>
+                              <h4 className="font-sans font-black text-gray-900 text-sm leading-tight">
+                                {t.author} / {t.authorBn}
+                              </h4>
+                              <p className="font-mono text-[10px] text-gray-500 mt-1 uppercase tracking-wider">
+                                {t.role} ({t.location})
+                              </p>
+                            </div>
+                            
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <button
+                                onClick={() => handleTestimonialEdit(t)}
+                                className="p-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg cursor-pointer shadow-sm"
+                              >
+                                <Edit size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleTestimonialDelete(t.id)}
+                                className="p-1.5 bg-white border border-red-100 hover:bg-red-50 text-red-600 rounded-lg cursor-pointer shadow-sm"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}

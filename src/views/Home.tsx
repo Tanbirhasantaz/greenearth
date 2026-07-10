@@ -75,6 +75,7 @@ export default function Home({
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
   const [blogsList, setBlogsList] = useState<BlogPost[]>(BLOG_POSTS);
+  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>(TESTIMONIALS);
 
   // Dynamic fetch on mount
   useEffect(() => {
@@ -101,15 +102,28 @@ export default function Home({
         }
       })
       .catch((err) => console.log('Using static blogs fallback:', err));
+
+    fetch('/api/testimonials')
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error('Testimonials fail');
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setTestimonialsList(data);
+        }
+      })
+      .catch((err) => console.log('Using static testimonials fallback:', err));
   }, []);
 
   // Auto scroll testimonials
   useEffect(() => {
+    if (testimonialsList.length === 0) return;
     const timer = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
+      setActiveTestimonial((prev) => (prev + 1) % testimonialsList.length);
     }, 8000);
     return () => clearInterval(timer);
-  }, []);
+  }, [testimonialsList.length]);
 
   const whatWeDo = [
     {
@@ -448,7 +462,7 @@ export default function Home({
           </h2>
 
           <div className="relative min-h-[220px]">
-            {TESTIMONIALS.map((t, index) => (
+            {testimonialsList.map((t, index) => (
               <div
                 key={t.id}
                 className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${
@@ -474,7 +488,7 @@ export default function Home({
 
           {/* Dots controller */}
           <div className="flex justify-center gap-2 mt-8">
-            {TESTIMONIALS.map((_, idx) => (
+            {testimonialsList.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setActiveTestimonial(idx)}
