@@ -2714,24 +2714,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </div>
                   </div>
 
-                  {/* SECTION 7: SECURITY CREDENTIALS */}
-                  <div className="bg-[#FEF2F2] rounded-2xl p-6 border border-red-100 space-y-4">
-                    <h4 className="text-sm font-black text-red-800 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-red-500" />
-                      {isBangla ? '৭. নিরাপত্তা পাসওয়ার্ড পরিবর্তন' : '7. Admin Security Credentials'}
-                    </h4>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-red-600 uppercase tracking-wider">Update Admin Password</label>
-                      <input
-                        type="password"
-                        value={setNewPassword}
-                        onChange={(e) => setSetNewPassword(e.target.value)}
-                        placeholder="Leave blank to keep current password"
-                        className="w-full bg-white border border-red-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                      />
-                    </div>
-                  </div>
 
                   <div className="flex justify-end pt-4 border-t border-gray-100">
                     <button
