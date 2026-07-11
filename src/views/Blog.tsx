@@ -6,28 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, User, Clock, ArrowRight, BookOpen } from 'lucide-react';
 import { BlogPost } from '../types';
-
-function BlogSkeleton() {
-  return (
-    <div className="bg-white rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm animate-pulse flex flex-col h-full text-left">
-      <div className="relative aspect-video bg-gray-200" />
-      <div className="p-6 flex flex-col flex-1 justify-between gap-4">
-        <div className="space-y-3">
-          <div className="h-4 bg-gray-200 rounded-md w-1/3" />
-          <div className="h-6 bg-gray-200 rounded-lg w-5/6" />
-          <div className="space-y-2 pt-1">
-            <div className="h-4 bg-gray-200 rounded-md w-full" />
-            <div className="h-4 bg-gray-200 rounded-md w-5/6" />
-          </div>
-        </div>
-        <div className="border-t border-gray-100 pt-3 flex items-center justify-between mt-auto">
-          <div className="h-4 bg-gray-200 rounded-md w-1/4" />
-          <div className="h-4 bg-gray-200 rounded-md w-1/4" />
-        </div>
-      </div>
-    </div>
-  );
-}
+import { BLOG_POSTS } from '../data';
 
 interface BlogProps {
   isBangla: boolean;
@@ -37,29 +16,21 @@ interface BlogProps {
 export default function Blog({ isBangla, onBlogClick }: BlogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [blogsList, setBlogsList] = useState<BlogPost[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [blogsList, setBlogsList] = useState<BlogPost[]>(BLOG_POSTS);
 
   // Dynamic fetch on mount
   useEffect(() => {
-    fetch(`/api/blogs?t=${Date.now()}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
+    fetch('/api/blogs')
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Server returned non-ok status');
       })
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setBlogsList(data);
         }
       })
-      .catch((err) => console.log('Error loading blogs:', err))
-      .finally(() => setIsLoading(false));
+      .catch((err) => console.log('Using static blogs fallback:', err));
   }, []);
 
   const categories = [
@@ -150,14 +121,7 @@ export default function Blog({ isBangla, onBlogClick }: BlogProps) {
 
         {/* Main Content: Blog Listing (Desktop spans 8) */}
         <div className="lg:col-span-8 flex flex-col gap-8 order-last lg:order-first" id="blog-listing">
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <BlogSkeleton />
-              <BlogSkeleton />
-              <BlogSkeleton />
-              <BlogSkeleton />
-            </div>
-          ) : filteredPosts.length > 0 ? (
+          {filteredPosts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {filteredPosts.map((post) => (
                 <article

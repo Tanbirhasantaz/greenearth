@@ -136,10 +136,6 @@ interface OrgSettings {
   aboutTeamLabelBn?: string;
   aboutTeamTitle?: string;
   aboutTeamTitleBn?: string;
-  homeFocusLabel?: string;
-  homeFocusLabelBn?: string;
-  homeFocusTitle?: string;
-  homeFocusTitleBn?: string;
 }
 
 type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones';
@@ -325,12 +321,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [footerCopyright, setFooterCopyright] = useState('');
   const [footerCopyrightBn, setFooterCopyrightBn] = useState('');
 
-  // Home Focus Section Header Fields
-  const [homeFocusLabel, setHomeFocusLabel] = useState('');
-  const [homeFocusLabelBn, setHomeFocusLabelBn] = useState('');
-  const [homeFocusTitle, setHomeFocusTitle] = useState('');
-  const [homeFocusTitleBn, setHomeFocusTitleBn] = useState('');
-
   // Milestones and Core Values dataset list states
   const [milestonesList, setMilestonesList] = useState<any[]>([]);
   const [coreValuesList, setCoreValuesList] = useState<any[]>([]);
@@ -483,12 +473,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         setFooterNewsletterDescBn(resSettings.footerNewsletterDescBn || 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।');
         setFooterCopyright(resSettings.footerCopyright || '© 2026 Green Earth Bangladesh. All Rights Reserved.');
         setFooterCopyrightBn(resSettings.footerCopyrightBn || '© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।');
-
-        // Seed Home Focus Section Headers
-        setHomeFocusLabel(resSettings.homeFocusLabel || 'Our Focus Areas');
-        setHomeFocusLabelBn(resSettings.homeFocusLabelBn || 'আমাদের কার্যক্রম');
-        setHomeFocusTitle(resSettings.homeFocusTitle || 'Actions We Take for Green Bangladesh');
-        setHomeFocusTitleBn(resSettings.homeFocusTitleBn || 'সবুজ বাংলাদেশ গঠনে আমাদের পদক্ষেপ');
       }
     } catch (err) {
       console.error('Error loading admin data', err);
@@ -1222,11 +1206,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       aboutTeamLabelBn: setAboutTeamLabelBn,
       aboutTeamTitle: setAboutTeamTitle,
       aboutTeamTitleBn: setAboutTeamTitleBn,
-
-      homeFocusLabel: homeFocusLabel,
-      homeFocusLabelBn: homeFocusLabelBn,
-      homeFocusTitle: homeFocusTitle,
-      homeFocusTitleBn: homeFocusTitleBn,
 
       // Footer settings fields
       footerAboutText: footerAboutText,
@@ -3118,47 +3097,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             value={setAboutTextBn}
                             onChange={(e) => setSetAboutTextBn(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                          />
-                        </div>
-
-                        {/* Focus Areas Section Headers */}
-                        <div className="flex flex-col gap-1.5 col-span-1 md:col-span-2 border-t border-gray-200/60 pt-4 mt-2">
-                          <span className="text-xs font-bold text-gray-700">Home Focus Areas Section Headers</span>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Focus Section Badge (EN)</label>
-                          <input
-                            type="text"
-                            value={homeFocusLabel}
-                            onChange={(e) => setHomeFocusLabel(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Focus Section Badge (BN)</label>
-                          <input
-                            type="text"
-                            value={homeFocusLabelBn}
-                            onChange={(e) => setHomeFocusLabelBn(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Focus Section Main Title (EN)</label>
-                          <input
-                            type="text"
-                            value={homeFocusTitle}
-                            onChange={(e) => setHomeFocusTitle(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Focus Section Main Title (BN)</label>
-                          <input
-                            type="text"
-                            value={homeFocusTitleBn}
-                            onChange={(e) => setHomeFocusTitleBn(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
                           />
                         </div>
                       </div>

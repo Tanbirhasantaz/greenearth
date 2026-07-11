@@ -7,67 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Leaf, Trees, Wind, Sun, Droplet, Trash2, Heart, Award, Users, TrendingUp, Calendar, ArrowRight, Star } from 'lucide-react';
 import { Page, Project, BlogPost, Testimonial } from '../types';
-import { IMAGES } from '../data';
-
-// Skeleton Loader components
-function ProjectSkeleton() {
-  return (
-    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm animate-pulse flex flex-col h-full">
-      <div className="relative aspect-video bg-gray-200" />
-      <div className="p-6 flex flex-col flex-1 gap-4">
-        <div className="space-y-3">
-          <div className="h-6 bg-gray-200 rounded-lg w-3/4" />
-          <div className="h-4 bg-gray-200 rounded-md w-full" />
-          <div className="h-4 bg-gray-200 rounded-md w-5/6" />
-        </div>
-        <div className="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
-          <div className="h-4 bg-gray-200 rounded-md w-1/3" />
-          <div className="h-4 bg-gray-200 rounded-md w-1/4" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TestimonialSkeleton() {
-  return (
-    <div className="flex flex-col items-center justify-center animate-pulse py-6">
-      <div className="h-10 w-10 bg-gray-200 rounded-full mb-4" />
-      <div className="h-4 bg-gray-200 rounded-md w-3/4 mb-2" />
-      <div className="h-4 bg-gray-200 rounded-md w-1/2 mb-4" />
-      <div className="h-4 bg-gray-200 rounded-md w-1/4" />
-    </div>
-  );
-}
-
-function BlogSkeleton() {
-  return (
-    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm animate-pulse flex flex-col h-full">
-      <div className="relative aspect-video bg-gray-200" />
-      <div className="p-6 flex flex-col flex-1 gap-4">
-        <div className="space-y-3">
-          <div className="h-4 bg-gray-200 rounded-md w-1/3" />
-          <div className="h-5 bg-gray-200 rounded-lg w-5/6" />
-          <div className="h-4 bg-gray-200 rounded-md w-full" />
-        </div>
-        <div className="h-4 bg-gray-200 rounded-md w-1/4 mt-auto" />
-      </div>
-    </div>
-  );
-}
-
-function FocusAreaSkeleton() {
-  return (
-    <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm flex flex-col gap-5 animate-pulse text-left h-full">
-      <div className="p-4 rounded-2xl w-14 h-14 bg-gray-200" />
-      <div className="space-y-3">
-        <div className="h-5 bg-gray-200 rounded-lg w-2/3" />
-        <div className="h-4 bg-gray-200 rounded-md w-full" />
-        <div className="h-4 bg-gray-200 rounded-md w-5/6" />
-      </div>
-    </div>
-  );
-}
+import { PROJECTS, BLOG_POSTS, TESTIMONIALS, IMAGES } from '../data';
 
 // Stat Counter component to handle incremental numbers cleanly on load
 function StatCounter({ target, suffix = '', label, isBangla }: { target: number, suffix: string, label: string, isBangla: boolean }) {
@@ -133,92 +73,47 @@ export default function Home({
   settings
 }: HomeProps) {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const [projectsList, setProjectsList] = useState<Project[]>([]);
-  const [blogsList, setBlogsList] = useState<BlogPost[]>([]);
-  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>([]);
-  const [focusAreasList, setFocusAreasList] = useState<any[]>([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
-  const [isLoadingBlogs, setIsLoadingBlogs] = useState(true);
-  const [isLoadingTestimonials, setIsLoadingTestimonials] = useState(true);
-  const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
+  const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
+  const [blogsList, setBlogsList] = useState<BlogPost[]>(BLOG_POSTS);
+  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>(TESTIMONIALS);
 
   // Dynamic fetch on mount
   useEffect(() => {
-    fetch(`/api/projects?t=${Date.now()}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
+    fetch('/api/projects')
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Projects fail');
       })
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setProjectsList(data);
         }
       })
-      .catch((err) => console.log('Error loading projects:', err))
-      .finally(() => setIsLoadingProjects(false));
+      .catch((err) => console.log('Using static projects fallback:', err));
 
-    fetch(`/api/blogs?t=${Date.now()}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
+    fetch('/api/blogs')
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Blogs fail');
       })
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setBlogsList(data);
         }
       })
-      .catch((err) => console.log('Error loading blogs:', err))
-      .finally(() => setIsLoadingBlogs(false));
+      .catch((err) => console.log('Using static blogs fallback:', err));
 
-    fetch(`/api/testimonials?t=${Date.now()}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
+    fetch('/api/testimonials')
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Testimonials fail');
       })
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setTestimonialsList(data);
         }
       })
-      .catch((err) => console.log('Error loading testimonials:', err))
-      .finally(() => setIsLoadingTestimonials(false));
-
-    fetch(`/api/focusareas?t=${Date.now()}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error('Focus areas fail');
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setFocusAreasList(data);
-        }
-      })
-      .catch((err) => console.log('Error loading focus areas:', err))
-      .finally(() => setIsLoadingFocusAreas(false));
+      .catch((err) => console.log('Using static testimonials fallback:', err));
   }, []);
 
   // Auto scroll testimonials
@@ -230,7 +125,40 @@ export default function Home({
     return () => clearInterval(timer);
   }, [testimonialsList.length]);
 
-
+  const whatWeDo = [
+    {
+      icon: <Trees size={28} />,
+      title: 'Tree Plantation',
+      titleBn: 'বৃক্ষরোপণ কর্মসূচি',
+      desc: 'Planting native trees and coastal mangroves in erosion-prone belts of Sundarbans and northern riverbanks.',
+      descBn: 'সুন্দরবন উপকূল এবং উত্তরাঞ্চলের নদীভাঙন কবলিত এলাকায় দেশীয় চারা রোপণ ও ম্যানগ্রোভ বনায়ন তৈরি করা।',
+      color: 'bg-emerald-50 text-emerald-700 hover:border-emerald-500'
+    },
+    {
+      icon: <Sun size={28} />,
+      title: 'Renewable Energy',
+      titleBn: 'নবায়নযোগ্য জ্বালানি',
+      desc: 'Sponsoring reliable off-grid solar micro-grids for isolated schools and homes in northern river chars.',
+      descBn: 'চরাঞ্চলের গ্রিডহীন প্রত্যন্ত এলাকায় সৌর প্যানেল ও হোম সিস্টেমের মাধ্যমে বিদ্যুৎ ও আলোর ব্যবস্থা করা।',
+      color: 'bg-amber-50 text-amber-700 hover:border-amber-500'
+    },
+    {
+      icon: <Droplet size={28} />,
+      title: 'Water Conservation',
+      titleBn: 'বিশুদ্ধ পানি সরবরাহ',
+      desc: 'Drilling deep, arsenic-free tube wells and setting rainwater purification structures in contaminated hubs.',
+      descBn: 'আর্সেনিক ও স্যালাইন কবলিত এলাকায় গভীর বিশুদ্ধ নলকূপ এবং বৃষ্টির পানি ফিল্টারিং প্ল্যান্ট স্থাপন করা।',
+      color: 'bg-sky-50 text-sky-700 hover:border-sky-500'
+    },
+    {
+      icon: <Trash2 size={28} />,
+      title: 'Waste & Recycling',
+      titleBn: 'বর্জ্য ও রিসাইক্লিং',
+      desc: 'Organizing riverbank plastic cleanups and teaching households smart eco-friendly recycling habits.',
+      descBn: 'বুড়িগঙ্গাসহ বিভিন্ন নদী তীরবর্তী প্লাস্টিক অপসারণ এবং বাসাবাড়ির রিসাইক্লিং অভ্যাসের প্রশিক্ষণ দেওয়া।',
+      color: 'bg-purple-50 text-purple-700 hover:border-purple-500'
+    }
+  ];
 
   return (
     <div className="flex flex-col w-full overflow-hidden" id="home-view">
@@ -373,81 +301,35 @@ export default function Home({
           {/* Section Header */}
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
-              {isBangla 
-                ? (settings?.homeFocusLabelBn || 'আমাদের কার্যক্রম') 
-                : (settings?.homeFocusLabel || 'Our Focus Areas')}
+              {isBangla ? 'আমাদের কার্যক্রম' : 'Our Focus Areas'}
             </span>
             <h2 className="font-sans text-3xl sm:text-4xl font-extrabold text-[#1F5E2E] mb-4">
-              {isBangla 
-                ? (settings?.homeFocusTitleBn || 'সবুজ বাংলাদেশ গঠনে আমাদের পদক্ষেপ') 
-                : (settings?.homeFocusTitle || 'Actions We Take for Green Bangladesh')}
+              {isBangla ? 'সবুজ বাংলাদেশ গঠনে আমাদের পদক্ষেপ' : 'Actions We Take for Green Bangladesh'}
             </h2>
             <div className="h-1 w-20 bg-[#6BBF3A] mx-auto rounded-full" />
           </div>
 
           {/* Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {isLoadingFocusAreas ? (
-              Array.from({ length: 4 }).map((_, idx) => (
-                <FocusAreaSkeleton key={idx} />
-              ))
-            ) : focusAreasList.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-500 font-sans">
-                {isBangla ? 'কোনো কার্যক্রম পাওয়া যায়নি।' : 'No focus areas found.'}
-              </div>
-            ) : (
-              focusAreasList.map((item, index) => {
-                const getFocusIcon = (iconName: string) => {
-                  switch (iconName) {
-                    case 'Trees': return <Trees size={28} />;
-                    case 'Sun': return <Sun size={28} />;
-                    case 'Droplet': return <Droplet size={28} />;
-                    case 'Trash2': return <Trash2 size={28} />;
-                    case 'Leaf': return <Leaf size={28} />;
-                    case 'Users': return <Users size={28} />;
-                    case 'TrendingUp': return <TrendingUp size={28} />;
-                    case 'Award': return <Award size={28} />;
-                    case 'Wind': return <Wind size={28} />;
-                    default: return <Leaf size={28} />;
-                  }
-                };
-
-                const getFocusColorClass = (color: string) => {
-                  switch (color) {
-                    case 'emerald': return 'bg-emerald-50 text-emerald-700 hover:border-emerald-500';
-                    case 'amber': return 'bg-amber-50 text-amber-700 hover:border-amber-500';
-                    case 'sky': return 'bg-sky-50 text-sky-700 hover:border-sky-500';
-                    case 'purple': return 'bg-purple-50 text-purple-700 hover:border-purple-500';
-                    case 'teal': return 'bg-teal-50 text-teal-700 hover:border-teal-500';
-                    default: return 'bg-emerald-50 text-emerald-700 hover:border-emerald-500';
-                  }
-                };
-
-                const colorClass = getFocusColorClass(item.color || 'emerald');
-                const bgPart = colorClass.split(' ')[0];
-                const textPart = colorClass.split(' ')[1];
-
-                return (
-                  <motion.div
-                    key={item.id || index}
-                    whileHover={{ y: -8 }}
-                    className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all border-b-4 border-transparent hover:border-[#6BBF3A] flex flex-col gap-5 text-left h-full"
-                  >
-                    <div className={`p-4 rounded-2xl w-fit ${bgPart} ${textPart}`}>
-                      {getFocusIcon(item.iconName || 'Trees')}
-                    </div>
-                    <div>
-                      <h3 className="font-sans text-lg font-bold text-[#1F5E2E] mb-2">
-                        {isBangla ? item.titleBn : item.title}
-                      </h3>
-                      <p className="font-sans text-sm text-gray-600 leading-relaxed">
-                        {isBangla ? item.descriptionBn : item.description}
-                      </p>
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
+            {whatWeDo.map((item, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ y: -8 }}
+                className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all border-b-4 border-transparent hover:border-[#6BBF3A] flex flex-col gap-5 text-left"
+              >
+                <div className={`p-4 rounded-2xl w-fit ${item.color.split(' ')[0]} ${item.color.split(' ')[1]}`}>
+                  {item.icon}
+                </div>
+                <div>
+                  <h3 className="font-sans text-lg font-bold text-[#1F5E2E] mb-2">
+                    {isBangla ? item.titleBn : item.title}
+                  </h3>
+                  <p className="font-sans text-sm text-gray-600 leading-relaxed">
+                    {isBangla ? item.descBn : item.desc}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -480,63 +362,51 @@ export default function Home({
 
           {/* Projects Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {isLoadingProjects ? (
-              <>
-                <ProjectSkeleton />
-                <ProjectSkeleton />
-                <ProjectSkeleton />
-              </>
-            ) : projectsList.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-500 bg-white rounded-3xl p-8 border border-gray-100">
-                {isBangla ? 'কোনো সক্রিয় প্রকল্প পাওয়া যায়নি।' : 'No active projects found.'}
-              </div>
-            ) : (
-              projectsList.slice(0, 3).map((project) => (
-                <div
-                  key={project.id}
-                  className="bg-white rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col h-full"
-                >
-                  {/* Image */}
-                  <div className="relative aspect-video overflow-hidden">
-                    <img
-                      src={project.image}
-                      alt={isBangla ? project.titleBn : project.title}
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-500"
-                      referrerPolicy="no-referrer"
-                    />
-                    {/* Category overlay badge */}
-                    <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-[#1F5E2E] text-[10px] font-mono font-extrabold px-3 py-1 rounded-full uppercase shadow">
-                      {isBangla ? project.categoryLabelBn : project.categoryLabel}
-                    </span>
+            {projectsList.slice(0, 3).map((project) => (
+              <div
+                key={project.id}
+                className="bg-white rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col h-full"
+              >
+                {/* Image */}
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={project.image}
+                    alt={isBangla ? project.titleBn : project.title}
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                  {/* Category overlay badge */}
+                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-[#1F5E2E] text-[10px] font-mono font-extrabold px-3 py-1 rounded-full uppercase shadow">
+                    {isBangla ? project.categoryLabelBn : project.categoryLabel}
+                  </span>
+                </div>
+
+                {/* Body Content */}
+                <div className="p-6 flex flex-col flex-1 gap-4 justify-between">
+                  <div>
+                    <h3 className="font-sans text-xl font-bold text-[#1F5E2E] group-hover:text-[#2E7D32] transition-colors leading-snug mb-2">
+                      {isBangla ? project.titleBn : project.title}
+                    </h3>
+                    <p className="font-sans text-sm text-gray-500 line-clamp-3 leading-relaxed">
+                      {isBangla ? project.shortDescriptionBn : project.shortDescription}
+                    </p>
                   </div>
 
-                  {/* Body Content */}
-                  <div className="p-6 flex flex-col flex-1 gap-4 justify-between">
-                    <div>
-                      <h3 className="font-sans text-xl font-bold text-[#1F5E2E] group-hover:text-[#2E7D32] transition-colors leading-snug mb-2">
-                        {isBangla ? project.titleBn : project.title}
-                      </h3>
-                      <p className="font-sans text-sm text-gray-500 line-clamp-3 leading-relaxed">
-                        {isBangla ? project.shortDescriptionBn : project.shortDescription}
-                      </p>
-                    </div>
-
-                    <div className="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
-                      <span className="text-xs font-bold text-gray-400">
-                        📍 {isBangla ? project.locationBn : project.location}
-                      </span>
-                      <button
-                        onClick={() => onProjectClick(project)}
-                        className="text-[#2E7D32] hover:text-[#1F5E2E] font-sans font-extrabold text-sm flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>{isBangla ? 'বিস্তারিত' : 'Read More'}</span>
-                        <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform" />
-                      </button>
-                    </div>
+                  <div className="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
+                    <span className="text-xs font-bold text-gray-400">
+                      📍 {isBangla ? project.locationBn : project.location}
+                    </span>
+                    <button
+                      onClick={() => onProjectClick(project)}
+                      className="text-[#2E7D32] hover:text-[#1F5E2E] font-sans font-extrabold text-sm flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>{isBangla ? 'বিস্তারিত' : 'Read More'}</span>
+                      <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform" />
+                    </button>
                   </div>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -592,53 +462,43 @@ export default function Home({
           </h2>
 
           <div className="relative min-h-[220px]">
-            {isLoadingTestimonials ? (
-              <TestimonialSkeleton />
-            ) : testimonialsList.length === 0 ? (
-              <div className="text-center text-gray-500 py-12">
-                {isBangla ? 'কোনো মন্তব্য পাওয়া যায়নি।' : 'No testimonials found.'}
-              </div>
-            ) : (
-              testimonialsList.map((t, index) => (
-                <div
-                  key={t.id}
-                  className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${
-                    index === activeTestimonial ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
-                  }`}
-                >
-                  {/* Quote Icon styling */}
-                  <span className="text-6xl text-[#6BBF3A]/20 font-serif leading-none select-none">“</span>
-                  <p className="font-sans text-base sm:text-lg lg:text-xl text-gray-600 italic leading-relaxed max-w-3xl mb-6">
-                    {isBangla ? t.quoteBn : t.quote}
+            {testimonialsList.map((t, index) => (
+              <div
+                key={t.id}
+                className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${
+                  index === activeTestimonial ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
+                }`}
+              >
+                {/* Quote Icon styling */}
+                <span className="text-6xl text-[#6BBF3A]/20 font-serif leading-none select-none">“</span>
+                <p className="font-sans text-base sm:text-lg lg:text-xl text-gray-600 italic leading-relaxed max-w-3xl mb-6">
+                  {isBangla ? t.quoteBn : t.quote}
+                </p>
+                <div>
+                  <h4 className="font-sans font-black text-gray-900 text-sm sm:text-base leading-tight">
+                    {isBangla ? t.authorBn : t.author}
+                  </h4>
+                  <p className="font-mono text-xs text-gray-500 mt-1 uppercase tracking-wider">
+                    {isBangla ? t.roleBn : t.role} — {isBangla ? t.locationBn : t.location}
                   </p>
-                  <div>
-                    <h4 className="font-sans font-black text-gray-900 text-sm sm:text-base leading-tight">
-                      {isBangla ? t.authorBn : t.author}
-                    </h4>
-                    <p className="font-mono text-xs text-gray-500 mt-1 uppercase tracking-wider">
-                      {isBangla ? t.roleBn : t.role} — {isBangla ? t.locationBn : t.location}
-                    </p>
-                  </div>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
 
           {/* Dots controller */}
-          {!isLoadingTestimonials && testimonialsList.length > 0 && (
-            <div className="flex justify-center gap-2 mt-8">
-              {testimonialsList.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveTestimonial(idx)}
-                  className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
-                    idx === activeTestimonial ? 'bg-[#1F5E2E] w-6' : 'bg-gray-300'
-                  }`}
-                  aria-label={`Go to testimonial ${idx + 1}`}
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex justify-center gap-2 mt-8">
+            {testimonialsList.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveTestimonial(idx)}
+                className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
+                  idx === activeTestimonial ? 'bg-[#1F5E2E] w-6' : 'bg-gray-300'
+                }`}
+                aria-label={`Go to testimonial ${idx + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -668,55 +528,43 @@ export default function Home({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {isLoadingBlogs ? (
-              <>
-                <BlogSkeleton />
-                <BlogSkeleton />
-                <BlogSkeleton />
-              </>
-            ) : blogsList.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-500 bg-white rounded-3xl p-8 border border-gray-100">
-                {isBangla ? 'কোনো কলাম বা খবর পাওয়া যায়নি।' : 'No news articles found.'}
-              </div>
-            ) : (
-              blogsList.slice(0, 3).map((post) => (
-                <article
-                  key={post.id}
-                  className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col h-full group cursor-pointer"
-                  onClick={() => onBlogClick(post)}
-                >
-                  <div className="relative aspect-video overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt={isBangla ? post.titleBn : post.title}
-                      className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-300"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#1F5E2E]">
-                      {isBangla ? post.categoryBn : post.category}
-                    </span>
-                  </div>
-                  <div className="p-6 flex flex-col flex-1 justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-semibold mb-2">
-                        <Calendar size={12} />
-                        <span>{isBangla ? post.dateBn : post.date}</span>
-                      </div>
-                      <h3 className="font-sans text-lg font-bold text-[#1F5E2E] leading-snug group-hover:text-[#2E7D32] transition-colors mb-2">
-                        {isBangla ? post.titleBn : post.title}
-                      </h3>
-                      <p className="font-sans text-sm text-gray-500 line-clamp-2 leading-relaxed">
-                        {isBangla ? post.excerptBn : post.excerpt}
-                      </p>
+            {blogsList.slice(0, 3).map((post) => (
+              <article
+                key={post.id}
+                className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col h-full group cursor-pointer"
+                onClick={() => onBlogClick(post)}
+              >
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={post.image}
+                    alt={isBangla ? post.titleBn : post.title}
+                    className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-300"
+                    referrerPolicy="no-referrer"
+                  />
+                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#1F5E2E]">
+                    {isBangla ? post.categoryBn : post.category}
+                  </span>
+                </div>
+                <div className="p-6 flex flex-col flex-1 justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-gray-400 font-semibold mb-2">
+                      <Calendar size={12} />
+                      <span>{isBangla ? post.dateBn : post.date}</span>
                     </div>
-                    <span className="text-[#6BBF3A] font-sans font-black text-xs uppercase tracking-wider flex items-center gap-1 mt-auto">
-                      {isBangla ? 'পড়ুন' : 'Read Article'}
-                      <ArrowRight size={12} className="transform group-hover:translate-x-1 transition-transform" />
-                    </span>
+                    <h3 className="font-sans text-lg font-bold text-[#1F5E2E] leading-snug group-hover:text-[#2E7D32] transition-colors mb-2">
+                      {isBangla ? post.titleBn : post.title}
+                    </h3>
+                    <p className="font-sans text-sm text-gray-500 line-clamp-2 leading-relaxed">
+                      {isBangla ? post.excerptBn : post.excerpt}
+                    </p>
                   </div>
-                </article>
-              ))
-            )}
+                  <span className="text-[#6BBF3A] font-sans font-black text-xs uppercase tracking-wider flex items-center gap-1 mt-auto">
+                    {isBangla ? 'পড়ুন' : 'Read Article'}
+                    <ArrowRight size={12} className="transform group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
