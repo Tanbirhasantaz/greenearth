@@ -26,7 +26,8 @@ function initializeDataFiles() {
     settings: path.join(DATA_DIR, "settings.json"),
     testimonials: path.join(DATA_DIR, "testimonials.json"),
     milestones: path.join(DATA_DIR, "milestones.json"),
-    corevalues: path.join(DATA_DIR, "corevalues.json")
+    corevalues: path.join(DATA_DIR, "corevalues.json"),
+    focusareas: path.join(DATA_DIR, "focusareas.json")
   };
 
   // 1. Initial Projects
@@ -376,9 +377,22 @@ function initializeDataFiles() {
       orgName: "Green Earth",
       tagline: "Cleaner, Greener & Sustainable Future",
       taglineBn: "পরিচ্ছন্ন, সবুজ ও টেকসই ভবিষ্যৎ",
-      phone: "+880 1712-345678",
-      email: "info@greenearth-bd.org",
-      address: "42, Road 11, Banani, Dhaka-1213, Bangladesh."
+      phone: "+880 1751601039",
+      email: "greenearthbd.25@gmail.com",
+      address: "Santahar, Adamdighi, Bogura",
+      addressBn: "সান্তাহার, আদমদীঘি, বগুড়া",
+      footerAboutText: "Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.",
+      footerAboutTextBn: "গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।",
+      footerFbUrl: "https://www.facebook.com/greenearthbd.25/",
+      footerInstaUrl: "https://instagram.com",
+      footerLinkedinUrl: "https://linkedin.com",
+      footerYoutubeUrl: "https://youtube.com",
+      footerNewsletterTitle: "Subscribe to Eco-News",
+      footerNewsletterTitleBn: "নিউজলেটার সাবস্ক্রাইব",
+      footerNewsletterDesc: "Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.",
+      footerNewsletterDescBn: "নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।",
+      footerCopyright: "© 2026 Green Earth Bangladesh. All Rights Reserved.",
+      footerCopyrightBn: "© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।"
     };
     fs.writeFileSync(filePaths.settings, JSON.stringify(initialSettings, null, 2));
   }
@@ -494,6 +508,49 @@ function initializeDataFiles() {
       }
     ];
     fs.writeFileSync(filePaths.corevalues, JSON.stringify(initialCoreValues, null, 2));
+  }
+
+  // 13. Initial Focus Areas
+  if (!fs.existsSync(filePaths.focusareas)) {
+    const initialFocusAreas = [
+      {
+        id: "focus-1",
+        iconName: "Trees",
+        title: "Tree Plantation",
+        titleBn: "বৃক্ষরোপণ কর্মসূচি",
+        description: "Planting native trees and coastal mangroves in erosion-prone belts of Sundarbans and northern riverbanks.",
+        descriptionBn: "সুন্দরবন উপকূল এবং উত্তরাঞ্চলের নদীভাঙন কবলিত এলাকায় দেশীয় চারা রোপণ ও ম্যানগ্রোভ বনায়ন তৈরি করা।",
+        color: "emerald"
+      },
+      {
+        id: "focus-2",
+        iconName: "Sun",
+        title: "Renewable Energy",
+        titleBn: "নবায়নযোগ্য জ্বালানি",
+        description: "Sponsoring reliable off-grid solar micro-grids for isolated schools and homes in northern river chars.",
+        descriptionBn: "চরাঞ্চলের গ্রিডহীন প্রত্যন্ত এলাকায় সৌর প্যানেল ও হোম সিস্টেমের মাধ্যমে বিদ্যুৎ ও আলোর ব্যবস্থা করা।",
+        color: "amber"
+      },
+      {
+        id: "focus-3",
+        iconName: "Droplet",
+        title: "Water Conservation",
+        titleBn: "বিশুদ্ধ পানি সরবরাহ",
+        description: "Drilling deep, arsenic-free tube wells and setting rainwater purification structures in contaminated hubs.",
+        descriptionBn: "আর্সেনিক ও স্যালাইন কবলিত এলাকায় গভীর বিশুদ্ধ নলকূপ এবং বৃষ্টির পানি ফিল্টারিং প্ল্যান্ট স্থাপন করা।",
+        color: "sky"
+      },
+      {
+        id: "focus-4",
+        iconName: "Trash2",
+        title: "Waste & Recycling",
+        titleBn: "বর্জ্য ও রিসাইক্লিং",
+        description: "Organizing riverbank plastic cleanups and teaching households smart eco-friendly recycling habits.",
+        descriptionBn: "বুড়িগঙ্গাসহ বিভিন্ন নদী তীরবর্তী প্লাস্টিক অপসারণ এবং বাসাবাড়ির রিসাইক্লিং অভ্যাসের প্রশিক্ষণ দেওয়া।",
+        color: "purple"
+      }
+    ];
+    fs.writeFileSync(filePaths.focusareas, JSON.stringify(initialFocusAreas, null, 2));
   }
 }
 
@@ -1078,6 +1135,40 @@ async function startServer() {
     const corevalues = await readData<any[]>("corevalues.json");
     const filtered = corevalues.filter((v) => v.id !== id);
     await writeData("corevalues.json", filtered);
+    res.json({ success: true });
+  });
+
+  // Focus Areas API
+  app.get("/api/focusareas", async (req, res) => {
+    res.json(await readData("focusareas.json"));
+  });
+
+  app.post("/api/focusareas", async (req, res) => {
+    const focusareas = await readData<any[]>("focusareas.json");
+    const newFocus = req.body;
+
+    if (!newFocus.id) {
+      newFocus.id = "focus-" + Date.now();
+      focusareas.push(newFocus);
+    } else {
+      const idx = focusareas.findIndex((f) => f.id === newFocus.id);
+      if (idx !== -1) {
+        focusareas[idx] = newFocus;
+      } else {
+        focusareas.push(newFocus);
+      }
+    }
+
+    await writeData("focusareas.json", focusareas);
+    res.json({ success: true, focusArea: newFocus });
+  });
+
+  app.delete("/api/focusareas/:id?", async (req, res) => {
+    const id = req.params.id || req.query.id;
+    if (!id) return res.status(400).json({ error: "Missing ID" });
+    const focusareas = await readData<any[]>("focusareas.json");
+    const filtered = focusareas.filter((f) => f.id !== id);
+    await writeData("focusareas.json", filtered);
     res.json({ success: true });
   });
 

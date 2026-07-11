@@ -1,11 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, LayoutDashboard, Trees, BookOpen, Users, Heart, Image as ImageIcon, 
   Mail, Settings, Plus, Edit, Trash2, LogOut, Search, Check, X, Phone, MapPin, 
-  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Milestone
+  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Flag
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
+
+class AdminTabErrorBoundary extends Component<
+  { children: React.ReactNode; tabName: string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; tabName: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("AdminTabErrorBoundary caught an error in tab:", this.props.tabName, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-3xl p-8 text-center max-w-2xl mx-auto my-12 shadow-sm space-y-4">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600 font-bold text-lg">!</div>
+          <h3 className="text-lg font-black text-red-800">Something went wrong rendering the "{this.props.tabName}" tab</h3>
+          <p className="text-xs text-red-600 font-semibold bg-white py-2 px-4 rounded-xl border border-red-100 inline-block">
+            {this.state.error?.name}: {this.state.error?.message || "Unknown rendering error"}
+          </p>
+          <pre className="text-[10px] font-mono text-left bg-red-100/50 p-4 rounded-xl overflow-x-auto text-red-700 max-h-40">
+            {this.state.error?.stack}
+          </pre>
+          <div>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-full text-xs cursor-pointer transition-colors"
+            >
+              Reload Tab View
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 import ImageUploadInput from '../components/ImageUploadInput';
 
 interface Volunteer {
@@ -262,6 +307,20 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [setAboutTeamTitle, setSetAboutTeamTitle] = useState('');
   const [setAboutTeamTitleBn, setSetAboutTeamTitleBn] = useState('');
 
+  // Footer Fields
+  const [footerAboutText, setFooterAboutText] = useState('');
+  const [footerAboutTextBn, setFooterAboutTextBn] = useState('');
+  const [footerFbUrl, setFooterFbUrl] = useState('');
+  const [footerInstaUrl, setFooterInstaUrl] = useState('');
+  const [footerLinkedinUrl, setFooterLinkedinUrl] = useState('');
+  const [footerYoutubeUrl, setFooterYoutubeUrl] = useState('');
+  const [footerNewsletterTitle, setFooterNewsletterTitle] = useState('');
+  const [footerNewsletterTitleBn, setFooterNewsletterTitleBn] = useState('');
+  const [footerNewsletterDesc, setFooterNewsletterDesc] = useState('');
+  const [footerNewsletterDescBn, setFooterNewsletterDescBn] = useState('');
+  const [footerCopyright, setFooterCopyright] = useState('');
+  const [footerCopyrightBn, setFooterCopyrightBn] = useState('');
+
   // Milestones and Core Values dataset list states
   const [milestonesList, setMilestonesList] = useState<any[]>([]);
   const [coreValuesList, setCoreValuesList] = useState<any[]>([]);
@@ -280,6 +339,16 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [valDesc, setValDesc] = useState('');
   const [valDescBn, setValDescBn] = useState('');
   const [valIconName, setValIconName] = useState('Leaf');
+
+  // Focus Areas Form Fields
+  const [focusAreasList, setFocusAreasList] = useState<any[]>([]);
+  const [focusTitle, setFocusTitle] = useState('');
+  const [focusTitleBn, setFocusTitleBn] = useState('');
+  const [focusDesc, setFocusDesc] = useState('');
+  const [focusDescBn, setFocusDescBn] = useState('');
+  const [focusIconName, setFocusIconName] = useState('Trees');
+  const [focusColor, setFocusColor] = useState('emerald');
+  const [focusSubTab, setFocusSubTab] = useState<'values' | 'focus'>('values');
 
   // Payment details state variables
   const [setBkashNo, setSetBkashNo] = useState('');
@@ -301,7 +370,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       const [
         resProj, resBlogs, resTeam, resGallery, 
         resVols, resDons, resSubs, resContacts, resSettings, resTests,
-        resMilestones, resCoreValues
+        resMilestones, resCoreValues, resFocusAreas
       ] = await Promise.all([
         fetch('/api/projects').then((r) => r.json()),
         fetch('/api/blogs').then((r) => r.json()),
@@ -314,7 +383,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         fetch('/api/settings').then((r) => r.json()),
         fetch('/api/testimonials').then((r) => r.json()).catch(() => []),
         fetch('/api/milestones').then((r) => r.json()).catch(() => []),
-        fetch('/api/corevalues').then((r) => r.json()).catch(() => [])
+        fetch('/api/corevalues').then((r) => r.json()).catch(() => []),
+        fetch('/api/focusareas').then((r) => r.json()).catch(() => [])
       ]);
 
       setProjects(resProj);
@@ -329,6 +399,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       setSettings(resSettings);
       setMilestonesList(Array.isArray(resMilestones) ? resMilestones : []);
       setCoreValuesList(Array.isArray(resCoreValues) ? resCoreValues : []);
+      setFocusAreasList(Array.isArray(resFocusAreas) ? resFocusAreas : []);
 
       // Seed settings inputs
       if (resSettings) {
@@ -388,6 +459,20 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         setSetAboutTeamLabelBn(resSettings.aboutTeamLabelBn || 'আমাদের অভিভাবক');
         setSetAboutTeamTitle(resSettings.aboutTeamTitle || 'The Visionaries Behind Green Earth');
         setSetAboutTeamTitleBn(resSettings.aboutTeamTitleBn || 'সবুজ আন্দোলনের পেছনের মুখ');
+
+        // Seed Footer Settings
+        setFooterAboutText(resSettings.footerAboutText || 'Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.');
+        setFooterAboutTextBn(resSettings.footerAboutTextBn || 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।');
+        setFooterFbUrl(resSettings.footerFbUrl || 'https://www.facebook.com/greenearthbd.25/');
+        setFooterInstaUrl(resSettings.footerInstaUrl || 'https://instagram.com');
+        setFooterLinkedinUrl(resSettings.footerLinkedinUrl || 'https://linkedin.com');
+        setFooterYoutubeUrl(resSettings.footerYoutubeUrl || 'https://youtube.com');
+        setFooterNewsletterTitle(resSettings.footerNewsletterTitle || 'Subscribe to Eco-News');
+        setFooterNewsletterTitleBn(resSettings.footerNewsletterTitleBn || 'নিউজলেটার সাবস্ক্রাইব');
+        setFooterNewsletterDesc(resSettings.footerNewsletterDesc || 'Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.');
+        setFooterNewsletterDescBn(resSettings.footerNewsletterDescBn || 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।');
+        setFooterCopyright(resSettings.footerCopyright || '© 2026 Green Earth Bangladesh. All Rights Reserved.');
+        setFooterCopyrightBn(resSettings.footerCopyrightBn || '© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।');
       }
     } catch (err) {
       console.error('Error loading admin data', err);
@@ -1120,7 +1205,21 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       aboutTeamLabel: setAboutTeamLabel,
       aboutTeamLabelBn: setAboutTeamLabelBn,
       aboutTeamTitle: setAboutTeamTitle,
-      aboutTeamTitleBn: setAboutTeamTitleBn
+      aboutTeamTitleBn: setAboutTeamTitleBn,
+
+      // Footer settings fields
+      footerAboutText: footerAboutText,
+      footerAboutTextBn: footerAboutTextBn,
+      footerFbUrl: footerFbUrl,
+      footerInstaUrl: footerInstaUrl,
+      footerLinkedinUrl: footerLinkedinUrl,
+      footerYoutubeUrl: footerYoutubeUrl,
+      footerNewsletterTitle: footerNewsletterTitle,
+      footerNewsletterTitleBn: footerNewsletterTitleBn,
+      footerNewsletterDesc: footerNewsletterDesc,
+      footerNewsletterDescBn: footerNewsletterDescBn,
+      footerCopyright: footerCopyright,
+      footerCopyrightBn: footerCopyrightBn
     };
 
     if (setNewPassword.trim()) {
@@ -1369,7 +1468,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               { tab: 'donations', label: 'Donations Audit', icon: <Heart size={18} />, count: donations.filter(d => d.status !== 'verified').length },
               { tab: 'team', label: 'Manage Team', icon: <Users size={18} /> },
               { tab: 'corevalues', label: 'Manage Core Values', icon: <Award size={18} /> },
-              { tab: 'milestones', label: 'Manage Milestones', icon: <Milestone size={18} /> },
+              { tab: 'milestones', label: 'Manage Milestones', icon: <Flag size={18} /> },
               { tab: 'gallery', label: 'Manage Gallery', icon: <ImageIcon size={18} /> },
               { tab: 'testimonials', label: 'Manage Testimonials', icon: <MessageSquare size={18} /> },
               { tab: 'subscribers', label: 'Subscribers', icon: <Mail size={18} />, count: subscribers.length },
@@ -1466,7 +1565,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
           </div>
         ) : (
           <div id="admin-tab-workspace">
-            {/* --- DASHBOARD TAB --- */}
+            <AdminTabErrorBoundary tabName={activeTab}>
+              {/* --- DASHBOARD TAB --- */}
             {activeTab === 'dashboard' && (
               <div className="space-y-8" id="dashboard-tab">
                 {/* 4 Stats Block */}
@@ -3372,6 +3472,141 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </div>
                   </div>
 
+                  {/* SECTION 7: FOOTER CONFIGURATION */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                      {isBangla ? '৭. ফুটার কনফিগারেশন' : '7. Footer Configuration'}
+                    </h4>
+
+                    <div className="space-y-4">
+                      {/* Subtitle */}
+                      <span className="text-xs font-bold text-gray-700 block border-b border-gray-200 pb-1">About Organization Segment</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Footer About Text (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={footerAboutText}
+                            onChange={(e) => setFooterAboutText(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Footer About Text (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={footerAboutTextBn}
+                            onChange={(e) => setFooterAboutTextBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      <span className="text-xs font-bold text-gray-700 block border-b border-gray-200 pb-1 pt-2">Social Profiles Links</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Facebook URL</label>
+                          <input
+                            type="text"
+                            value={footerFbUrl}
+                            onChange={(e) => setFooterFbUrl(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Instagram URL</label>
+                          <input
+                            type="text"
+                            value={footerInstaUrl}
+                            onChange={(e) => setFooterInstaUrl(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">LinkedIn URL</label>
+                          <input
+                            type="text"
+                            value={footerLinkedinUrl}
+                            onChange={(e) => setFooterLinkedinUrl(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">YouTube URL</label>
+                          <input
+                            type="text"
+                            value={footerYoutubeUrl}
+                            onChange={(e) => setFooterYoutubeUrl(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      <span className="text-xs font-bold text-gray-700 block border-b border-gray-200 pb-1 pt-2">Newsletter Subscription Details</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Newsletter Title (EN)</label>
+                          <input
+                            type="text"
+                            value={footerNewsletterTitle}
+                            onChange={(e) => setFooterNewsletterTitle(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Newsletter Title (BN)</label>
+                          <input
+                            type="text"
+                            value={footerNewsletterTitleBn}
+                            onChange={(e) => setFooterNewsletterTitleBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Newsletter Description (EN)</label>
+                          <textarea
+                            rows={2}
+                            value={footerNewsletterDesc}
+                            onChange={(e) => setFooterNewsletterDesc(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Newsletter Description (BN)</label>
+                          <textarea
+                            rows={2}
+                            value={footerNewsletterDescBn}
+                            onChange={(e) => setFooterNewsletterDescBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      <span className="text-xs font-bold text-gray-700 block border-b border-gray-200 pb-1 pt-2">Copyright Disclaimer</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Copyright Notice (EN)</label>
+                          <input
+                            type="text"
+                            value={footerCopyright}
+                            onChange={(e) => setFooterCopyright(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Copyright Notice (BN)</label>
+                          <input
+                            type="text"
+                            value={footerCopyrightBn}
+                            onChange={(e) => setFooterCopyrightBn(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
 
                   <div className="flex justify-end pt-4 border-t border-gray-100">
                     <button
@@ -3385,217 +3620,478 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               </div>
             )}
 
-            {/* --- MANAGE CORE VALUES TAB --- */}
+            {/* --- MANAGE CORE VALUES & FOCUS AREAS TAB --- */}
             {activeTab === 'corevalues' && (
               <div className="space-y-8" id="corevalues-tab">
-                {/* Header */}
-                <div className="flex justify-between items-center bg-white p-6 border border-gray-200 rounded-3xl shadow-sm">
-                  <div>
-                    <h3 className="text-lg font-black text-gray-900">Manage Core Values</h3>
-                    <p className="text-xs text-gray-500">Add, edit or delete organization core values shown on the About Us page.</p>
-                  </div>
-                  {!isEditing && (
-                    <button
-                      onClick={() => {
-                        setIsEditing(true);
-                        setEditingId(null);
-                        setValTitle('');
-                        setValTitleBn('');
-                        setValDesc('');
-                        setValDescBn('');
-                        setValIconName('Leaf');
-                      }}
-                      className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-bold py-2 px-5 rounded-full text-xs cursor-pointer flex items-center gap-1.5 shadow"
-                    >
-                      <Plus size={16} />
-                      <span>Add Core Value</span>
-                    </button>
-                  )}
+                {/* Sub Tab Switcher */}
+                <div className="flex gap-4 border-b border-gray-200 pb-2">
+                  <button
+                    onClick={() => { setFocusSubTab('values'); setIsEditing(false); setEditingId(null); }}
+                    className={`py-2 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+                      focusSubTab === 'values'
+                        ? 'border-[#1F5E2E] text-[#1F5E2E]'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {isBangla ? 'আমাদের মূল মূল্যবোধ' : 'Our Core Values'}
+                  </button>
+                  <button
+                    onClick={() => { setFocusSubTab('focus'); setIsEditing(false); setEditingId(null); }}
+                    className={`py-2 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+                      focusSubTab === 'focus'
+                        ? 'border-[#1F5E2E] text-[#1F5E2E]'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {isBangla ? 'আমাদের ফোকাস এরিয়া' : 'Our Focus Areas'}
+                  </button>
                 </div>
 
-                {/* Form (Add or Edit) */}
-                {isEditing && (
-                  <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6 text-left">
-                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider">
-                      {editingId ? 'Edit Core Value' : 'Add New Core Value'}
-                    </h4>
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const payload = {
-                          title: valTitle,
-                          titleBn: valTitleBn,
-                          description: valDesc,
-                          descriptionBn: valDescBn,
-                          iconName: valIconName
-                        };
-                        try {
-                          const url = editingId ? `/api/corevalues?id=${editingId}` : '/api/corevalues';
-                          const res = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload)
-                          });
-                          if (res.ok) {
-                            alert('Core Value saved successfully!');
-                            setIsEditing(false);
-                            setEditingId(null);
-                            fetchAllData();
-                          }
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      className="space-y-4"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (EN)</label>
-                          <input
-                            type="text"
-                            required
-                            value={valTitle}
-                            onChange={(e) => setValTitle(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                            placeholder="e.g. Grassroots Leadership"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (BN)</label>
-                          <input
-                            type="text"
-                            required
-                            value={valTitleBn}
-                            onChange={(e) => setValTitleBn(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                            placeholder="যেমনঃ তৃণমূলের নেতৃত্ব"
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (EN)</label>
-                          <textarea
-                            rows={3}
-                            required
-                            value={valDesc}
-                            onChange={(e) => setValDesc(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            placeholder="Explain the value..."
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (BN)</label>
-                          <textarea
-                            rows={3}
-                            required
-                            value={valDescBn}
-                            onChange={(e) => setValDescBn(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
-                            placeholder="মূল্যবোধের বিবরণ দিন..."
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Icon Name</label>
-                          <select
-                            value={valIconName}
-                            onChange={(e) => setValIconName(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                          >
-                            <option value="Leaf">Leaf (পরিবেশ/সবুজ)</option>
-                            <option value="Users">Users (সম্প্রদায়/একতা)</option>
-                            <option value="TrendingUp">TrendingUp (উন্নতি/গতিশীলতা)</option>
-                            <option value="Award">Award (স্বীকৃতি/অর্জন)</option>
-                          </select>
-                        </div>
+                {focusSubTab === 'values' ? (
+                  <div className="space-y-8">
+                    {/* Header */}
+                    <div className="flex justify-between items-center bg-white p-6 border border-gray-200 rounded-3xl shadow-sm">
+                      <div>
+                        <h3 className="text-lg font-black text-gray-900">Manage Core Values</h3>
+                        <p className="text-xs text-gray-500">Add, edit or delete organization core values shown on the About Us page.</p>
                       </div>
-
-                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                      {!isEditing && (
                         <button
-                          type="button"
                           onClick={() => {
-                            setIsEditing(false);
+                            setIsEditing(true);
                             setEditingId(null);
+                            setValTitle('');
+                            setValTitleBn('');
+                            setValDesc('');
+                            setValDescBn('');
+                            setValIconName('Leaf');
                           }}
-                          className="py-2.5 px-5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-full text-xs font-bold transition-all cursor-pointer"
+                          className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-bold py-2 px-5 rounded-full text-xs cursor-pointer flex items-center gap-1.5 shadow"
                         >
-                          Cancel
+                          <Plus size={16} />
+                          <span>Add Core Value</span>
                         </button>
-                        <button
-                          type="submit"
-                          className="py-2.5 px-6 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-xs font-bold transition-all cursor-pointer shadow hover:shadow-lg"
-                        >
-                          Save Value
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
+                      )}
+                    </div>
 
-                {/* List View */}
-                {!isEditing && (
-                  <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-                    <table className="w-full text-left border-collapse font-sans">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                          <th className="py-4 px-6">Icon</th>
-                          <th className="py-4 px-6">Title (EN)</th>
-                          <th className="py-4 px-6">Title (BN)</th>
-                          <th className="py-4 px-6">Description (EN)</th>
-                          <th className="py-4 px-6 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-150 text-xs text-gray-700">
-                        {Array.isArray(coreValuesList) && coreValuesList.map((val) => (
-                          <tr key={val.id} className="hover:bg-gray-50/50 transition-all font-medium">
-                            <td className="py-4 px-6 font-bold text-gray-900">{val.iconName || 'Leaf'}</td>
-                            <td className="py-4 px-6 font-bold text-gray-900">{val.title}</td>
-                            <td className="py-4 px-6 text-gray-600 font-bold">{val.titleBn}</td>
-                            <td className="py-4 px-6 text-gray-500 max-w-xs truncate">{val.description}</td>
-                            <td className="py-4 px-6 text-right">
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => {
-                                    setIsEditing(true);
-                                    setEditingId(val.id);
-                                    setValTitle(val.title);
-                                    setValTitleBn(val.titleBn || '');
-                                    setValDesc(val.description);
-                                    setValDescBn(val.descriptionBn || '');
-                                    setValIconName(val.iconName || 'Leaf');
-                                  }}
-                                  className="text-gray-500 hover:text-[#1F5E2E] p-1.5 rounded hover:bg-gray-100 cursor-pointer"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setConfirmModal({
-                                      title: 'Confirm Deletion',
-                                      message: `Are you sure you want to delete core value: "${val.title}"?`,
-                                      onConfirm: async () => {
-                                        try {
-                                          const res = await fetch(`/api/corevalues/${val.id}`, { method: 'DELETE' });
-                                          if (res.ok) fetchAllData();
-                                        } catch (err) {
-                                          console.error(err);
-                                        }
-                                        setConfirmModal(null);
-                                      }
-                                    });
-                                  }}
-                                  className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 cursor-pointer"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {(!Array.isArray(coreValuesList) || coreValuesList.length === 0) && (
-                      <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No Core Values found.</p>
+                    {/* Form (Add or Edit) */}
+                    {isEditing && (
+                      <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6 text-left">
+                        <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider">
+                          {editingId ? 'Edit Core Value' : 'Add New Core Value'}
+                        </h4>
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            const payload = {
+                              title: valTitle,
+                              titleBn: valTitleBn,
+                              description: valDesc,
+                              descriptionBn: valDescBn,
+                              iconName: valIconName
+                            };
+                            try {
+                              const url = editingId ? `/api/corevalues?id=${editingId}` : '/api/corevalues';
+                              const res = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload)
+                              });
+                              if (res.ok) {
+                                alert('Core Value saved successfully!');
+                                setIsEditing(false);
+                                setEditingId(null);
+                                fetchAllData();
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (EN)</label>
+                              <input
+                                type="text"
+                                required
+                                value={valTitle}
+                                onChange={(e) => setValTitle(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                                placeholder="e.g. Grassroots Leadership"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (BN)</label>
+                              <input
+                                type="text"
+                                required
+                                value={valTitleBn}
+                                onChange={(e) => setValTitleBn(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                                placeholder="যেমনঃ তৃণমূলের নেতৃত্ব"
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (EN)</label>
+                              <textarea
+                                rows={3}
+                                required
+                                value={valDesc}
+                                onChange={(e) => setValDesc(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                                placeholder="Explain the value..."
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (BN)</label>
+                              <textarea
+                                rows={3}
+                                required
+                                value={valDescBn}
+                                onChange={(e) => setValDescBn(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                                placeholder="মূল্যবোধের বিবরণ দিন..."
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Icon Name</label>
+                              <select
+                                value={valIconName}
+                                onChange={(e) => setValIconName(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                              >
+                                <option value="Leaf">Leaf (পরিবেশ/সবুজ)</option>
+                                <option value="Users">Users (সম্প্রদায়/একতা)</option>
+                                <option value="TrendingUp">TrendingUp (উন্নতি/গতিশীলতা)</option>
+                                <option value="Award">Award (স্বীকৃতি/অর্জন)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsEditing(false);
+                                setEditingId(null);
+                              }}
+                              className="py-2.5 px-5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-full text-xs font-bold transition-all cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              className="py-2.5 px-6 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-xs font-bold transition-all cursor-pointer shadow hover:shadow-lg"
+                            >
+                              Save Value
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    {/* List View */}
+                    {!isEditing && (
+                      <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left border-collapse font-sans">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                              <th className="py-4 px-6">Icon</th>
+                              <th className="py-4 px-6">Title (EN)</th>
+                              <th className="py-4 px-6">Title (BN)</th>
+                              <th className="py-4 px-6">Description (EN)</th>
+                              <th className="py-4 px-6 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-150 text-xs text-gray-700">
+                            {Array.isArray(coreValuesList) && coreValuesList.map((val) => (
+                              <tr key={val.id} className="hover:bg-gray-50/50 transition-all font-medium">
+                                <td className="py-4 px-6 font-bold text-gray-900">{val.iconName || 'Leaf'}</td>
+                                <td className="py-4 px-6 font-bold text-gray-900">{val.title}</td>
+                                <td className="py-4 px-6 text-gray-600 font-bold">{val.titleBn}</td>
+                                <td className="py-4 px-6 text-gray-500 max-w-xs truncate">{val.description}</td>
+                                <td className="py-4 px-6 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setIsEditing(true);
+                                        setEditingId(val.id);
+                                        setValTitle(val.title);
+                                        setValTitleBn(val.titleBn || '');
+                                        setValDesc(val.description);
+                                        setValDescBn(val.descriptionBn || '');
+                                        setValIconName(val.iconName || 'Leaf');
+                                      }}
+                                      className="text-gray-500 hover:text-[#1F5E2E] p-1.5 rounded hover:bg-gray-100 cursor-pointer"
+                                    >
+                                      <Edit size={16} />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setConfirmModal({
+                                          title: 'Confirm Deletion',
+                                          message: `Are you sure you want to delete core value: "${val.title}"?`,
+                                          onConfirm: async () => {
+                                            try {
+                                              const res = await fetch(`/api/corevalues/${val.id}`, { method: 'DELETE' });
+                                              if (res.ok) fetchAllData();
+                                            } catch (err) {
+                                              console.error(err);
+                                            }
+                                            setConfirmModal(null);
+                                          }
+                                        });
+                                      }}
+                                      className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 cursor-pointer"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {(!Array.isArray(coreValuesList) || coreValuesList.length === 0) && (
+                          <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No Core Values found.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {/* Focus Areas Header */}
+                    <div className="flex justify-between items-center bg-white p-6 border border-gray-200 rounded-3xl shadow-sm">
+                      <div>
+                        <h3 className="text-lg font-black text-gray-900">Manage Focus Areas</h3>
+                        <p className="text-xs text-gray-500">Add, edit or delete organization focus areas shown on the Home page.</p>
+                      </div>
+                      {!isEditing && (
+                        <button
+                          onClick={() => {
+                            setIsEditing(true);
+                            setEditingId(null);
+                            setFocusTitle('');
+                            setFocusTitleBn('');
+                            setFocusDesc('');
+                            setFocusDescBn('');
+                            setFocusIconName('Trees');
+                            setFocusColor('emerald');
+                          }}
+                          className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-bold py-2 px-5 rounded-full text-xs cursor-pointer flex items-center gap-1.5 shadow"
+                        >
+                          <Plus size={16} />
+                          <span>Add Focus Area</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Focus Areas Form (Add or Edit) */}
+                    {isEditing && (
+                      <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6 text-left">
+                        <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider">
+                          {editingId ? 'Edit Focus Area' : 'Add New Focus Area'}
+                        </h4>
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            const payload = {
+                              title: focusTitle,
+                              titleBn: focusTitleBn,
+                              description: focusDesc,
+                              descriptionBn: focusDescBn,
+                              iconName: focusIconName,
+                              color: focusColor
+                            };
+                            try {
+                              const url = editingId ? `/api/focusareas?id=${editingId}` : '/api/focusareas';
+                              const res = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload)
+                              });
+                              if (res.ok) {
+                                alert('Focus Area saved successfully!');
+                                setIsEditing(false);
+                                setEditingId(null);
+                                fetchAllData();
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (EN)</label>
+                              <input
+                                type="text"
+                                required
+                                value={focusTitle}
+                                onChange={(e) => setFocusTitle(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                                placeholder="e.g. Tree Plantation"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Title (BN)</label>
+                              <input
+                                type="text"
+                                required
+                                value={focusTitleBn}
+                                onChange={(e) => setFocusTitleBn(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                                placeholder="e.g. বৃক্ষরোপণ কর্মসূচি"
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (EN)</label>
+                              <textarea
+                                rows={3}
+                                required
+                                value={focusDesc}
+                                onChange={(e) => setFocusDesc(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                                placeholder="Explain the focus area..."
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description (BN)</label>
+                              <textarea
+                                rows={3}
+                                required
+                                value={focusDescBn}
+                                onChange={(e) => setFocusDescBn(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none"
+                                placeholder="ফোকাস এরিয়ার বিবরণ দিন..."
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Icon Name</label>
+                              <select
+                                value={focusIconName}
+                                onChange={(e) => setFocusIconName(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                              >
+                                <option value="Trees">Trees (বৃক্ষরোপণ)</option>
+                                <option value="Sun">Sun (সৌরশক্তি/জ্বালানি)</option>
+                                <option value="Droplet">Droplet (বিশুদ্ধ পানি)</option>
+                                <option value="Trash2">Trash2 (বর্জ্য অপসারণ)</option>
+                                <option value="Leaf">Leaf (সবুজপাতা)</option>
+                              </select>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Color Theme</label>
+                              <select
+                                value={focusColor}
+                                onChange={(e) => setFocusColor(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                              >
+                                <option value="emerald">Emerald (সবুজ)</option>
+                                <option value="amber">Amber (কমলা/হলুদ)</option>
+                                <option value="sky">Sky (আকাশী নীল)</option>
+                                <option value="purple">Purple (বেগুনি)</option>
+                                <option value="teal">Teal (নীলাভ সবুজ)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsEditing(false);
+                                setEditingId(null);
+                              }}
+                              className="py-2.5 px-5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-full text-xs font-bold transition-all cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              className="py-2.5 px-6 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-xs font-bold transition-all cursor-pointer shadow hover:shadow-lg"
+                            >
+                              Save Focus Area
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    {/* Focus Areas List View */}
+                    {!isEditing && (
+                      <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left border-collapse font-sans">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                              <th className="py-4 px-6">Icon</th>
+                              <th className="py-4 px-6">Title (EN)</th>
+                              <th className="py-4 px-6">Title (BN)</th>
+                              <th className="py-4 px-6">Description (EN)</th>
+                              <th className="py-4 px-6 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-150 text-xs text-gray-700">
+                            {Array.isArray(focusAreasList) && focusAreasList.map((focus) => (
+                              <tr key={focus.id} className="hover:bg-gray-50/50 transition-all font-medium">
+                                <td className="py-4 px-6 font-bold text-gray-900">{focus.iconName || 'Trees'} ({focus.color || 'emerald'})</td>
+                                <td className="py-4 px-6 font-bold text-gray-900">{focus.title}</td>
+                                <td className="py-4 px-6 text-gray-600 font-bold">{focus.titleBn}</td>
+                                <td className="py-4 px-6 text-gray-500 max-w-xs truncate">{focus.description}</td>
+                                <td className="py-4 px-6 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setIsEditing(true);
+                                        setEditingId(focus.id);
+                                        setFocusTitle(focus.title);
+                                        setFocusTitleBn(focus.titleBn || '');
+                                        setFocusDesc(focus.description);
+                                        setFocusDescBn(focus.descriptionBn || '');
+                                        setFocusIconName(focus.iconName || 'Trees');
+                                        setFocusColor(focus.color || 'emerald');
+                                      }}
+                                      className="text-gray-500 hover:text-[#1F5E2E] p-1.5 rounded hover:bg-gray-100 cursor-pointer"
+                                    >
+                                      <Edit size={16} />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setConfirmModal({
+                                          title: 'Confirm Deletion',
+                                          message: `Are you sure you want to delete focus area: "${focus.title}"?`,
+                                          onConfirm: async () => {
+                                            try {
+                                              const res = await fetch(`/api/focusareas/${focus.id}`, { method: 'DELETE' });
+                                              if (res.ok) fetchAllData();
+                                            } catch (err) {
+                                              console.error(err);
+                                            }
+                                            setConfirmModal(null);
+                                          }
+                                        });
+                                      }}
+                                      className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 cursor-pointer"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {(!Array.isArray(focusAreasList) || focusAreasList.length === 0) && (
+                          <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No Focus Areas found.</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -3830,6 +4326,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                 )}
               </div>
             )}
+            </AdminTabErrorBoundary>
           </div>
         )}
       </main>

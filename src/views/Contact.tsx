@@ -232,43 +232,51 @@ export default function Contact({ isBangla, onFormSuccess, settings }: ContactPr
                 📍 {isBangla ? 'মানচিত্রে আমাদের অবস্থান' : 'HQ Map Location'}
               </span>
               <span className="bg-[#6BBF3A]/20 text-[#1F5E2E] text-[10px] font-mono font-bold uppercase py-1 px-2 rounded-full">
-                Dhaka, BD
+                {isBangla ? 'বগুড়া, বাংলাদেশ' : 'Bogura, BD'}
               </span>
             </div>
 
-            {/* Styled vector SVG map representing Dhaka street grid */}
+            {/* Styled vector SVG map representing Santahar, Adamdighi, Bogura layout */}
             <div className="relative aspect-[4/3] bg-[#E8ECE9] overflow-hidden" id="map-canvas">
               <svg viewBox="0 0 400 300" className="w-full h-full">
                 {/* Background layout */}
                 <rect width="400" height="300" fill="#E8ECE9" />
 
-                {/* River layout */}
-                <path d="M -50,150 Q 80,140 200,220 T 450,230" fill="none" stroke="#B2EBF2" strokeWidth="32" strokeLinecap="round" opacity="0.6" />
+                {/* Local River/Canal layout */}
+                <path d="M -50,220 Q 150,180 220,280 T 450,260" fill="none" stroke="#B2EBF2" strokeWidth="24" strokeLinecap="round" opacity="0.5" />
+
+                {/* Santahar Railway Junction Tracks */}
+                <g opacity="0.8">
+                  {/* Outer rail line */}
+                  <path d="M -50,100 L 450,200" stroke="#757575" strokeWidth="6" strokeLinecap="round" fill="none" />
+                  {/* Inner rail dash line */}
+                  <path d="M -50,100 L 450,200" stroke="#FFFFFF" strokeWidth="4" strokeDasharray="6,6" fill="none" />
+
+                  {/* Junction branch */}
+                  <path d="M 175,125 Q 250,170 450,140" stroke="#757575" strokeWidth="5" strokeLinecap="round" fill="none" />
+                  <path d="M 175,125 Q 250,170 450,140" stroke="#FFFFFF" strokeWidth="3" strokeDasharray="5,5" fill="none" />
+                </g>
 
                 {/* Major street grid */}
                 <g stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.9">
-                  {/* Vertical streets */}
-                  <line x1="80" y1="-50" x2="80" y2="350" />
-                  <line x1="220" y1="-50" x2="220" y2="350" />
-                  <line x1="340" y1="-50" x2="340" y2="350" />
-                  {/* Horizontal streets */}
-                  <line x1="-50" y1="60" x2="450" y2="60" />
-                  <line x1="-50" y1="180" x2="450" y2="180" />
-                  <line x1="-50" y1="260" x2="450" y2="260" />
-                  {/* Diagonal streets */}
-                  <line x1="-50" y1="0" x2="450" y2="300" strokeWidth="6" />
+                  {/* Adamdighi Road (Vertical/Diagonal) */}
+                  <line x1="120" y1="-50" x2="120" y2="350" />
+                  {/* Bogura-Naogaon Highway (Horizontal) */}
+                  <line x1="-50" y1="150" x2="450" y2="150" />
+                  {/* Local HQ Access Road */}
+                  <line x1="-50" y1="50" x2="450" y2="50" />
                 </g>
 
-                {/* Street names */}
-                <g fill="#A1A8A3" fontSize="8" fontFamily="sans-serif" fontWeight="bold">
-                  <text x="90" y="20" transform="rotate(90 90 20)">Gulshan Avenue</text>
-                  <text x="230" y="20" transform="rotate(90 230 20)">Kemal Ataturk Ave</text>
-                  <text x="10" y="52">Road No. 11 (Banani)</text>
-                  <text x="10" y="172">Airport Road</text>
+                {/* Street & Landmark names */}
+                <g fill="#7A827C" fontSize="8" fontFamily="sans-serif" fontWeight="bold">
+                  <text x="130" y="30" transform="rotate(90 130 30)">Adamdighi Road</text>
+                  <text x="10" y="42">Green Road</text>
+                  <text x="250" y="142">Bogura-Naogaon Hwy</text>
+                  <text x="260" y="188" fill="#1F5E2E" fontSize="7" transform="rotate(11 260 188)">Santahar Railway Line</text>
                 </g>
 
-                {/* Green Earth HQ Active pin */}
-                <g transform="translate(220, 60)">
+                {/* Green Earth HQ Active pin near the Highway-Railway crossing */}
+                <g transform="translate(250, 95)">
                   {/* Radar pulse */}
                   <circle cx="0" cy="0" r="14" fill="#6BBF3A" opacity="0.3">
                     <animate attributeName="r" values="6;22;6" dur="2.5s" repeatCount="indefinite" />
@@ -288,7 +296,10 @@ export default function Contact({ isBangla, onFormSuccess, settings }: ContactPr
                 <div className="text-xs font-sans">
                   <div className="font-extrabold text-[#1F5E2E] mb-0.5">Green Earth HQ</div>
                   <div className="text-gray-500 leading-snug">
-                    {isBangla ? 'রোড ১১, বনানী (প্রাইম ব্যাংক ভবনের নিকটে), ঢাকা।' : 'Road 11, Banani (Near Prime Bank Block), Dhaka.'}
+                    {isBangla 
+                      ? (settings?.addressBn || 'সান্তাহার, আদমদীঘি, বগুড়া, বাংলাদেশ।') 
+                      : (settings?.address || 'Santahar, Adamdighi, Bogura, Bangladesh.')
+                    }
                   </div>
                 </div>
               </div>

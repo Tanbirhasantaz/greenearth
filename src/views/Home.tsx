@@ -314,7 +314,7 @@ export default function Home({
             {whatWeDo.map((item, index) => (
               <motion.div
                 key={index}
-                whileHover={{ y: -8, shadow: 'xl' }}
+                whileHover={{ y: -8 }}
                 className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all border-b-4 border-transparent hover:border-[#6BBF3A] flex flex-col gap-5 text-left"
               >
                 <div className={`p-4 rounded-2xl w-fit ${item.color.split(' ')[0]} ${item.color.split(' ')[1]}`}>

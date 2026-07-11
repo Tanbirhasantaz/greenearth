@@ -82,15 +82,15 @@ export default function Footer({
           <Logo size="sm" showWordmark={true} lightMode={true} settings={settings} />
           <p className="text-green-100 font-sans text-sm leading-relaxed">
             {isBangla 
-              ? (settings?.aboutTextBn || 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।') 
-              : (settings?.aboutText || 'Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.')
+              ? (settings?.footerAboutTextBn || settings?.aboutTextBn || 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।') 
+              : (settings?.footerAboutText || settings?.aboutText || 'Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.')
             }
           </p>
 
           {/* Social Links */}
           <div className="flex gap-3 mt-2">
             <a
-              href="https://www.facebook.com/greenearthbd.25/"
+              href={settings?.footerFbUrl || "https://www.facebook.com/greenearthbd.25/"}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2.5 rounded-full bg-white/10 hover:bg-[#6BBF3A] hover:text-white transition-all transform hover:-translate-y-1 shadow cursor-pointer"
@@ -100,7 +100,7 @@ export default function Footer({
               <Facebook size={18} fill="currentColor" />
             </a>
             <a
-              href="https://instagram.com"
+              href={settings?.footerInstaUrl || "https://instagram.com"}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2.5 rounded-full bg-white/10 hover:bg-[#6BBF3A] hover:text-white transition-all transform hover:-translate-y-1 shadow cursor-pointer"
@@ -109,7 +109,7 @@ export default function Footer({
               <Instagram size={18} />
             </a>
             <a
-              href="https://linkedin.com"
+              href={settings?.footerLinkedinUrl || "https://linkedin.com"}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2.5 rounded-full bg-white/10 hover:bg-[#6BBF3A] hover:text-white transition-all transform hover:-translate-y-1 shadow cursor-pointer"
@@ -118,7 +118,7 @@ export default function Footer({
               <Linkedin size={18} fill="currentColor" />
             </a>
             <a
-              href="https://youtube.com"
+              href={settings?.footerYoutubeUrl || "https://youtube.com"}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2.5 rounded-full bg-white/10 hover:bg-[#6BBF3A] hover:text-white transition-all transform hover:-translate-y-1 shadow cursor-pointer"
@@ -198,12 +198,15 @@ export default function Footer({
         {/* Col 4: Newsletter */}
         <div className="flex flex-col gap-4">
           <h4 className="font-sans text-lg font-bold text-green-200 border-b border-white/10 pb-2">
-            {isBangla ? 'নিউজলেটার সাবস্ক্রাইব' : 'Subscribe to Eco-News'}
+            {isBangla 
+              ? (settings?.footerNewsletterTitleBn || 'নিউজলেটার সাবস্ক্রাইব') 
+              : (settings?.footerNewsletterTitle || 'Subscribe to Eco-News')
+            }
           </h4>
           <p className="text-green-100 font-sans text-sm leading-relaxed">
             {isBangla 
-              ? 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।' 
-              : 'Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.'
+              ? (settings?.footerNewsletterDescBn || 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।') 
+              : (settings?.footerNewsletterDesc || 'Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.')
             }
           </p>
           <form onSubmit={handleSubscribe} className="flex flex-col gap-2 mt-1">
@@ -232,7 +235,12 @@ export default function Footer({
 
       {/* Bottom bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-mono font-bold text-green-200">
-        <p>© 2026 Green Earth Bangladesh. All Rights Reserved.</p>
+        <p>
+          {isBangla 
+            ? (settings?.footerCopyrightBn || '© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।') 
+            : (settings?.footerCopyright || '© 2026 Green Earth Bangladesh. All Rights Reserved.')
+          }
+        </p>
         <div className="flex gap-4">
           <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
           <span>•</span>

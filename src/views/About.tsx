@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { Leaf, Users, Shield, Lightbulb, Landmark, Award, BookOpen } from 'lucide-react';
+import { Leaf, Users, Shield, Lightbulb, Landmark, Award, BookOpen, X } from 'lucide-react';
 import { TEAM_MEMBERS, MILESTONES, CORE_VALUES } from '../data';
 
 interface AboutProps {
@@ -17,6 +17,7 @@ export default function About({ isBangla, settings }: AboutProps) {
   const [teamList, setTeamList] = React.useState<any[]>(TEAM_MEMBERS);
   const [milestonesList, setMilestonesList] = React.useState<any[]>(MILESTONES);
   const [coreValuesList, setCoreValuesList] = React.useState<any[]>(CORE_VALUES);
+  const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
 
   React.useEffect(() => {
     fetch('/api/team')
@@ -266,15 +267,82 @@ export default function About({ isBangla, settings }: AboutProps) {
                       {isBangla ? (member.roleBn || member.role) : member.role}
                     </p>
                   </div>
-                  <p className="font-sans text-xs text-gray-500 leading-relaxed mt-2 border-t border-gray-100 pt-3">
+                  <p className="font-sans text-xs text-gray-500 leading-relaxed mt-2 border-t border-gray-100 pt-3 line-clamp-3">
                     {isBangla ? (member.bioBn || member.bio) : member.bio}
                   </p>
+                  <button
+                    onClick={() => setSelectedMember(member)}
+                    className="mt-2 text-xs font-bold text-[#1F5E2E] hover:text-[#6BBF3A] transition-colors flex items-center gap-1 cursor-pointer self-start"
+                  >
+                    {isBangla ? 'বিস্তারিত দেখুন' : 'View Profile'} →
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Team Member Detail Modal */}
+      {selectedMember && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" id="team-member-modal">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl overflow-hidden max-w-2xl w-full relative shadow-2xl flex flex-col md:flex-row max-h-[90vh] overflow-y-auto text-left"
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedMember(null)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/20 hover:bg-black/30 md:bg-gray-100 md:hover:bg-gray-200 text-white md:text-gray-500 transition-colors cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Profile Image */}
+            <div className="w-full md:w-2/5 aspect-square md:aspect-auto md:min-h-full bg-gray-100 relative shrink-0">
+              <img
+                src={selectedMember.image}
+                alt={isBangla ? (selectedMember.nameBn || selectedMember.name) : selectedMember.name}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-[#1F5E2E]/10" />
+            </div>
+
+            {/* Profile Details */}
+            <div className="p-8 flex-1 flex flex-col justify-between">
+              <div>
+                <span className="bg-[#6BBF3A]/20 text-[#1F5E2E] text-[10px] font-mono font-black uppercase py-1 px-2.5 rounded-full inline-block mb-3 tracking-wider">
+                  {isBangla ? 'দলনেতা পরিচিতি' : 'Team Leader Profile'}
+                </span>
+                <h3 className="font-sans text-2xl font-black text-gray-900 leading-tight">
+                  {isBangla ? (selectedMember.nameBn || selectedMember.name) : selectedMember.name}
+                </h3>
+                <p className="font-mono text-xs font-bold text-[#6BBF3A] uppercase tracking-wider mt-1">
+                  {isBangla ? (selectedMember.roleBn || selectedMember.role) : selectedMember.role}
+                </p>
+                <div className="h-1 w-10 bg-[#6BBF3A] rounded-full mt-4 mb-6" />
+                
+                <p className="font-sans text-xs text-gray-600 leading-relaxed whitespace-pre-line">
+                  {isBangla ? (selectedMember.bioBn || selectedMember.bio) : selectedMember.bio}
+                </p>
+              </div>
+
+              {/* Footer row of modal */}
+              <div className="mt-8 pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  onClick={() => setSelectedMember(null)}
+                  className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-bold text-xs py-2 px-5 rounded-full transition-colors cursor-pointer"
+                >
+                  {isBangla ? 'বন্ধ করুন' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
