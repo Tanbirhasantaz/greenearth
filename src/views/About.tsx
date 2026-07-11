@@ -3,10 +3,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Leaf, Users, Shield, Lightbulb, Landmark, Award, BookOpen, X } from 'lucide-react';
-import { TEAM_MEMBERS, MILESTONES, CORE_VALUES } from '../data';
+
+// Skeletons for About Page
+function CoreValueSkeleton() {
+  return (
+    <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm animate-pulse flex flex-col gap-4">
+      <div className="w-12 h-12 rounded-2xl bg-gray-200" />
+      <div className="h-5 bg-gray-200 rounded-md w-1/2" />
+      <div className="h-3 bg-gray-200 rounded-md w-5/6" />
+      <div className="h-3 bg-gray-200 rounded-md w-3/4" />
+    </div>
+  );
+}
+
+function MilestoneSkeleton() {
+  return (
+    <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm animate-pulse flex flex-col gap-3">
+      <div className="h-5 bg-gray-200 rounded-md w-1/4" />
+      <div className="h-6 bg-gray-200 rounded-md w-1/3" />
+      <div className="h-4 bg-gray-200 rounded-md w-2/3" />
+    </div>
+  );
+}
+
+function TeamSkeleton() {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm animate-pulse flex flex-col h-full">
+      <div className="aspect-square bg-gray-200" />
+      <div className="p-6 flex flex-col justify-between flex-1 gap-3">
+        <div className="space-y-2">
+          <div className="h-5 bg-gray-200 rounded-md w-2/3" />
+          <div className="h-4 bg-gray-200 rounded-md w-1/2" />
+        </div>
+        <div className="h-3 bg-gray-200 rounded-md w-5/6 mt-2 border-t border-gray-100 pt-3" />
+      </div>
+    </div>
+  );
+}
 
 interface AboutProps {
   isBangla: boolean;
@@ -14,47 +50,72 @@ interface AboutProps {
 }
 
 export default function About({ isBangla, settings }: AboutProps) {
-  const [teamList, setTeamList] = React.useState<any[]>(TEAM_MEMBERS);
-  const [milestonesList, setMilestonesList] = React.useState<any[]>(MILESTONES);
-  const [coreValuesList, setCoreValuesList] = React.useState<any[]>(CORE_VALUES);
-  const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
+  const [teamList, setTeamList] = useState<any[]>([]);
+  const [milestonesList, setMilestonesList] = useState<any[]>([]);
+  const [coreValuesList, setCoreValuesList] = useState<any[]>([]);
+  const [selectedMember, setSelectedMember] = useState<any | null>(null);
 
-  React.useEffect(() => {
-    fetch('/api/team')
+  const [isLoadingTeam, setIsLoadingTeam] = useState(true);
+  const [isLoadingMilestones, setIsLoadingMilestones] = useState(true);
+  const [isLoadingCoreValues, setIsLoadingCoreValues] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/team?t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Team fail');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setTeamList(data);
         }
       })
-      .catch((err) => console.log('Using static team leaders fallback:', err));
+      .catch((err) => console.log('Error loading team leaders:', err))
+      .finally(() => setIsLoadingTeam(false));
 
-    fetch('/api/milestones')
+    fetch(`/api/milestones?t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Milestones fail');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setMilestonesList(data);
         }
       })
-      .catch((err) => console.log('Using static milestones fallback:', err));
+      .catch((err) => console.log('Error loading milestones:', err))
+      .finally(() => setIsLoadingMilestones(false));
 
-    fetch('/api/corevalues')
+    fetch(`/api/corevalues?t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Core values fail');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setCoreValuesList(data);
         }
       })
-      .catch((err) => console.log('Using static core values fallback:', err));
+      .catch((err) => console.log('Error loading core values:', err))
+      .finally(() => setIsLoadingCoreValues(false));
   }, []);
 
   // Map core values to their respective icons
@@ -171,19 +232,32 @@ export default function About({ isBangla, settings }: AboutProps) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {coreValuesList.map((val) => (
-              <div key={val.id} className="bg-white border border-gray-100 rounded-3xl p-6 text-left shadow-sm hover:shadow-md transition-all">
-                <div className="p-3 bg-[#6BBF3A]/10 text-[#1F5E2E] rounded-2xl w-fit mb-5">
-                  {iconMap[val.iconName] || <Leaf size={24} />}
-                </div>
-                <h3 className="font-sans text-lg font-bold text-[#1F5E2E] mb-2">
-                  {isBangla ? val.titleBn : val.title}
-                </h3>
-                <p className="font-sans text-xs sm:text-sm text-gray-500 leading-relaxed">
-                  {isBangla ? val.descriptionBn : val.description}
-                </p>
+            {isLoadingCoreValues ? (
+              <>
+                <CoreValueSkeleton />
+                <CoreValueSkeleton />
+                <CoreValueSkeleton />
+                <CoreValueSkeleton />
+              </>
+            ) : coreValuesList.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-gray-500 bg-white rounded-3xl p-8 border border-gray-100">
+                {isBangla ? 'কোনো আদর্শ পাওয়া যায়নি।' : 'No core values found.'}
               </div>
-            ))}
+            ) : (
+              coreValuesList.map((val) => (
+                <div key={val.id} className="bg-white border border-gray-100 rounded-3xl p-6 text-left shadow-sm hover:shadow-md transition-all">
+                  <div className="p-3 bg-[#6BBF3A]/10 text-[#1F5E2E] rounded-2xl w-fit mb-5">
+                    {iconMap[val.iconName] || <Leaf size={24} />}
+                  </div>
+                  <h3 className="font-sans text-lg font-bold text-[#1F5E2E] mb-2">
+                    {isBangla ? val.titleBn : val.title}
+                  </h3>
+                  <p className="font-sans text-xs sm:text-sm text-gray-500 leading-relaxed">
+                    {isBangla ? val.descriptionBn : val.description}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -202,27 +276,39 @@ export default function About({ isBangla, settings }: AboutProps) {
 
         {/* Timeline Layout */}
         <div className="relative border-l-4 border-[#6BBF3A]/20 ml-4 sm:ml-32 pl-8 space-y-12 py-4 text-left">
-          {milestonesList.map((mile) => (
-            <div key={mile.id} className="relative">
-              {/* Year Marker */}
-              <div className="absolute -left-20 sm:-left-44 top-0.5 bg-[#6BBF3A] text-white font-mono font-extrabold text-sm sm:text-base py-1 px-3 sm:px-4 rounded-full shadow tracking-wider text-center w-16 sm:w-28">
-                {isBangla ? mile.yearBn : mile.year}
-              </div>
-
-              {/* Bullet node */}
-              <div className="absolute -left-[42px] top-1.5 w-6 h-6 rounded-full bg-white border-4 border-[#1F5E2E] shadow" />
-
-              {/* Card info */}
-              <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all">
-                <h3 className="font-sans text-xl font-bold text-[#1F5E2E] mb-2">
-                  {isBangla ? mile.titleBn : mile.title}
-                </h3>
-                <p className="font-sans text-sm sm:text-base text-gray-600 leading-relaxed">
-                  {isBangla ? mile.descriptionBn : mile.description}
-                </p>
-              </div>
+          {isLoadingMilestones ? (
+            <>
+              <MilestoneSkeleton />
+              <MilestoneSkeleton />
+              <MilestoneSkeleton />
+            </>
+          ) : milestonesList.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 bg-white rounded-3xl p-8 border border-gray-100">
+              {isBangla ? 'কোনো অর্জন পাওয়া যায়নি।' : 'No milestones found.'}
             </div>
-          ))}
+          ) : (
+            milestonesList.map((mile) => (
+              <div key={mile.id} className="relative">
+                {/* Year Marker */}
+                <div className="absolute -left-20 sm:-left-44 top-0.5 bg-[#6BBF3A] text-white font-mono font-extrabold text-sm sm:text-base py-1 px-3 sm:px-4 rounded-full shadow tracking-wider text-center w-16 sm:w-28">
+                  {isBangla ? mile.yearBn : mile.year}
+                </div>
+
+                {/* Bullet node */}
+                <div className="absolute -left-[42px] top-1.5 w-6 h-6 rounded-full bg-white border-4 border-[#1F5E2E] shadow" />
+
+                {/* Card info */}
+                <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all">
+                  <h3 className="font-sans text-xl font-bold text-[#1F5E2E] mb-2">
+                    {isBangla ? mile.titleBn : mile.title}
+                  </h3>
+                  <p className="font-sans text-sm sm:text-base text-gray-600 leading-relaxed">
+                    {isBangla ? mile.descriptionBn : mile.description}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -241,44 +327,57 @@ export default function About({ isBangla, settings }: AboutProps) {
 
           {/* Team Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {teamList.map((member) => (
-              <div
-                key={member.id}
-                className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all text-left flex flex-col h-full"
-              >
-                {/* Photo */}
-                <div className="aspect-square bg-gray-100 relative overflow-hidden group">
-                  <img
-                    src={member.image}
-                    alt={isBangla ? (member.nameBn || member.name) : member.name}
-                    className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-[#1F5E2E]/10 group-hover:bg-transparent transition-colors" />
-                </div>
-
-                {/* Info details */}
-                <div className="p-6 flex flex-col justify-between flex-1 gap-3">
-                  <div>
-                    <h3 className="font-sans text-lg font-extrabold text-gray-900 leading-tight">
-                      {isBangla ? (member.nameBn || member.name) : member.name}
-                    </h3>
-                    <p className="font-mono text-xs font-bold text-[#6BBF3A] uppercase tracking-wider mt-0.5">
-                      {isBangla ? (member.roleBn || member.role) : member.role}
-                    </p>
-                  </div>
-                  <p className="font-sans text-xs text-gray-500 leading-relaxed mt-2 border-t border-gray-100 pt-3 line-clamp-3">
-                    {isBangla ? (member.bioBn || member.bio) : member.bio}
-                  </p>
-                  <button
-                    onClick={() => setSelectedMember(member)}
-                    className="mt-2 text-xs font-bold text-[#1F5E2E] hover:text-[#6BBF3A] transition-colors flex items-center gap-1 cursor-pointer self-start"
-                  >
-                    {isBangla ? 'বিস্তারিত দেখুন' : 'View Profile'} →
-                  </button>
-                </div>
+            {isLoadingTeam ? (
+              <>
+                <TeamSkeleton />
+                <TeamSkeleton />
+                <TeamSkeleton />
+                <TeamSkeleton />
+              </>
+            ) : teamList.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-gray-500 bg-white rounded-3xl p-8 border border-gray-100">
+                {isBangla ? 'কোনো টিম লিডার পাওয়া যায়নি।' : 'No team leaders found.'}
               </div>
-            ))}
+            ) : (
+              teamList.map((member) => (
+                <div
+                  key={member.id}
+                  className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all text-left flex flex-col h-full"
+                >
+                  {/* Photo */}
+                  <div className="aspect-square bg-gray-100 relative overflow-hidden group">
+                    <img
+                      src={member.image}
+                      alt={isBangla ? (member.nameBn || member.name) : member.name}
+                      className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-[#1F5E2E]/10 group-hover:bg-transparent transition-colors" />
+                  </div>
+
+                  {/* Info details */}
+                  <div className="p-6 flex flex-col justify-between flex-1 gap-3">
+                    <div>
+                      <h3 className="font-sans text-lg font-extrabold text-gray-900 leading-tight">
+                        {isBangla ? (member.nameBn || member.name) : member.name}
+                      </h3>
+                      <p className="font-mono text-xs font-bold text-[#6BBF3A] uppercase tracking-wider mt-0.5">
+                        {isBangla ? (member.roleBn || member.role) : member.role}
+                      </p>
+                    </div>
+                    <p className="font-sans text-xs text-gray-500 leading-relaxed mt-2 border-t border-gray-100 pt-3 line-clamp-3">
+                      {isBangla ? (member.bioBn || member.bio) : member.bio}
+                    </p>
+                    <button
+                      onClick={() => setSelectedMember(member)}
+                      className="mt-2 text-xs font-bold text-[#1F5E2E] hover:text-[#6BBF3A] transition-colors flex items-center gap-1 cursor-pointer self-start"
+                    >
+                      {isBangla ? 'বিস্তারিত দেখুন' : 'View Profile'} →
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>

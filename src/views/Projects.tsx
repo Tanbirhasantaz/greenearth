@@ -6,7 +6,28 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, Clock, CheckCircle, MapPin, ArrowRight } from 'lucide-react';
 import { Project } from '../types';
-import { PROJECTS } from '../data';
+
+function ProjectSkeleton() {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-200/60 overflow-hidden shadow-sm animate-pulse flex flex-col h-full text-left">
+      <div className="aspect-video bg-gray-200" />
+      <div className="p-6 flex flex-col flex-1 justify-between gap-5">
+        <div className="space-y-3">
+          <div className="h-4 bg-gray-200 rounded-md w-1/4" />
+          <div className="h-6 bg-gray-200 rounded-lg w-3/4" />
+          <div className="space-y-2 pt-2">
+            <div className="h-4 bg-gray-200 rounded-md w-full" />
+            <div className="h-4 bg-gray-200 rounded-md w-5/6" />
+          </div>
+        </div>
+        <div className="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
+          <div className="h-4 bg-gray-200 rounded-md w-1/3" />
+          <div className="h-8 bg-gray-200 rounded-full w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface ProjectsProps {
   isBangla: boolean;
@@ -17,21 +38,29 @@ type ProjectCategoryFilter = string;
 
 export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Dynamic fetch on mount
   useEffect(() => {
-    fetch('/api/projects')
+    fetch(`/api/projects?t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Server returned non-ok status');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setProjectsList(data);
         }
       })
-      .catch((err) => console.log('Using static projects fallback:', err));
+      .catch((err) => console.log('Error loading projects:', err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const defaultCategories = [
@@ -107,7 +136,16 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
         </div>
 
         {/* Dynamic Project Cards Grid */}
-        {filteredProjects.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="projects-grid">
+            <ProjectSkeleton />
+            <ProjectSkeleton />
+            <ProjectSkeleton />
+            <ProjectSkeleton />
+            <ProjectSkeleton />
+            <ProjectSkeleton />
+          </div>
+        ) : filteredProjects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="projects-grid">
             {filteredProjects.map((project) => (
               <div
@@ -185,7 +223,7 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
           <div className="bg-white rounded-3xl p-16 text-center border border-gray-200/50 shadow-sm max-w-lg mx-auto" id="no-projects-found">
             <Filter size={40} className="text-gray-300 mx-auto mb-4" />
             <h3 className="font-sans text-lg font-bold text-gray-600 mb-2">
-              {isBangla ? 'কোন প্রকল্প খুঁজে পাওয়া যায়নি' : 'No Projects Found'}
+              {isBangla ? 'কোন प्रकल्प খুঁজে পাওয়া যায়নি' : 'No Projects Found'}
             </h3>
             <p className="font-sans text-sm text-gray-400 leading-relaxed mb-6">
               {isBangla

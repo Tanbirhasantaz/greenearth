@@ -6,7 +6,12 @@
 import React, { useState, useEffect } from 'react';
 import { Image, Video, Calendar, Eye, Filter } from 'lucide-react';
 import { GalleryItem } from '../types';
-import { GALLERY_ITEMS } from '../data';
+
+function GallerySkeleton() {
+  return (
+    <div className="group relative aspect-square sm:aspect-video md:aspect-[4/3] rounded-3xl overflow-hidden border border-gray-200/40 bg-gray-200 animate-pulse shadow-sm" />
+  );
+}
 
 interface GalleryProps {
   isBangla: boolean;
@@ -15,21 +20,29 @@ interface GalleryProps {
 
 export default function Gallery({ isBangla, onImageClick }: GalleryProps) {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [galleryList, setGalleryList] = useState<GalleryItem[]>(GALLERY_ITEMS);
+  const [galleryList, setGalleryList] = useState<GalleryItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Dynamic fetch on mount
   useEffect(() => {
-    fetch('/api/gallery')
+    fetch(`/api/gallery?t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Server returned non-ok status');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setGalleryList(data);
         }
       })
-      .catch((err) => console.log('Using static gallery fallback:', err));
+      .catch((err) => console.log('Error loading gallery:', err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const categories = [
@@ -88,51 +101,66 @@ export default function Gallery({ isBangla, onImageClick }: GalleryProps) {
 
         {/* Responsive Photo grid with Lightbox triggers */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="gallery-grid">
-          {filteredItems.map((item, index) => {
-            // Find its index in the filtered array for proper lightbox swipe navigation!
-            const filteredIndex = filteredItems.findIndex((fi) => fi.id === item.id);
+          {isLoading ? (
+            <>
+              <GallerySkeleton />
+              <GallerySkeleton />
+              <GallerySkeleton />
+              <GallerySkeleton />
+              <GallerySkeleton />
+              <GallerySkeleton />
+            </>
+          ) : filteredItems.length === 0 ? (
+            <div className="col-span-full text-center py-16 text-gray-500 bg-white rounded-3xl p-8 border border-gray-100">
+              {isBangla ? 'কোন ছবি পাওয়া যায়নি।' : 'No photos found.'}
+            </div>
+          ) : (
+            filteredItems.map((item, index) => {
+              // Find its index in the filtered array for proper lightbox swipe navigation!
+              const filteredIndex = filteredItems.findIndex((fi) => fi.id === item.id);
 
-            return (
-              <div
-                key={item.id}
-                onClick={() => onImageClick(filteredItems, filteredIndex)}
-                className="group relative aspect-square sm:aspect-video md:aspect-[4/3] rounded-3xl overflow-hidden border border-gray-200/40 bg-white shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all duration-300 cursor-zoom-in"
-              >
-                {/* Image */}
-                <img
-                  src={item.image}
-                  alt={isBangla ? item.titleBn : item.title}
-                  className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => onImageClick(filteredItems, filteredIndex)}
+                  className="group relative aspect-square sm:aspect-video md:aspect-[4/3] rounded-3xl overflow-hidden border border-gray-200/40 bg-white shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all duration-300 cursor-zoom-in"
+                >
+                  {/* Image */}
+                  <img
+                    src={item.image}
+                    alt={isBangla ? item.titleBn : item.title}
+                    className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
 
-                {/* Dark Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6 text-left" id={`gallery-item-overlay-${item.id}`}>
-                  {/* Category tag */}
-                  <span className="bg-[#6BBF3A] text-white text-[9px] font-mono font-black uppercase tracking-widest py-1 px-2.5 rounded-full w-fit mb-2">
-                    {isBangla ? item.categoryLabelBn : item.categoryLabel}
-                  </span>
-
-                  {/* Title */}
-                  <h4 className="font-sans text-base sm:text-lg font-black text-white leading-snug mb-1">
-                    {isBangla ? item.titleBn : item.title}
-                  </h4>
-
-                  {/* Date and Indicator */}
-                  <div className="flex items-center justify-between text-xs text-gray-300 mt-2 font-mono">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={12} />
-                      {item.date}
+                  {/* Dark Hover Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6 text-left" id={`gallery-item-overlay-${item.id}`}>
+                    {/* Category tag */}
+                    <span className="bg-[#6BBF3A] text-[#FAFAF7] text-[9px] font-mono font-black uppercase tracking-widest py-1 px-2.5 rounded-full w-fit mb-2">
+                      {isBangla ? item.categoryLabelBn : item.categoryLabel}
                     </span>
-                    <span className="flex items-center gap-1.5 text-white bg-white/20 px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider">
-                      <Eye size={12} />
-                      Zoom
-                    </span>
+
+                    {/* Title */}
+                    <h4 className="font-sans text-base sm:text-lg font-black text-white leading-snug mb-1">
+                      {isBangla ? item.titleBn : item.title}
+                    </h4>
+
+                    {/* Date and Indicator */}
+                    <div className="flex items-center justify-between text-xs text-gray-300 mt-2 font-mono">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        {item.date}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-white bg-white/20 px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider">
+                        <Eye size={12} />
+                        Zoom
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </section>
     </div>
