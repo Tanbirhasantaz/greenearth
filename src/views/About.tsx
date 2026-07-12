@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { Leaf, Users, Shield, Lightbulb, Landmark, Award, BookOpen, X } from 'lucide-react';
+import { Leaf, Users, Shield, Lightbulb, Landmark, Award, BookOpen, X, TrendingUp } from 'lucide-react';
 import { TEAM_MEMBERS, MILESTONES, CORE_VALUES } from '../data';
 
 interface AboutProps {
@@ -61,8 +61,8 @@ export default function About({ isBangla, settings }: AboutProps) {
   const iconMap: { [key: string]: React.ReactNode } = {
     Leaf: <Leaf size={24} />,
     Users: <Users size={24} />,
-    TrendingUp: <Award size={24} />,
-    Award: <Lightbulb size={24} />
+    TrendingUp: <TrendingUp size={24} />,
+    Award: <Award size={24} />
   };
 
   return (

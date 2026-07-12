@@ -534,6 +534,45 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   });
 }
 
+// Synchronize server-side changes back into client-side localStorage
+function syncLocalCache(url: string, method: string, data: any) {
+  if (typeof window === 'undefined' || !data) return;
+  try {
+    const parsedUrl = new URL(url, window.location.origin);
+    const path = parsedUrl.pathname;
+    
+    const keyMap: Record<string, string> = {
+      '/api/projects': 'ge_db_projects',
+      '/api/blogs': 'ge_db_blogs',
+      '/api/team': 'ge_db_team',
+      '/api/gallery': 'ge_db_gallery',
+      '/api/volunteers': 'ge_db_volunteers',
+      '/api/donations': 'ge_db_donations',
+      '/api/subscribers': 'ge_db_subscribers',
+      '/api/contacts': 'ge_db_contacts',
+      '/api/settings': 'ge_db_settings',
+      '/api/testimonials': 'ge_db_testimonials',
+      '/api/milestones': 'ge_db_milestones',
+      '/api/corevalues': 'ge_db_corevalues',
+      '/api/focusareas': 'ge_db_focusareas'
+    };
+
+    let matchingKey = '';
+    for (const [route, key] of Object.entries(keyMap)) {
+      if (path === route || path.startsWith(route + '/')) {
+        matchingKey = key;
+        break;
+      }
+    }
+
+    if (matchingKey && method === 'GET') {
+      localStorage.setItem(matchingKey, JSON.stringify(data));
+    }
+  } catch (e) {
+    console.warn('Error during syncLocalCache:', e);
+  }
+}
+
 // Global fetch interceptor setup
 if (typeof window !== 'undefined') {
   initStorage();
@@ -554,6 +593,20 @@ if (typeof window !== 'undefined') {
         if ((!response.ok && !isJson) || response.status === 404 || contentType.includes('text/html')) {
           return await handleFallback(urlStr, init);
         }
+
+        // Sync local cache if the response is a successful JSON
+        if (response.ok && isJson) {
+          try {
+            const clone = response.clone();
+            clone.json().then((data) => {
+              const method = init?.method?.toUpperCase() || 'GET';
+              syncLocalCache(urlStr, method, data);
+            }).catch(() => {});
+          } catch (e) {
+            console.warn('Failed to clone and sync response:', e);
+          }
+        }
+
         return response;
       } catch (error) {
         console.warn('API connection failed, falling back to client-side localStorage:', error);
