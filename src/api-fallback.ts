@@ -48,7 +48,8 @@ export const initStorage = () => {
       taglineBn: 'সবুজ বাংলাদেশের জন্য',
       phone: '+880 1712-345678',
       email: 'info@greenearth.org',
-      address: 'House 42, Road 11, Dhanmondi, Dhaka'
+      address: 'House 42, Road 11, Dhanmondi, Dhaka',
+      membershipFormUrl: 'https://forms.gle/51Kt57CfRuAnAGy88'
     }));
   }
   if (!localStorage.getItem('ge_db_milestones') || localStorage.getItem('ge_db_milestones') === '[]') {

@@ -392,7 +392,8 @@ function initializeDataFiles() {
       footerNewsletterDesc: "Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.",
       footerNewsletterDescBn: "নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।",
       footerCopyright: "© 2026 Green Earth Bangladesh. All Rights Reserved.",
-      footerCopyrightBn: "© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।"
+      footerCopyrightBn: "© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।",
+      membershipFormUrl: "https://forms.gle/51Kt57CfRuAnAGy88"
     };
     fs.writeFileSync(filePaths.settings, JSON.stringify(initialSettings, null, 2));
   }

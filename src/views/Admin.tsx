@@ -116,6 +116,7 @@ interface OrgSettings {
   aboutVisionBn?: string;
   bkashNo?: string;
   nagadNo?: string;
+  membershipFormUrl?: string;
   aboutHeroLabel?: string;
   aboutHeroLabelBn?: string;
   aboutHeroTitle?: string;
@@ -353,6 +354,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   // Payment details state variables
   const [setBkashNo, setSetBkashNo] = useState('');
   const [setNagadNo, setSetNagadNo] = useState('');
+  const [setMembershipFormUrl, setSetMembershipFormUrl] = useState('');
 
   // Auto check authentication
   useEffect(() => {
@@ -437,6 +439,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
         setSetBkashNo(resSettings.bkashNo || '01712345678');
         setSetNagadNo(resSettings.nagadNo || '01712345678');
+        setSetMembershipFormUrl(resSettings.membershipFormUrl || 'https://forms.gle/51Kt57CfRuAnAGy88');
 
         // New About Page Headers Seeding
         setSetAboutHeroLabel(resSettings.aboutHeroLabel || 'Who We Are');
@@ -1185,6 +1188,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
       bkashNo: setBkashNo,
       nagadNo: setNagadNo,
+      membershipFormUrl: setMembershipFormUrl,
 
       aboutHeroLabel: setAboutHeroLabel,
       aboutHeroLabelBn: setAboutHeroLabelBn,
@@ -3451,11 +3455,11 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </div>
                   </div>
 
-                  {/* SECTION 6: PAYMENT WALLETS */}
+                  {/* SECTION 6: PAYMENT WALLETS & MEMBERSHIP */}
                   <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
                     <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
-                      {isBangla ? '৬. পেমেন্ট ওয়ালেট নম্বর সমূহ' : '6. Get Involved Donation Wallets'}
+                      {isBangla ? '৬. অনুদান ওয়ালেট এবং মেম্বারশিপ সেটিংস' : '6. Donation Wallets & Membership Settings'}
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3475,6 +3479,16 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                           value={setNagadNo}
                           onChange={(e) => setSetNagadNo(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 md:col-span-2">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Membership Registration Form (Google Form URL)</label>
+                        <input
+                          type="url"
+                          value={setMembershipFormUrl}
+                          onChange={(e) => setSetMembershipFormUrl(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono font-bold"
+                          placeholder="https://forms.gle/..."
                         />
                       </div>
                     </div>

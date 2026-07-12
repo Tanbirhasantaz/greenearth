@@ -205,6 +205,90 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         </div>
       </section>
 
+      {/* MEMBERSHIP REGISTRATION SECTION */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" id="membership-section">
+        <div className="bg-white border border-[#1F5E2E]/10 rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden flex flex-col md:flex-row gap-8 items-center">
+          {/* Subtle decorative background plant leaf pattern */}
+          <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none text-[#1F5E2E]">
+            <Award size={300} />
+          </div>
+          
+          <div className="flex-1 text-left space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#6BBF3A]/10 text-[#1F5E2E] text-xs font-mono font-bold uppercase tracking-wider">
+              <Award size={14} className="text-[#6BBF3A]" />
+              <span>{isBangla ? 'অফিশিয়াল সদস্যপদ' : 'Official Membership'}</span>
+            </div>
+            
+            <h2 className="font-sans text-2xl sm:text-3xl font-black text-[#1F5E2E]">
+              {isBangla ? 'গ্রিন আর্থ-এর সদস্য হোন' : 'Become a Lifetime Green Earth Member'}
+            </h2>
+            
+            <p className="font-sans text-sm sm:text-base text-gray-600 leading-relaxed max-w-3xl">
+              {isBangla
+                ? 'পরিবেশ সংরক্ষণ ও জলবায়ু পরিবর্তন মোকাবিলায় আমাদের স্থায়ী নীতি নির্ধারণী দলের সঙ্গী হোন। গ্রিন আর্থ সদস্য হিসেবে আপনি অফিশিয়াল মেম্বারশিপ সার্টিফিকেট পাবেন, বার্ষিক সাধারণ সভায় সিদ্ধান্ত গ্রহণে সরাসরি ভূমিকা রাখবেন এবং আমাদের প্রকল্পসমূহে সরাসরি অবদান রাখবেন।'
+                : 'Join our formal membership program to play a key role in guiding our environmental initiatives. As a registered member, you will receive an official digital membership certificate, voting rights in our annual summit, and direct access to field planning operations.'
+              }
+            </p>
+            
+            {/* Benefits Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
+                <span>
+                  {isBangla 
+                    ? 'অফিশিয়াল মেম্বারশিপ সার্টিফিকেট ও আইডি কার্ড' 
+                    : 'Official Member Certificate & ID Card'}
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
+                <span>
+                  {isBangla 
+                    ? 'বার্ষিক সম্মেলন ও ইকো-ক্যাম্পিংয়ে সরাসরি অংশ নিন' 
+                    : 'Priority Access to Reforestation Camps & Summits'}
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
+                <span>
+                  {isBangla 
+                    ? 'গ্রিন আর্থ-এর নীতি নির্ধারণে ভোটাধিকার' 
+                    : 'Voting Rights & Org Decision Contributions'}
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
+                <span>
+                  {isBangla 
+                    ? 'মাসিক ও বার্ষিক পরিবেশ কার্যবিবরণী রিপোর্ট' 
+                    : 'Exclusive Quarterly Ecological Impact Briefings'}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* CTA Box */}
+          <div className="w-full md:w-auto shrink-0 flex flex-col items-center gap-3">
+            <motion.a
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              href={settings?.membershipFormUrl || 'https://forms.gle/51Kt57CfRuAnAGy88'}
+              target="_blank"
+              referrerPolicy="no-referrer"
+              rel="noopener noreferrer"
+              className="w-full md:w-auto bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-black py-4 px-8 rounded-full shadow-lg transition-colors cursor-pointer text-center flex items-center justify-center gap-2 text-base"
+              id="membership-google-form-btn"
+            >
+              <span>{isBangla ? 'মেম্বারশিপ ফরম পূরণ করুন' : 'Fill Out Membership Form'}</span>
+              <ArrowRight size={18} />
+            </motion.a>
+            <span className="text-xs font-mono font-medium text-gray-400">
+              {isBangla ? 'নিরাপদ গুগল ফরম সংযোগ' : 'Secured via Google Forms'}
+            </span>
+          </div>
+        </div>
+      </section>
+
       {/* 2. TWO COLUMN FORMS GRID */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-12">
         

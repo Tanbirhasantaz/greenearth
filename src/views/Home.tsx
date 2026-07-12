@@ -439,6 +439,17 @@ export default function Home({
             >
               {isBangla ? 'স্বেচ্ছাসেবী হোন' : 'Join as Volunteer'}
             </button>
+            <a
+              href={settings?.membershipFormUrl || 'https://forms.gle/51Kt57CfRuAnAGy88'}
+              target="_blank"
+              referrerPolicy="no-referrer"
+              rel="noopener noreferrer"
+              className="bg-transparent hover:bg-white/10 text-white border border-white/30 font-sans font-bold py-3.5 px-8 rounded-full shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+              id="home-membership-cta-action"
+            >
+              <Award size={16} className="text-[#6BBF3A]" />
+              <span>{isBangla ? 'সদস্য হোন (গুগল ফরম)' : 'Become a Member'}</span>
+            </a>
             <button
               onClick={onDonateClick}
               className="bg-white hover:bg-gray-100 text-[#1F5E2E] font-sans font-bold py-3.5 px-8 rounded-full shadow-lg transition-all flex items-center gap-2 cursor-pointer"
