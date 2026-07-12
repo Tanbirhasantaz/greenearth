@@ -5,7 +5,10 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { Leaf, Users, Shield, Lightbulb, Landmark, Award, BookOpen, X, TrendingUp } from 'lucide-react';
+import { 
+  Leaf, Users, Shield, Lightbulb, Landmark, Award, BookOpen, X, TrendingUp,
+  Heart, Globe, Activity, Droplet, Sun, Target, Scale, Zap, Trees, HeartHandshake, Eye, Flag, ShieldCheck, MapPin
+} from 'lucide-react';
 import { TEAM_MEMBERS, MILESTONES, CORE_VALUES } from '../data';
 
 interface AboutProps {
@@ -62,7 +65,25 @@ export default function About({ isBangla, settings }: AboutProps) {
     Leaf: <Leaf size={24} />,
     Users: <Users size={24} />,
     TrendingUp: <TrendingUp size={24} />,
-    Award: <Award size={24} />
+    Award: <Award size={24} />,
+    Shield: <Shield size={24} />,
+    Lightbulb: <Lightbulb size={24} />,
+    Landmark: <Landmark size={24} />,
+    BookOpen: <BookOpen size={24} />,
+    Heart: <Heart size={24} />,
+    Globe: <Globe size={24} />,
+    Activity: <Activity size={24} />,
+    Droplet: <Droplet size={24} />,
+    Sun: <Sun size={24} />,
+    Target: <Target size={24} />,
+    Scale: <Scale size={24} />,
+    Zap: <Zap size={24} />,
+    Trees: <Trees size={24} />,
+    HeartHandshake: <HeartHandshake size={24} />,
+    Eye: <Eye size={24} />,
+    Flag: <Flag size={24} />,
+    ShieldCheck: <ShieldCheck size={24} />,
+    MapPin: <MapPin size={24} />
   };
 
   return (

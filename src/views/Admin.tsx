@@ -4139,10 +4139,28 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                                 onChange={(e) => setValIconName(e.target.value)}
                                 className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
                               >
-                                <option value="Leaf">Leaf (পরিবেশ/সবুজ)</option>
-                                <option value="Users">Users (সম্প্রদায়/একতা)</option>
-                                <option value="TrendingUp">TrendingUp (উন্নতি/গতিশীলতা)</option>
-                                <option value="Award">Award (স্বীকৃতি/অর্জন)</option>
+                                <option value="Leaf">Leaf (পরিবেশ ও সবুজ রূপান্তর)</option>
+                                <option value="Users">Users (জনগণ ও সম্প্রদায়)</option>
+                                <option value="TrendingUp">TrendingUp (উন্নতি ও প্রবৃদ্ধি)</option>
+                                <option value="Award">Award (অর্জন ও স্বীকৃতি)</option>
+                                <option value="Shield">Shield (নিরাপত্তা ও সুরক্ষা)</option>
+                                <option value="Lightbulb">Lightbulb (উদ্ভাবন ও আইডিয়া)</option>
+                                <option value="Landmark">Landmark (ঐতিহ্য ও মূল্যবোধ)</option>
+                                <option value="BookOpen">BookOpen (শিক্ষা ও জ্ঞান)</option>
+                                <option value="Heart">Heart (সহমর্মিতা ও ভালোবাসা)</option>
+                                <option value="Globe">Globe (বৈশ্বিক ও জলবায়ু)</option>
+                                <option value="Activity">Activity (গতিশীলতা ও কার্যক্রম)</option>
+                                <option value="Droplet">Droplet (বিশুদ্ধ পানি ও জীবন)</option>
+                                <option value="Sun">Sun (সৌরশক্তি ও নবায়নযোগ্য জ্বালানি)</option>
+                                <option value="Target">Target (নির্দিষ্ট লক্ষ্য ও উদ্দেশ্য)</option>
+                                <option value="Scale">Scale (সমতা ও সততা)</option>
+                                <option value="Zap">Zap (তাত্ক্ষণিক কার্যকারিতা ও শক্তি)</option>
+                                <option value="Trees">Trees (বনায়ন ও বৃক্ষরোপণ)</option>
+                                <option value="HeartHandshake">HeartHandshake (অংশীদারিত্ব ও একতা)</option>
+                                <option value="Eye">Eye (ভিশন ও দূরদর্শিতা)</option>
+                                <option value="Flag">Flag (নেতৃত্ব ও মিশন)</option>
+                                <option value="ShieldCheck">ShieldCheck (স্বচ্ছতা ও নিয়মতান্ত্রিকতা)</option>
+                                <option value="MapPin">MapPin (স্থানীয় বা আঞ্চলিক প্রভাব)</option>
                               </select>
                             </div>
                           </div>
@@ -4355,11 +4373,29 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                                 onChange={(e) => setFocusIconName(e.target.value)}
                                 className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
                               >
-                                <option value="Trees">Trees (বৃক্ষরোপণ)</option>
-                                <option value="Sun">Sun (সৌরশক্তি/জ্বালানি)</option>
-                                <option value="Droplet">Droplet (বিশুদ্ধ পানি)</option>
-                                <option value="Trash2">Trash2 (বর্জ্য অপসারণ)</option>
-                                <option value="Leaf">Leaf (সবুজপাতা)</option>
+                                <option value="Trees">Trees (বনায়ন ও বৃক্ষরোপণ)</option>
+                                <option value="Sun">Sun (সৌরশক্তি ও নবায়নযোগ্য জ্বালানি)</option>
+                                <option value="Droplet">Droplet (বিশুদ্ধ পানি ও জীবন)</option>
+                                <option value="Trash2">Trash2 (বর্জ্য ও রিসাইক্লিং)</option>
+                                <option value="Leaf">Leaf (পরিবেশ ও সবুজ রূপান্তর)</option>
+                                <option value="Users">Users (জনগণ ও সম্প্রদায়)</option>
+                                <option value="TrendingUp">TrendingUp (উন্নতি ও প্রবৃদ্ধি)</option>
+                                <option value="Award">Award (অর্জন ও স্বীকৃতি)</option>
+                                <option value="Shield">Shield (নিরাপত্তা ও সুরক্ষা)</option>
+                                <option value="Lightbulb">Lightbulb (উদ্ভাবন ও আইডিয়া)</option>
+                                <option value="Landmark">Landmark (ঐতিহ্য ও মূল্যবোধ)</option>
+                                <option value="BookOpen">BookOpen (শিক্ষা ও জ্ঞান)</option>
+                                <option value="Heart">Heart (সহমর্মিতা ও ভালোবাসা)</option>
+                                <option value="Globe">Globe (বৈশ্বিক ও জলবায়ু)</option>
+                                <option value="Activity">Activity (গতিশীলতা ও কার্যক্রম)</option>
+                                <option value="Target">Target (নির্দিষ্ট লক্ষ্য ও উদ্দেশ্য)</option>
+                                <option value="Scale">Scale (সমতা ও সততা)</option>
+                                <option value="Zap">Zap (তাত্ক্ষণিক কার্যকারিতা ও শক্তি)</option>
+                                <option value="HeartHandshake">HeartHandshake (অংশীদারিত্ব ও একতা)</option>
+                                <option value="Eye">Eye (ভিশন ও দূরদর্শিতা)</option>
+                                <option value="Flag">Flag (নেতৃত্ব ও মিশন)</option>
+                                <option value="ShieldCheck">ShieldCheck (স্বচ্ছতা ও নিয়মতান্ত্রিকতা)</option>
+                                <option value="MapPin">MapPin (স্থানীয় বা আঞ্চলিক প্রভাব)</option>
                               </select>
                             </div>
 

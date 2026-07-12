@@ -5,7 +5,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Leaf, Trees, Wind, Sun, Droplet, Trash2, Heart, Award, Users, TrendingUp, Calendar, ArrowRight, Star } from 'lucide-react';
+import { 
+  Leaf, Trees, Wind, Sun, Droplet, Trash2, Heart, Award, Users, TrendingUp, Calendar, ArrowRight, Star,
+  Shield, Lightbulb, Landmark, BookOpen, Globe, Activity, Target, Scale, Zap, HeartHandshake, Eye, Flag, ShieldCheck, MapPin
+} from 'lucide-react';
 import { Page, Project, BlogPost, Testimonial } from '../types';
 import { PROJECTS, BLOG_POSTS, TESTIMONIALS, IMAGES } from '../data';
 
@@ -77,6 +80,47 @@ export default function Home({
   const [blogsList, setBlogsList] = useState<BlogPost[]>(BLOG_POSTS);
   const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>(TESTIMONIALS);
 
+  const defaultFocusAreas = [
+    {
+      id: "focus-1",
+      iconName: "Trees",
+      title: "Tree Plantation",
+      titleBn: "বৃক্ষরোপণ কর্মসূচি",
+      description: "Planting native trees and coastal mangroves in erosion-prone belts of Sundarbans and northern riverbanks.",
+      descriptionBn: "সুন্দরবন উপকূল এবং উত্তরাঞ্চলের নদীভাঙন কবলিত এলাকায় দেশীয় চারা রোপণ ও ম্যানগ্রোভ বনায়ন তৈরি করা।",
+      color: "emerald"
+    },
+    {
+      id: "focus-2",
+      iconName: "Sun",
+      title: "Renewable Energy",
+      titleBn: "নবায়নযোগ্য জ্বালানি",
+      description: "Sponsoring reliable off-grid solar micro-grids for isolated schools and homes in northern river chars.",
+      descriptionBn: "চরাঞ্চলের গ্রিডহীন প্রত্যন্ত এলাকায় সৌর প্যানেল ও হোম সিস্টেমের মাধ্যমে বিদ্যুৎ ও আলোর ব্যবস্থা করা।",
+      color: "amber"
+    },
+    {
+      id: "focus-3",
+      iconName: "Droplet",
+      title: "Water Conservation",
+      titleBn: "বিশুদ্ধ পানি সরবরাহ",
+      description: "Drilling deep, arsenic-free tube wells and setting rainwater purification structures in contaminated hubs.",
+      descriptionBn: "আর্সেনিক ও স্যালাইন কবলিত এলাকায় গভীর বিশুদ্ধ নলকূপ এবং বৃষ্টির পানি ফিল্টারিং প্ল্যান্ট স্থাপন করা।",
+      color: "sky"
+    },
+    {
+      id: "focus-4",
+      iconName: "Trash2",
+      title: "Waste & Recycling",
+      titleBn: "বর্জ্য ও রিসাইক্লিং",
+      description: "Organizing riverbank plastic cleanups and teaching households smart eco-friendly recycling habits.",
+      descriptionBn: "বুড়িগঙ্গাসহ বিভিন্ন নদী তীরবর্তী প্লাস্টিক অপসারণ এবং বাসাবাড়ির রিসাইক্লিং অভ্যাসের প্রশিক্ষণ দেওয়া।",
+      color: "purple"
+    }
+  ];
+
+  const [focusAreasList, setFocusAreasList] = useState<any[]>(defaultFocusAreas);
+
   // Dynamic fetch on mount
   useEffect(() => {
     fetch('/api/projects')
@@ -114,6 +158,18 @@ export default function Home({
         }
       })
       .catch((err) => console.log('Using static testimonials fallback:', err));
+
+    fetch('/api/focusareas')
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error('Focus areas fail');
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setFocusAreasList(data);
+        }
+      })
+      .catch((err) => console.log('Using static focus areas fallback:', err));
   }, []);
 
   // Auto scroll testimonials
@@ -125,40 +181,60 @@ export default function Home({
     return () => clearInterval(timer);
   }, [testimonialsList.length]);
 
-  const whatWeDo = [
-    {
-      icon: <Trees size={28} />,
-      title: 'Tree Plantation',
-      titleBn: 'বৃক্ষরোপণ কর্মসূচি',
-      desc: 'Planting native trees and coastal mangroves in erosion-prone belts of Sundarbans and northern riverbanks.',
-      descBn: 'সুন্দরবন উপকূল এবং উত্তরাঞ্চলের নদীভাঙন কবলিত এলাকায় দেশীয় চারা রোপণ ও ম্যানগ্রোভ বনায়ন তৈরি করা।',
-      color: 'bg-emerald-50 text-emerald-700 hover:border-emerald-500'
-    },
-    {
-      icon: <Sun size={28} />,
-      title: 'Renewable Energy',
-      titleBn: 'নবায়নযোগ্য জ্বালানি',
-      desc: 'Sponsoring reliable off-grid solar micro-grids for isolated schools and homes in northern river chars.',
-      descBn: 'চরাঞ্চলের গ্রিডহীন প্রত্যন্ত এলাকায় সৌর প্যানেল ও হোম সিস্টেমের মাধ্যমে বিদ্যুৎ ও আলোর ব্যবস্থা করা।',
-      color: 'bg-amber-50 text-amber-700 hover:border-amber-500'
-    },
-    {
-      icon: <Droplet size={28} />,
-      title: 'Water Conservation',
-      titleBn: 'বিশুদ্ধ পানি সরবরাহ',
-      desc: 'Drilling deep, arsenic-free tube wells and setting rainwater purification structures in contaminated hubs.',
-      descBn: 'আর্সেনিক ও স্যালাইন কবলিত এলাকায় গভীর বিশুদ্ধ নলকূপ এবং বৃষ্টির পানি ফিল্টারিং প্ল্যান্ট স্থাপন করা।',
-      color: 'bg-sky-50 text-sky-700 hover:border-sky-500'
-    },
-    {
-      icon: <Trash2 size={28} />,
-      title: 'Waste & Recycling',
-      titleBn: 'বর্জ্য ও রিসাইক্লিং',
-      desc: 'Organizing riverbank plastic cleanups and teaching households smart eco-friendly recycling habits.',
-      descBn: 'বুড়িগঙ্গাসহ বিভিন্ন নদী তীরবর্তী প্লাস্টিক অপসারণ এবং বাসাবাড়ির রিসাইক্লিং অভ্যাসের প্রশিক্ষণ দেওয়া।',
-      color: 'bg-purple-50 text-purple-700 hover:border-purple-500'
+  const iconMap: { [key: string]: React.ReactNode } = {
+    Leaf: <Leaf size={28} />,
+    Users: <Users size={28} />,
+    TrendingUp: <TrendingUp size={28} />,
+    Award: <Award size={28} />,
+    Shield: <Shield size={28} />,
+    Lightbulb: <Lightbulb size={28} />,
+    Landmark: <Landmark size={28} />,
+    BookOpen: <BookOpen size={28} />,
+    Heart: <Heart size={28} />,
+    Globe: <Globe size={28} />,
+    Activity: <Activity size={28} />,
+    Droplet: <Droplet size={28} />,
+    Sun: <Sun size={28} />,
+    Target: <Target size={28} />,
+    Scale: <Scale size={28} />,
+    Zap: <Zap size={28} />,
+    Trees: <Trees size={28} />,
+    HeartHandshake: <HeartHandshake size={28} />,
+    Eye: <Eye size={28} />,
+    Flag: <Flag size={28} />,
+    ShieldCheck: <ShieldCheck size={28} />,
+    MapPin: <MapPin size={28} />,
+    Trash2: <Trash2 size={28} />
+  };
+
+  const getColorClasses = (colorName: string) => {
+    switch (colorName?.toLowerCase()) {
+      case 'emerald':
+      case 'green':
+        return 'bg-emerald-50 text-emerald-700 hover:border-emerald-500';
+      case 'amber':
+      case 'yellow':
+        return 'bg-amber-50 text-amber-700 hover:border-amber-500';
+      case 'sky':
+      case 'blue':
+        return 'bg-sky-50 text-sky-700 hover:border-sky-500';
+      case 'purple':
+      case 'violet':
+        return 'bg-purple-50 text-purple-700 hover:border-purple-500';
+      case 'rose':
+      case 'red':
+        return 'bg-rose-50 text-rose-700 hover:border-rose-500';
+      case 'indigo':
+        return 'bg-indigo-50 text-indigo-700 hover:border-indigo-500';
+      case 'orange':
+        return 'bg-orange-50 text-orange-700 hover:border-orange-500';
+      default:
+        if (colorName && colorName.includes('bg-')) {
+          return colorName;
+        }
+        return 'bg-emerald-50 text-emerald-700 hover:border-emerald-500';
     }
-  ];
+  };
 
   return (
     <div className="flex flex-col w-full overflow-hidden" id="home-view">
@@ -311,21 +387,21 @@ export default function Home({
 
           {/* Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {whatWeDo.map((item, index) => (
+            {focusAreasList.map((item, index) => (
               <motion.div
-                key={index}
+                key={item.id || index}
                 whileHover={{ y: -8 }}
                 className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all border-b-4 border-transparent hover:border-[#6BBF3A] flex flex-col gap-5 text-left"
               >
-                <div className={`p-4 rounded-2xl w-fit ${item.color.split(' ')[0]} ${item.color.split(' ')[1]}`}>
-                  {item.icon}
+                <div className={`p-4 rounded-2xl w-fit ${getColorClasses(item.color)}`}>
+                  {iconMap[item.iconName] || <Trees size={28} />}
                 </div>
                 <div>
                   <h3 className="font-sans text-lg font-bold text-[#1F5E2E] mb-2">
                     {isBangla ? item.titleBn : item.title}
                   </h3>
                   <p className="font-sans text-sm text-gray-600 leading-relaxed">
-                    {isBangla ? item.descBn : item.desc}
+                    {isBangla ? item.descriptionBn || item.descBn : item.description || item.desc}
                   </p>
                 </div>
               </motion.div>
