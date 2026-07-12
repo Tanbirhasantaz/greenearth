@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Award, Heart, CheckCircle, Info, Lock, ArrowRight, User, Mail, Phone, Calendar, MapPin, Clipboard } from 'lucide-react';
+import { Award, Heart, CheckCircle, Info, Lock, ArrowRight, User, Mail, Phone, Calendar, MapPin, Clipboard, Briefcase, Clock, Droplet } from 'lucide-react';
 
 interface InvolvedProps {
   isBangla: boolean;
@@ -19,6 +19,11 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
   const [volEmail, setVolEmail] = useState('');
   const [volPhone, setVolPhone] = useState('');
   const [volInterest, setVolInterest] = useState('plantation');
+  const [volMembership, setVolMembership] = useState('no_intent');
+  const [volProfession, setVolProfession] = useState('student');
+  const [volLocation, setVolLocation] = useState('');
+  const [volBloodGroup, setVolBloodGroup] = useState('Unknown');
+  const [volAvailability, setVolAvailability] = useState('flexible');
   const [volMessage, setVolMessage] = useState('');
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
@@ -54,6 +59,9 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         errors.phone = isBangla ? 'সঠিক ১১-ডিজিটের মোবাইল নম্বর দিন' : 'Please enter a valid 11-digit phone number';
       }
     }
+    if (!volLocation.trim()) {
+      errors.location = isBangla ? 'আপনার এলাকা বা জেলার নাম লিখুন' : 'Please enter your district/area';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -67,6 +75,11 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       email: volEmail,
       phone: volPhone,
       interest: volInterest,
+      membershipStatus: volMembership,
+      profession: volProfession,
+      location: volLocation,
+      bloodGroup: volBloodGroup,
+      availability: volAvailability,
       message: volMessage,
       date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     };
@@ -81,12 +94,17 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         setVolEmail('');
         setVolPhone('');
         setVolMessage('');
+        setVolLocation('');
+        setVolMembership('no_intent');
+        setVolProfession('student');
+        setVolBloodGroup('Unknown');
+        setVolAvailability('flexible');
 
         onFormSuccess(
           isBangla ? 'আবেদন সম্পন্ন হয়েছে!' : 'Application Submitted!',
           isBangla 
-            ? 'স্বেচ্ছাসেবী হিসেবে আবেদন করার জন্য ধন্যবাদ। আমাদের টিম শীঘ্রই আপনার সাথে মোবাইল ও ইমেইলে যোগাযোগ করবে!' 
-            : 'Thank you for applying to join our volunteer crew! Our team will review your details and contact you via email or phone within 48 hours.'
+            ? 'স্বেচ্ছাসেবী হিসেবে আপনার পেশাদার আবেদনটি সফলভাবে সম্পন্ন হয়েছে। আমাদের টিম খুব শীঘ্রই আপনার সাথে যোগাযোগ করবে!' 
+            : 'Your professional volunteer application has been successfully submitted! Our coordinator team will review your details and connect with you shortly.'
         );
       })
       .catch((err) => {
@@ -316,7 +334,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
               }
             </p>
 
-            <form onSubmit={handleVolunteerSubmit} className="space-y-4 font-sans">
+            <form onSubmit={handleVolunteerSubmit} className="space-y-5 font-sans">
               {/* Name */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
@@ -366,6 +384,84 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                 </div>
               </div>
 
+              {/* District/Location & Blood Group side by side */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <MapPin size={12} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? 'বাসস্থান / জেলা' : 'District / Area'} *</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={volLocation}
+                    onChange={(e) => setVolLocation(e.target.value)}
+                    placeholder={isBangla ? 'যেমন: ঢাকা, সাতক্ষীরা' : 'e.g. Dhaka, Satkhira'}
+                    className={`w-full bg-gray-50 border ${formErrors.location ? 'border-red-500' : 'border-gray-200'} rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 transition-all`}
+                  />
+                  {formErrors.location && <p className="text-red-500 text-xs font-bold pl-1">{formErrors.location}</p>}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Droplet size={12} className="text-red-500" />
+                    <span>{isBangla ? 'রক্তের গ্রুপ (জরুরি কাজের জন্য)' : 'Blood Group (For fieldwork)'}</span>
+                  </label>
+                  <select
+                    value={volBloodGroup}
+                    onChange={(e) => setVolBloodGroup(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-700 transition-all"
+                  >
+                    <option value="Unknown">{isBangla ? 'জানিনা / পরে জানাবো' : 'Do not know / Select'}</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Profession & Availability side by side */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Briefcase size={12} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? 'পেশা / কার্যক্রম' : 'Profession / Student'} *</span>
+                  </label>
+                  <select
+                    value={volProfession}
+                    onChange={(e) => setVolProfession(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-700 transition-all"
+                  >
+                    <option value="student">{isBangla ? 'শিক্ষার্থী' : 'Student'}</option>
+                    <option value="job_holder">{isBangla ? 'চাকরিজীবী / পেশাজীবী' : 'Job Holder / Professional'}</option>
+                    <option value="academician">{isBangla ? 'শিক্ষক / গবেষক' : 'Teacher / Researcher'}</option>
+                    <option value="business">{isBangla ? 'ব্যবসায়ী' : 'Business Owner'}</option>
+                    <option value="other">{isBangla ? 'অন্যান্য' : 'Other'}</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Clock size={12} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? 'কাজের সময়সীমা' : 'Availability'} *</span>
+                  </label>
+                  <select
+                    value={volAvailability}
+                    onChange={(e) => setVolAvailability(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-700 transition-all"
+                  >
+                    <option value="flexible">{isBangla ? 'প্রকল্প ভিত্তিক / নমনীয়' : 'Flexible / Project-based'}</option>
+                    <option value="weekends">{isBangla ? 'শুধু ছুটির দিনে (শুক্র-শনিবার)' : 'Weekends Only'}</option>
+                    <option value="weekdays">{isBangla ? 'শুধু কর্মদিবসে (রবি-বৃহস্পতিবার)' : 'Weekdays Only'}</option>
+                    <option value="fulltime">{isBangla ? 'পূর্ণকালীন মাঠপর্যায়ে' : 'Full-time Dedication'}</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Area of Interest */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
@@ -385,13 +481,47 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                 </select>
               </div>
 
+              {/* Membership Form submission check - HIGHLIGHTED */}
+              <div className="bg-[#6BBF3A]/5 border border-[#6BBF3A]/30 rounded-2xl p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F5E2E] uppercase tracking-wider">
+                  <Clipboard size={14} className="text-[#6BBF3A]" />
+                  <span>{isBangla ? 'আজীবন মেম্বারশিপ চেক' : 'Lifetime Membership Status Check'}</span>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  {isBangla 
+                    ? 'আপনি কি ওপরের "অফিশিয়াল সদস্যপদ" (Lifetime Membership) গুগল ফরমটি ইতিমধ্যে পূরণ করেছেন?' 
+                    : 'Have you filled out and submitted the Lifetime Membership google form shown at the top of this page?'}
+                </p>
+                <select
+                  value={volMembership}
+                  onChange={(e) => setVolMembership(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-xs text-gray-700 font-bold font-sans transition-all"
+                >
+                  <option value="no_intent">
+                    {isBangla 
+                      ? 'না, শুধু সাধারণ স্বেচ্ছাসেবক হিসেবে আবেদন করছি' 
+                      : 'No, registering as a field volunteer only'}
+                  </option>
+                  <option value="submitted_pending">
+                    {isBangla 
+                      ? 'হ্যাঁ, আমি আজ মেম্বারশিপ গুগল ফরমটি পূরণ করেছি' 
+                      : 'Yes, I have filled out the Google Form as well'}
+                  </option>
+                  <option value="already_member">
+                    {isBangla 
+                      ? 'আমি ইতিমধ্যে গ্রিন আর্থ-এর একজন সক্রিয় সদস্য' 
+                      : 'I am already an active approved Lifetime Member'}
+                  </option>
+                </select>
+              </div>
+
               {/* Message */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                   {isBangla ? 'আপনার আগ্রহ সম্পর্কে লিখুন (ঐচ্ছিক)' : 'Tell us about yourself (Optional)'}
                 </label>
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={volMessage}
                   onChange={(e) => setVolMessage(e.target.value)}
                   placeholder={isBangla ? 'আপনি কেন আমাদের সাথে যুক্ত হতে চান...' : 'Why do you want to join Green Earth?'}

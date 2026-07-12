@@ -61,6 +61,11 @@ interface Volunteer {
   interest: string;
   message: string;
   date: string;
+  location?: string;
+  bloodGroup?: string;
+  profession?: string;
+  availability?: string;
+  membership?: string;
 }
 
 interface Donation {
@@ -2209,43 +2214,122 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     <thead>
                       <tr className="border-b border-gray-200 text-gray-400 font-mono text-xs uppercase font-bold">
                         <th className="py-3 px-4">Volunteer Details</th>
-                        <th className="py-3 px-4">Contact Info</th>
-                        <th className="py-3 px-4">Interest Area</th>
+                        <th className="py-3 px-4">Profession & Area</th>
+                        <th className="py-3 px-4">Contact & Blood</th>
+                        <th className="py-3 px-4">Interest & Commitment</th>
+                        <th className="py-3 px-4">Membership Check</th>
                         <th className="py-3 px-4">Intro Message</th>
                         <th className="py-3 px-4">Submission Date</th>
                         <th className="py-3 px-4">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {volunteers.map((vol) => (
-                        <tr key={vol.id} className="hover:bg-gray-50">
-                          <td className="py-4 px-4 font-bold text-gray-900">{vol.name}</td>
-                          <td className="py-4 px-4">
-                            <div className="text-xs text-gray-600">{vol.email}</div>
-                            <div className="text-xs text-gray-400 font-semibold font-mono mt-0.5">{vol.phone}</div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="bg-emerald-50 text-[#1F5E2E] text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-full">
-                              {vol.interest}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-xs text-gray-500 max-w-xs truncate" title={vol.message}>
-                            {vol.message || '—'}
-                          </td>
-                          <td className="py-4 px-4 text-xs text-gray-400 font-mono">
-                            {new Date(vol.date).toLocaleDateString()}
-                          </td>
-                          <td className="py-4 px-4">
-                            <button
-                              onClick={() => handleVolunteerDelete(vol.id)}
-                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 cursor-pointer"
-                              title="Delete application"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {volunteers.map((vol) => {
+                        const getInterestLabel = (interest: string) => {
+                          switch (interest) {
+                            case 'plantation': return 'Mangrove Plantation';
+                            case 'renewable': return 'Solar Micro-Grids';
+                            case 'water': return 'Safe Water Plants';
+                            case 'waste': return 'Waste & Cleanup';
+                            case 'awareness': return 'School Campaigns';
+                            default: return interest;
+                          }
+                        };
+
+                        const getProfessionLabel = (prof?: string) => {
+                          switch (prof) {
+                            case 'student': return 'Student';
+                            case 'job_holder': return 'Job Holder / Pro';
+                            case 'academician': return 'Teacher / Researcher';
+                            case 'business': return 'Business Owner';
+                            case 'other': return 'Other';
+                            default: return prof || '—';
+                          }
+                        };
+
+                        const getAvailabilityLabel = (avail?: string) => {
+                          switch (avail) {
+                            case 'flexible': return 'Flexible / Project';
+                            case 'weekends': return 'Weekends Only';
+                            case 'weekdays': return 'Weekdays Only';
+                            case 'fulltime': return 'Full-time Dedication';
+                            default: return avail || '—';
+                          }
+                        };
+
+                        const getMembershipBadge = (status?: string) => {
+                          switch (status) {
+                            case 'submitted_pending':
+                              return (
+                                <span className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                                  Submitted Form
+                                </span>
+                              );
+                            case 'already_member':
+                              return (
+                                <span className="bg-emerald-50 border border-emerald-200 text-[#1F5E2E] text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#6BBF3A]"></span>
+                                  Lifetime Member
+                                </span>
+                              );
+                            case 'no_intent':
+                            default:
+                              return (
+                                <span className="bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                  Field Vol Only
+                                </span>
+                              );
+                          }
+                        };
+
+                        return (
+                          <tr key={vol.id} className="hover:bg-gray-50 text-xs">
+                            <td className="py-4 px-4 font-bold text-gray-900 text-sm">{vol.name}</td>
+                            <td className="py-4 px-4 space-y-1">
+                              <div className="text-gray-700 font-semibold">{getProfessionLabel(vol.profession)}</div>
+                              <div className="text-gray-400 flex items-center gap-0.5">
+                                <MapPin size={10} className="text-gray-400" />
+                                <span>{vol.location || '—'}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 space-y-1">
+                              <div className="text-gray-600 font-medium">{vol.email}</div>
+                              <div className="text-gray-400 font-semibold font-mono">{vol.phone}</div>
+                              {vol.bloodGroup && vol.bloodGroup !== 'Unknown' && (
+                                <div className="text-[10px] font-black text-red-600 bg-red-50 border border-red-100 rounded px-1.5 py-0.5 inline-block">
+                                  Blood: {vol.bloodGroup}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 space-y-1">
+                              <span className="bg-emerald-50 border border-emerald-100 text-[#1F5E2E] text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-full inline-block">
+                                {getInterestLabel(vol.interest)}
+                              </span>
+                              <div className="text-gray-500 text-[10px] font-medium">{getAvailabilityLabel(vol.availability)}</div>
+                            </td>
+                            <td className="py-4 px-4">
+                              {getMembershipBadge(vol.membership)}
+                            </td>
+                            <td className="py-4 px-4 text-xs text-gray-500 max-w-xs truncate" title={vol.message}>
+                              {vol.message || '—'}
+                            </td>
+                            <td className="py-4 px-4 text-xs text-gray-400 font-mono">
+                              {new Date(vol.date).toLocaleDateString()}
+                            </td>
+                            <td className="py-4 px-4">
+                              <button
+                                onClick={() => handleVolunteerDelete(vol.id)}
+                                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 cursor-pointer"
+                                title="Delete application"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                   {volunteers.length === 0 && (
