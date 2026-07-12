@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { PROJECTS, BLOG_POSTS, TEAM_MEMBERS, GALLERY_ITEMS, TESTIMONIALS } from './data';
+import { PROJECTS, BLOG_POSTS, TEAM_MEMBERS, GALLERY_ITEMS, TESTIMONIALS, MILESTONES, CORE_VALUES } from './data';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
@@ -50,6 +50,53 @@ export const initStorage = () => {
       email: 'info@greenearth.org',
       address: 'House 42, Road 11, Dhanmondi, Dhaka'
     }));
+  }
+  if (!localStorage.getItem('ge_db_milestones') || localStorage.getItem('ge_db_milestones') === '[]') {
+    localStorage.setItem('ge_db_milestones', JSON.stringify(MILESTONES));
+  }
+  if (!localStorage.getItem('ge_db_corevalues') || localStorage.getItem('ge_db_corevalues') === '[]') {
+    localStorage.setItem('ge_db_corevalues', JSON.stringify(CORE_VALUES));
+  }
+  if (!localStorage.getItem('ge_db_focusareas')) {
+    const defaultFocusAreas = [
+      {
+        id: "focus-1",
+        iconName: "Trees",
+        title: "Tree Plantation",
+        titleBn: "বৃক্ষরোপণ কর্মসূচি",
+        description: "Planting native trees and coastal mangroves in erosion-prone belts of Sundarbans and northern riverbanks.",
+        descriptionBn: "সুন্দরবন উপকূল এবং উত্তরাঞ্চলের নদীভাঙন কবলিত এলাকায় দেশীয় চারা রোপণ ও ম্যানগ্রোভ বনায়ন তৈরি করা।",
+        color: "emerald"
+      },
+      {
+        id: "focus-2",
+        iconName: "Sun",
+        title: "Renewable Energy",
+        titleBn: "নবায়নযোগ্য জ্বালানি",
+        description: "Sponsoring reliable off-grid solar micro-grids for isolated schools and homes in northern river chars.",
+        descriptionBn: "চরাঞ্চলের গ্রিডহীন প্রত্যন্ত এলাকায় সৌর প্যানেল ও হোম সিস্টেমের মাধ্যমে বিদ্যুৎ ও আলোর ব্যবস্থা করা।",
+        color: "amber"
+      },
+      {
+        id: "focus-3",
+        iconName: "Droplet",
+        title: "Water Conservation",
+        titleBn: "বিশুদ্ধ পানি সরবরাহ",
+        description: "Drilling deep, arsenic-free tube wells and setting rainwater purification structures in contaminated hubs.",
+        descriptionBn: "আর্সেনিক ও স্যালাইন কবলিত এলাকায় গভীর বিশুদ্ধ নলকূপ এবং বৃষ্টির পানি ফিল্টারিং প্ল্যান্ট স্থাপন করা।",
+        color: "sky"
+      },
+      {
+        id: "focus-4",
+        iconName: "Trash2",
+        title: "Waste & Recycling",
+        titleBn: "বর্জ্য ও রিসাইক্লিং",
+        description: "Organizing riverbank plastic cleanups and teaching households smart eco-friendly recycling habits.",
+        descriptionBn: "বুড়িগঙ্গাসহ বিভিন্ন নদী তীরবর্তী প্লাস্টিক অপসারণ এবং বাসাবাড়ির রিসাইক্লিং অভ্যাসের প্রশিক্ষণ দেওয়া।",
+        color: "purple"
+      }
+    ];
+    localStorage.setItem('ge_db_focusareas', JSON.stringify(defaultFocusAreas));
   }
 };
 
@@ -389,6 +436,93 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
     } else if (method === 'DELETE' && id && id !== 'contacts') {
       const updated = contacts.filter((c: any) => c.id !== id);
       await cloudWrite('contacts.json', 'ge_db_contacts', updated);
+      responseData = { success: true };
+    }
+  }
+
+  // 11. Milestones fallback
+  else if (path === '/api/milestones' || path.startsWith('/api/milestones/')) {
+    const id = path.split('/').pop();
+    const queryId = parsedUrl.searchParams.get('id');
+    const targetId = id && id !== 'milestones' ? id : queryId;
+    const milestones = await cloudRead<any[]>('milestones.json', 'ge_db_milestones', MILESTONES);
+
+    if (method === 'GET') {
+      responseData = milestones;
+    } else if (method === 'POST') {
+      const newMilestone = body;
+      if (newMilestone?.id || targetId) {
+        const editId = newMilestone?.id || targetId;
+        const idx = milestones.findIndex((m: any) => m.id === editId);
+        if (idx !== -1) milestones[idx] = { ...milestones[idx], ...newMilestone, id: editId };
+        else milestones.unshift({ ...newMilestone, id: editId });
+      } else {
+        newMilestone.id = 'mile-' + Date.now();
+        milestones.push(newMilestone);
+      }
+      await cloudWrite('milestones.json', 'ge_db_milestones', milestones);
+      responseData = { success: true, milestone: newMilestone };
+    } else if (method === 'DELETE' && targetId) {
+      const updated = milestones.filter((m: any) => m.id !== targetId);
+      await cloudWrite('milestones.json', 'ge_db_milestones', updated);
+      responseData = { success: true };
+    }
+  }
+
+  // 12. Core Values fallback
+  else if (path === '/api/corevalues' || path.startsWith('/api/corevalues/')) {
+    const id = path.split('/').pop();
+    const queryId = parsedUrl.searchParams.get('id');
+    const targetId = id && id !== 'corevalues' ? id : queryId;
+    const corevalues = await cloudRead<any[]>('corevalues.json', 'ge_db_corevalues', CORE_VALUES);
+
+    if (method === 'GET') {
+      responseData = corevalues;
+    } else if (method === 'POST') {
+      const newValue = body;
+      if (newValue?.id || targetId) {
+        const editId = newValue?.id || targetId;
+        const idx = corevalues.findIndex((v: any) => v.id === editId);
+        if (idx !== -1) corevalues[idx] = { ...corevalues[idx], ...newValue, id: editId };
+        else corevalues.push({ ...newValue, id: editId });
+      } else {
+        newValue.id = 'val-' + Date.now();
+        corevalues.push(newValue);
+      }
+      await cloudWrite('corevalues.json', 'ge_db_corevalues', corevalues);
+      responseData = { success: true, coreValue: newValue };
+    } else if (method === 'DELETE' && targetId) {
+      const updated = corevalues.filter((v: any) => v.id !== targetId);
+      await cloudWrite('corevalues.json', 'ge_db_corevalues', updated);
+      responseData = { success: true };
+    }
+  }
+
+  // 13. Focus Areas fallback
+  else if (path === '/api/focusareas' || path.startsWith('/api/focusareas/')) {
+    const id = path.split('/').pop();
+    const queryId = parsedUrl.searchParams.get('id');
+    const targetId = id && id !== 'focusareas' ? id : queryId;
+    const focusareas = await cloudRead<any[]>('focusareas.json', 'ge_db_focusareas', []);
+
+    if (method === 'GET') {
+      responseData = focusareas;
+    } else if (method === 'POST') {
+      const newFocus = body;
+      if (newFocus?.id || targetId) {
+        const editId = newFocus?.id || targetId;
+        const idx = focusareas.findIndex((f: any) => f.id === editId);
+        if (idx !== -1) focusareas[idx] = { ...focusareas[idx], ...newFocus, id: editId };
+        else focusareas.push({ ...newFocus, id: editId });
+      } else {
+        newFocus.id = 'focus-' + Date.now();
+        focusareas.push(newFocus);
+      }
+      await cloudWrite('focusareas.json', 'ge_db_focusareas', focusareas);
+      responseData = { success: true, focusArea: newFocus };
+    } else if (method === 'DELETE' && targetId) {
+      const updated = focusareas.filter((f: any) => f.id !== targetId);
+      await cloudWrite('focusareas.json', 'ge_db_focusareas', updated);
       responseData = { success: true };
     }
   }

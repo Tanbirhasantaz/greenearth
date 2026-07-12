@@ -167,7 +167,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
-  const [subscribers, setSubscribers] = useState<string[]>([]);
+  const [subscribers, setSubscribers] = useState<any[]>([]);
   const [contacts, setContacts] = useState<ContactSubmission[]>([]);
   const [settings, setSettings] = useState<OrgSettings | null>(null);
 
@@ -2805,7 +2805,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                   <h3 className="text-lg font-black text-[#1F5E2E]">Eco-Newsletter Subscribers</h3>
                   <button
                     onClick={() => {
-                      const csvContent = "data:text/csv;charset=utf-8," + subscribers.join("\n");
+                      const emails = subscribers.map(s => typeof s === 'string' ? s : (s?.email || ''));
+                      const csvContent = "data:text/csv;charset=utf-8,Email\n" + emails.join("\n");
                       const encodedUri = encodeURI(csvContent);
                       const link = document.createElement("a");
                       link.setAttribute("href", encodedUri);
@@ -2822,21 +2823,28 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                 </div>
 
                 <div className="max-w-md mx-auto space-y-2">
-                  {subscribers.map((email) => (
-                    <div key={email} className="flex justify-between items-center bg-gray-50 border border-gray-200/50 p-4 rounded-2xl text-left">
-                      <div className="flex items-center gap-3">
-                        <Mail size={16} className="text-[#6BBF3A]" />
-                        <span className="font-bold text-gray-800 text-sm">{email}</span>
+                  {subscribers.map((sub, idx) => {
+                    const email = typeof sub === 'string' ? sub : (sub?.email || '');
+                    const date = typeof sub === 'string' ? '' : (sub?.date || '');
+                    return (
+                      <div key={email || idx} className="flex justify-between items-center bg-gray-50 border border-gray-200/50 p-4 rounded-2xl text-left">
+                        <div className="flex items-center gap-3">
+                          <Mail size={16} className="text-[#6BBF3A]" />
+                          <div>
+                            <span className="font-bold text-gray-800 text-sm block">{email}</span>
+                            {date && <span className="text-[10px] text-gray-400 font-mono">Date: {date}</span>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleSubscriberDelete(email)}
+                          className="text-gray-400 hover:text-red-500 p-1.5 rounded hover:bg-red-50 cursor-pointer"
+                          title="Remove Subscriber"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleSubscriberDelete(email)}
-                        className="text-gray-400 hover:text-red-500 p-1.5 rounded hover:bg-red-50 cursor-pointer"
-                        title="Remove Subscriber"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {subscribers.length === 0 && (
                     <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No active subscribers.</p>
                   )}

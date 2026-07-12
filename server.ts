@@ -438,7 +438,21 @@ function initializeDataFiles() {
   }
 
   // 11. Initial Milestones
+  let seedMilestones = false;
   if (!fs.existsSync(filePaths.milestones)) {
+    seedMilestones = true;
+  } else {
+    try {
+      const content = fs.readFileSync(filePaths.milestones, "utf-8").trim();
+      if (content === "" || content === "[]") {
+        seedMilestones = true;
+      }
+    } catch (e) {
+      seedMilestones = true;
+    }
+  }
+
+  if (seedMilestones) {
     const initialMilestones = [
       {
         id: "mile-1",
@@ -465,14 +479,28 @@ function initializeDataFiles() {
         title: "Solar Power for Education",
         titleBn: "শিক্ষায় সৌরবিদ্যুৎ",
         description: "Successfully expanded our renewable initiative to power 15 remote char schools with sustainable, off-grid clean solar micro-grids.",
-        descriptionBn: "চরাঞ্চলের ১৫টি প্রত্যন্ত প্রাথমিক বিদ্যালয়কে সম্পূর্ণ টেকসই, অফ-গ্রিড সৌর মাইক্রো-গ্রিডের আওতায় সফলভাবে আনা হয়েছে।"
+        descriptionBn: "চরাঞ্চলের ১৫টি প্রত্যন্ত প্রাথমিক বিদ্যালয়কে সম্পূর্ণ টেকসই, অফ-গ্রিড সৌর মাইক্রো-গ্রিডের আওতাহীন সফলভাবে আনা হয়েছে।"
       }
     ];
     fs.writeFileSync(filePaths.milestones, JSON.stringify(initialMilestones, null, 2));
   }
 
   // 12. Initial Core Values
+  let seedCoreValues = false;
   if (!fs.existsSync(filePaths.corevalues)) {
+    seedCoreValues = true;
+  } else {
+    try {
+      const content = fs.readFileSync(filePaths.corevalues, "utf-8").trim();
+      if (content === "" || content === "[]") {
+        seedCoreValues = true;
+      }
+    } catch (e) {
+      seedCoreValues = true;
+    }
+  }
+
+  if (seedCoreValues) {
     const initialCoreValues = [
       {
         id: "val-1",
@@ -511,7 +539,21 @@ function initializeDataFiles() {
   }
 
   // 13. Initial Focus Areas
+  let seedFocusAreas = false;
   if (!fs.existsSync(filePaths.focusareas)) {
+    seedFocusAreas = true;
+  } else {
+    try {
+      const content = fs.readFileSync(filePaths.focusareas, "utf-8").trim();
+      if (content === "" || content === "[]") {
+        seedFocusAreas = true;
+      }
+    } catch (e) {
+      seedFocusAreas = true;
+    }
+  }
+
+  if (seedFocusAreas) {
     const initialFocusAreas = [
       {
         id: "focus-1",

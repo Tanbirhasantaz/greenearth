@@ -26,7 +26,7 @@ export default function About({ isBangla, settings }: AboutProps) {
         throw new Error('Team fail');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setTeamList(data);
         }
       })
@@ -38,7 +38,7 @@ export default function About({ isBangla, settings }: AboutProps) {
         throw new Error('Milestones fail');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setMilestonesList(data);
         }
       })
@@ -50,7 +50,7 @@ export default function About({ isBangla, settings }: AboutProps) {
         throw new Error('Core values fail');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setCoreValuesList(data);
         }
       })
