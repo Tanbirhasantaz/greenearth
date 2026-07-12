@@ -327,6 +327,17 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [footerCopyright, setFooterCopyright] = useState('');
   const [footerCopyrightBn, setFooterCopyrightBn] = useState('');
 
+  // 6. Dynamic Event Notice Popup Settings
+  const [popupEnabled, setPopupEnabled] = useState(false);
+  const [popupTitle, setPopupTitle] = useState('');
+  const [popupTitleBn, setPopupTitleBn] = useState('');
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupMessageBn, setPopupMessageBn] = useState('');
+  const [popupLinkText, setPopupLinkText] = useState('');
+  const [popupLinkTextBn, setPopupLinkTextBn] = useState('');
+  const [popupLinkUrl, setPopupLinkUrl] = useState('');
+  const [popupImageUrl, setPopupImageUrl] = useState('');
+
   // Milestones and Core Values dataset list states
   const [milestonesList, setMilestonesList] = useState<any[]>([]);
   const [coreValuesList, setCoreValuesList] = useState<any[]>([]);
@@ -481,6 +492,16 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         setFooterNewsletterDescBn(resSettings.footerNewsletterDescBn || 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।');
         setFooterCopyright(resSettings.footerCopyright || '© 2026 Green Earth Bangladesh. All Rights Reserved.');
         setFooterCopyrightBn(resSettings.footerCopyrightBn || '© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।');
+
+        setPopupEnabled(resSettings.popupEnabled ?? false);
+        setPopupTitle(resSettings.popupTitle || '');
+        setPopupTitleBn(resSettings.popupTitleBn || '');
+        setPopupMessage(resSettings.popupMessage || '');
+        setPopupMessageBn(resSettings.popupMessageBn || '');
+        setPopupLinkText(resSettings.popupLinkText || '');
+        setPopupLinkTextBn(resSettings.popupLinkTextBn || '');
+        setPopupLinkUrl(resSettings.popupLinkUrl || '');
+        setPopupImageUrl(resSettings.popupImageUrl || '');
       }
     } catch (err) {
       console.error('Error loading admin data', err);
@@ -1078,9 +1099,101 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         } catch (err) {
           console.error(err);
         }
-        setConfirmModal(null);
+          setConfirmModal(null);
       }
     });
+  };
+
+  // Download Volunteer list as CSV
+  const downloadVolunteersCSV = () => {
+    if (!Array.isArray(volunteers) || volunteers.length === 0) return;
+
+    // Headers
+    const headers = [
+      'Name',
+      'Email',
+      'Phone',
+      'Profession',
+      'Location/District',
+      'Blood Group',
+      'Interest Area',
+      'Availability',
+      'Lifetime Membership Status',
+      'Message/Bio',
+      'Submission Date'
+    ];
+
+    // Helpers to map keys to friendly values
+    const getInterestLabel = (interest: string) => {
+      switch (interest) {
+        case 'plantation': return 'Tree Plantation (Mangrove Belts)';
+        case 'renewable': return 'Solar Micro-Grid Electrification';
+        case 'water': return 'Arsenic Mitigation & Safe Wells';
+        case 'waste': return 'River Cleanup & Waste Management';
+        case 'awareness': return 'Environmental School Campaigns';
+        default: return interest;
+      }
+    };
+
+    const getProfessionLabel = (prof?: string) => {
+      switch (prof) {
+        case 'student': return 'Student';
+        case 'job_holder': return 'Job Holder / Professional';
+        case 'academician': return 'Teacher / Researcher';
+        case 'business': return 'Business Owner';
+        case 'other': return 'Other';
+        default: return prof || '';
+      }
+    };
+
+    const getAvailabilityLabel = (avail?: string) => {
+      switch (avail) {
+        case 'flexible': return 'Flexible / Project-based';
+        case 'weekends': return 'Weekends Only';
+        case 'weekdays': return 'Weekdays Only';
+        case 'fulltime': return 'Full-time Dedication';
+        default: return avail || '';
+      }
+    };
+
+    const getMembershipLabel = (status?: string) => {
+      switch (status) {
+        case 'submitted_pending': return 'Submitted Google Form';
+        case 'already_member': return 'Active Lifetime Member';
+        case 'no_intent': return 'Field Volunteer Only';
+        default: return 'Field Volunteer Only';
+      }
+    };
+
+    const rows = volunteers.map(vol => [
+      vol.name || '',
+      vol.email || '',
+      vol.phone || '',
+      getProfessionLabel(vol.profession),
+      vol.location || '',
+      vol.bloodGroup || '',
+      getInterestLabel(vol.interest),
+      getAvailabilityLabel(vol.availability),
+      getMembershipLabel((vol as any).membershipStatus || vol.membership),
+      vol.message || '',
+      vol.date || ''
+    ]);
+
+    // Format into standard CSV row structure with quotes and escaped characters
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // Create file object blob with UTF-8 BOM to ensure seamless Bangla character rendering in Excel
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `green_earth_volunteers_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDonationDelete = (id: string) => {
@@ -1228,7 +1341,18 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       footerNewsletterDesc: footerNewsletterDesc,
       footerNewsletterDescBn: footerNewsletterDescBn,
       footerCopyright: footerCopyright,
-      footerCopyrightBn: footerCopyrightBn
+      footerCopyrightBn: footerCopyrightBn,
+
+      // Popup announcement settings fields
+      popupEnabled: popupEnabled,
+      popupTitle: popupTitle,
+      popupTitleBn: popupTitleBn,
+      popupMessage: popupMessage,
+      popupMessageBn: popupMessageBn,
+      popupLinkText: popupLinkText,
+      popupLinkTextBn: popupLinkTextBn,
+      popupLinkUrl: popupLinkUrl,
+      popupImageUrl: popupImageUrl
     };
 
     if (setNewPassword.trim()) {
@@ -2207,7 +2331,28 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
             {/* --- VOLUNTEERS TAB --- */}
             {activeTab === 'volunteers' && (
               <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4" id="volunteers-tab">
-                <h3 className="text-lg font-black text-[#1F5E2E] text-left">Volunteer Applications</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                  <div className="text-left">
+                    <h3 className="text-lg font-black text-[#1F5E2E]">
+                      {isBangla ? 'স্বেচ্ছাসেবক আবেদনপত্রসমূহ' : 'Volunteer Applications'}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {isBangla 
+                        ? `মোট আবেদনকারী: ${volunteers.length} জন` 
+                        : `Total Applicants: ${volunteers.length}`}
+                    </p>
+                  </div>
+                  
+                  {volunteers.length > 0 && (
+                    <button
+                      onClick={downloadVolunteersCSV}
+                      className="inline-flex items-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2.5 px-5 rounded-full text-xs font-black cursor-pointer shadow hover:shadow-md transition-all uppercase tracking-wider self-start sm:self-center"
+                    >
+                      <Download size={14} className="stroke-[2.5]" />
+                      <span>{isBangla ? 'ডেটা শিট ডাউনলোড করুন (CSV)' : 'Download Data Sheet (CSV)'}</span>
+                    </button>
+                  )}
+                </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm border-collapse">
@@ -3709,6 +3854,131 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                             className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
                           />
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 8: EVENT POP-UP ANNOUNCEMENT & NOTICE */}
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
+                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
+                        {isBangla ? '৮. ওয়েবসাইট পপ-আপ নোটিশ ও আসন্ন ইভেন্ট ঘোষণা' : '8. Web Pop-Up Announcement & Notice'}
+                      </span>
+                      
+                      {/* Enable/Disable Toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <span className="text-[10px] font-mono font-black tracking-wide text-gray-500 uppercase">
+                          {popupEnabled ? (isBangla ? 'সক্রিয়' : 'ACTIVE') : (isBangla ? 'নিষ্ক্রিয়' : 'DISABLED')}
+                        </span>
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={popupEnabled}
+                            onChange={(e) => setPopupEnabled(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div className={`block w-9 h-5 rounded-full transition-colors ${popupEnabled ? 'bg-[#6BBF3A]' : 'bg-gray-300'}`}></div>
+                          <div className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${popupEnabled ? 'transform translate-x-4' : ''}`}></div>
+                        </div>
+                      </label>
+                    </h4>
+
+                    <p className="text-xs text-gray-500 font-sans leading-relaxed">
+                      {isBangla 
+                        ? 'এটি সক্রিয় করলে দর্শকরা ওয়েবসাইটে প্রবেশ করা মাত্র একটি সুন্দর পপ-আপ মেসেজে যেকোনো জরুরি ঘোষণা, আসন্ন ইভেন্ট বা পরিবর্তন দেখতে পাবেন। একই ব্রাউজারে একবার বন্ধ (Dismiss) করলে পরবর্তীতে বিরক্তি এড়াতে এটি পুনরায় স্বয়ংক্রিয়ভাবে দেখাবে না।'
+                        : 'Enabling this option triggers a beautiful alert pop-up window to any visitor entering your website. Useful for announcing beach cleanups, solar projects, or urgent notices. The popup caches close states so dismissed users are not repeatedly disrupted.'}
+                    </p>
+
+                    <div className="space-y-4 pt-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Title (EN)</label>
+                          <input
+                            type="text"
+                            value={popupTitle}
+                            onChange={(e) => setPopupTitle(e.target.value)}
+                            placeholder="e.g. Satkhira Mangrove Planting Drive"
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Title (BN)</label>
+                          <input
+                            type="text"
+                            value={popupTitleBn}
+                            onChange={(e) => setPopupTitleBn(e.target.value)}
+                            placeholder="যেমন: সাতক্ষীরায় ম্যানগ্রোভ বনায়ন কর্মসূচি"
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Message (EN)</label>
+                          <textarea
+                            rows={3}
+                            value={popupMessage}
+                            onChange={(e) => setPopupMessage(e.target.value)}
+                            placeholder="Describe the notice details, date, venue, and participation guidelines..."
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none font-medium"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Message (BN)</label>
+                          <textarea
+                            rows={3}
+                            value={popupMessageBn}
+                            onChange={(e) => setPopupMessageBn(e.target.value)}
+                            placeholder="নোটিশের বিস্তারিত তথ্য, তারিখ, সময়, কীভাবে অংশ নেবে ইত্যাদি এখানে লিখুন..."
+                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Action Link URL (Optional)</label>
+                          <input
+                            type="text"
+                            value={popupLinkUrl}
+                            onChange={(e) => setPopupLinkUrl(e.target.value)}
+                            placeholder="e.g. #/involved or https://forms.gle/..."
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Text (EN)</label>
+                          <input
+                            type="text"
+                            value={popupLinkText}
+                            onChange={(e) => setPopupLinkText(e.target.value)}
+                            placeholder="e.g. Join as Volunteer"
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Text (BN)</label>
+                          <input
+                            type="text"
+                            value={popupLinkTextBn}
+                            onChange={(e) => setPopupLinkTextBn(e.target.value)}
+                            placeholder="যেমন: স্বেচ্ছাসেবক হোন"
+                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <ImageUploadInput
+                          label={isBangla ? "ঘোষণার ব্যানার ইমেজ (ঐচ্ছিক)" : "Announcement Banner Image (Optional)"}
+                          value={popupImageUrl}
+                          onChange={setPopupImageUrl}
+                          placeholder="https://images.unsplash.com/... or upload"
+                          filenamePrefix="notice"
+                          isBangla={isBangla}
+                        />
                       </div>
                     </div>
                   </div>

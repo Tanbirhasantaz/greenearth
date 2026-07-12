@@ -16,6 +16,7 @@ import SuccessModal from './components/SuccessModal';
 import ProjectDetailsModal from './components/ProjectDetailsModal';
 import BlogDetailsModal from './components/BlogDetailsModal';
 import LightboxModal from './components/LightboxModal';
+import AnnouncementPopup from './components/AnnouncementPopup';
 
 // Views
 import Home from './views/Home';
@@ -320,6 +321,12 @@ export default function App() {
         items={lightboxItems}
         activeIndex={lightboxIndex}
         onIndexChange={setLightboxIndex}
+        isBangla={isBangla}
+      />
+
+      {/* Dynamic Pop-Up notice/announcement of upcoming events */}
+      <AnnouncementPopup
+        settings={settings}
         isBangla={isBangla}
       />
     </div>
