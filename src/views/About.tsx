@@ -94,7 +94,7 @@ export default function About({ isBangla, settings }: AboutProps) {
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block">
             {isBangla ? (settings?.aboutHeroLabelBn || 'আমাদের পরিচয়') : (settings?.aboutHeroLabel || 'Who We Are')}
           </span>
-          <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-black text-[#1F5E2E]">
+          <h1 className="font-sans text-fluid-hero font-black text-[#1F5E2E]">
             {isBangla ? (settings?.aboutHeroTitleBn || 'আমাদের গল্প ও শক্তি') : (settings?.aboutHeroTitle || 'Our Story, Mission & Values')}
           </h1>
           <p className="font-sans text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed">
@@ -112,7 +112,7 @@ export default function About({ isBangla, settings }: AboutProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Story Text */}
           <div className="lg:col-span-7 flex flex-col gap-5 text-left">
-            <h2 className="font-sans text-2xl md:text-3xl font-extrabold text-[#1F5E2E]">
+            <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E]">
               {isBangla ? (settings?.aboutStoryTitleBn || 'আমাদের প্রতিষ্ঠার প্রেক্ষাপট') : (settings?.aboutStoryTitle || 'How We Started')}
             </h2>
             <div className="font-sans text-gray-600 leading-relaxed space-y-4 text-sm md:text-base">
@@ -185,7 +185,7 @@ export default function About({ isBangla, settings }: AboutProps) {
             <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
               {isBangla ? (settings?.aboutPrinciplesLabelBn || 'আমাদের আদর্শ') : (settings?.aboutPrinciplesLabel || 'Our Principles')}
             </span>
-            <h2 className="font-sans text-2xl sm:text-3xl font-extrabold text-[#1F5E2E]">
+            <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E]">
               {isBangla ? (settings?.aboutPrinciplesTitleBn || 'যে মূল্যবোধের ওপর আমরা দাঁড়িয়ে') : (settings?.aboutPrinciplesTitle || 'Our Core Organizational Values')}
             </h2>
             <div className="h-1 w-12 bg-[#6BBF3A] mx-auto rounded-full mt-3" />
@@ -215,23 +215,23 @@ export default function About({ isBangla, settings }: AboutProps) {
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
             {isBangla ? (settings?.aboutMilestonesLabelBn || 'আমাদের অর্জন') : (settings?.aboutMilestonesLabel || 'Our Milestones')}
           </span>
-          <h2 className="font-sans text-2xl sm:text-3xl font-extrabold text-[#1F5E2E]">
+          <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E]">
             {isBangla ? (settings?.aboutMilestonesTitleBn || 'আজ পর্যন্ত আমাদের পথচলা') : (settings?.aboutMilestonesTitle || 'The Milestones of Our Journey')}
           </h2>
           <div className="h-1 w-12 bg-[#6BBF3A] mx-auto rounded-full mt-3" />
         </div>
 
         {/* Timeline Layout */}
-        <div className="relative border-l-4 border-[#6BBF3A]/20 ml-4 sm:ml-32 pl-8 space-y-12 py-4 text-left">
+        <div className="relative border-l-4 border-[#6BBF3A]/20 ml-20 sm:ml-32 pl-6 sm:pl-8 space-y-12 py-4 text-left">
           {milestonesList.map((mile) => (
             <div key={mile.id} className="relative">
               {/* Year Marker */}
-              <div className="absolute -left-20 sm:-left-44 top-0.5 bg-[#6BBF3A] text-white font-mono font-extrabold text-sm sm:text-base py-1 px-3 sm:px-4 rounded-full shadow tracking-wider text-center w-16 sm:w-28">
+              <div className="absolute -left-24 sm:-left-44 top-0.5 bg-[#6BBF3A] text-white font-mono font-extrabold text-xs sm:text-base py-1 px-2.5 sm:px-4 rounded-full shadow tracking-wider text-center w-20 sm:w-28">
                 {isBangla ? mile.yearBn : mile.year}
               </div>
 
               {/* Bullet node */}
-              <div className="absolute -left-[42px] top-1.5 w-6 h-6 rounded-full bg-white border-4 border-[#1F5E2E] shadow" />
+              <div className="absolute -left-[34px] sm:-left-[42px] top-1.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white border-4 border-[#1F5E2E] shadow" />
 
               {/* Card info */}
               <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all">
@@ -254,18 +254,18 @@ export default function About({ isBangla, settings }: AboutProps) {
             <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
               {isBangla ? (settings?.aboutTeamLabelBn || 'আমাদের অভিভাবক') : (settings?.aboutTeamLabel || 'Our Team Leaders')}
             </span>
-            <h2 className="font-sans text-3xl font-extrabold text-[#1F5E2E]">
+            <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E]">
               {isBangla ? (settings?.aboutTeamTitleBn || 'সবুজ আন্দোলনের পেছনের মুখ') : (settings?.aboutTeamTitle || 'The Visionaries Behind Green Earth')}
             </h2>
             <div className="h-1 w-12 bg-[#6BBF3A] mx-auto rounded-full mt-3" />
           </div>
 
           {/* Team Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
             {teamList.map((member) => (
               <div
                 key={member.id}
-                className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all text-left flex flex-col h-full"
+                className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all text-left flex flex-col h-full"
               >
                 {/* Photo */}
                 <div className="aspect-square bg-gray-100 relative overflow-hidden group">
@@ -279,23 +279,23 @@ export default function About({ isBangla, settings }: AboutProps) {
                 </div>
 
                 {/* Info details */}
-                <div className="p-6 flex flex-col justify-between flex-1 gap-3">
+                <div className="p-3 sm:p-6 flex flex-col justify-between flex-1 gap-2 sm:gap-3">
                   <div>
-                    <h3 className="font-sans text-lg font-extrabold text-gray-900 leading-tight">
+                    <h3 className="font-sans text-sm sm:text-lg font-extrabold text-gray-900 leading-tight">
                       {isBangla ? (member.nameBn || member.name) : member.name}
                     </h3>
-                    <p className="font-mono text-xs font-bold text-[#6BBF3A] uppercase tracking-wider mt-0.5">
+                    <p className="font-mono text-[10px] sm:text-xs font-bold text-[#6BBF3A] uppercase tracking-wider mt-0.5">
                       {isBangla ? (member.roleBn || member.role) : member.role}
                     </p>
                   </div>
-                  <p className="font-sans text-xs text-gray-500 leading-relaxed mt-2 border-t border-gray-100 pt-3 line-clamp-3">
+                  <p className="font-sans text-[10px] sm:text-xs text-gray-500 leading-relaxed mt-1 border-t border-gray-100 pt-2 sm:pt-3 line-clamp-3">
                     {isBangla ? (member.bioBn || member.bio) : member.bio}
                   </p>
                   <button
                     onClick={() => setSelectedMember(member)}
-                    className="mt-2 text-xs font-bold text-[#1F5E2E] hover:text-[#6BBF3A] transition-colors flex items-center gap-1 cursor-pointer self-start"
+                    className="mt-1 sm:mt-2 text-[10px] sm:text-xs font-bold text-[#1F5E2E] hover:text-[#6BBF3A] transition-colors flex items-center gap-1 cursor-pointer self-start"
                   >
-                    {isBangla ? 'বিস্তারিত দেখুন' : 'View Profile'} →
+                    {isBangla ? 'পরিচিতি' : 'Profile'} →
                   </button>
                 </div>
               </div>

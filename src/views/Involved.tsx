@@ -210,7 +210,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block">
             {isBangla ? 'অংশগ্রহণ করুন' : 'Support the Movement'}
           </span>
-          <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-black text-[#1F5E2E]">
+          <h1 className="font-sans text-fluid-hero font-black text-[#1F5E2E]">
             {isBangla ? 'সবুজ আন্দোলনে যুক্ত হোন' : 'Get Involved with Green Earth'}
           </h1>
           <p className="font-sans text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed">

@@ -285,7 +285,7 @@ export default function Home({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.6 }}
-              className="font-sans text-4xl sm:text-5xl lg:text-6xl font-black text-[#1F5E2E] leading-tight"
+              className="font-sans text-fluid-hero font-black text-[#1F5E2E] leading-tight"
             >
               {isBangla 
                 ? (settings?.heroTitleBn || 'পরিচ্ছন্ন, সবুজ এবং টেকসই বাংলাদেশ') 
@@ -298,7 +298,7 @@ export default function Home({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="font-sans text-base sm:text-lg text-gray-600 leading-relaxed"
+              className="font-sans text-fluid-body text-gray-600 leading-relaxed"
             >
               {isBangla 
                 ? (settings?.heroBioBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।') 
@@ -379,7 +379,7 @@ export default function Home({
             <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
               {isBangla ? 'আমাদের কার্যক্রম' : 'Our Focus Areas'}
             </span>
-            <h2 className="font-sans text-3xl sm:text-4xl font-extrabold text-[#1F5E2E] mb-4">
+            <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E] mb-4">
               {isBangla ? 'সবুজ বাংলাদেশ গঠনে আমাদের পদক্ষেপ' : 'Actions We Take for Green Bangladesh'}
             </h2>
             <div className="h-1 w-20 bg-[#6BBF3A] mx-auto rounded-full" />
@@ -419,7 +419,7 @@ export default function Home({
               <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
                 {isBangla ? 'সফল কার্যক্রম' : 'Active Initiatives'}
               </span>
-              <h2 className="font-sans text-3xl sm:text-4xl font-extrabold text-[#1F5E2E]">
+              <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E]">
                 {isBangla ? 'আমাদের সাম্প্রতিক প্রকল্পসমূহ' : 'Our Featured Impact Projects'}
               </h2>
             </div>
@@ -441,7 +441,7 @@ export default function Home({
             {projectsList.slice(0, 3).map((project) => (
               <div
                 key={project.id}
-                className="bg-white rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col h-full"
+                className="bg-white rounded-2xl md:rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col h-full max-w-md mx-auto w-full md:max-w-none"
               >
                 {/* Image */}
                 <div className="relative aspect-video overflow-hidden">
@@ -495,7 +495,7 @@ export default function Home({
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 flex flex-col items-center gap-6">
           <Award size={48} className="text-[#6BBF3A]" />
-          <h2 className="font-sans text-3xl sm:text-4xl font-black text-white leading-tight">
+          <h2 className="font-sans text-fluid-h1 font-black text-white leading-tight">
             {isBangla ? 'আসুন একসাথে আমাদের নদী ও প্রকৃতি বাঁচাই' : 'Restore Bangladesh’s Fragile Delta with Us'}
           </h2>
           <p className="font-sans text-base sm:text-lg text-green-100 max-w-2xl">
@@ -544,7 +544,7 @@ export default function Home({
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
             {isBangla ? 'উপকারভোগীদের মন্তব্য' : 'Voice of the Communities'}
           </span>
-          <h2 className="font-sans text-3xl font-extrabold text-[#1F5E2E] mb-12">
+          <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E] mb-12">
             {isBangla ? 'মানুষ আমাদের সম্পর্কে যা বলছেন' : 'What Local Beneficiaries are Saying'}
           </h2>
 
@@ -597,7 +597,7 @@ export default function Home({
               <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block mb-2">
                 {isBangla ? 'পরিবেশ বার্তা' : 'Ecological Updates'}
               </span>
-              <h2 className="font-sans text-3xl sm:text-4xl font-extrabold text-[#1F5E2E]">
+              <h2 className="font-sans text-fluid-h1 font-extrabold text-[#1F5E2E]">
                 {isBangla ? 'আমাদের পরিবেশ বিষয়ক কলাম ও খবর' : 'Latest Environmental News & Columns'}
               </h2>
             </div>

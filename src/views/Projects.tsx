@@ -67,7 +67,7 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block">
             {isBangla ? 'আমাদের পদক্ষেপ' : 'Actions on Ground'}
           </span>
-          <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-black text-[#1F5E2E]">
+          <h1 className="font-sans text-fluid-hero font-black text-[#1F5E2E]">
             {isBangla ? 'আমাদের প্রকল্প ও কার্যক্রম' : 'Our Environmental Projects'}
           </h1>
           <p className="font-sans text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed">
@@ -112,7 +112,7 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="bg-white rounded-3xl border border-gray-200/60 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col h-full text-left"
+                className="bg-white rounded-2xl md:rounded-3xl border border-gray-200/60 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col h-full text-left max-w-md mx-auto w-full md:max-w-none"
               >
                 {/* Visual Image Header */}
                 <div className="relative aspect-video overflow-hidden">

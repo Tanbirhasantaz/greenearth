@@ -60,7 +60,7 @@ export default function Blog({ isBangla, onBlogClick }: BlogProps) {
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block">
             {isBangla ? 'সবুজ কলাম' : 'Eco-News & Insights'}
           </span>
-          <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-black text-[#1F5E2E]">
+          <h1 className="font-sans text-fluid-hero font-black text-[#1F5E2E]">
             {isBangla ? 'পরিবেশ বার্তা ও আমাদের নিবন্ধ' : 'Green Earth Blog & News'}
           </h1>
           <p className="font-sans text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed">
@@ -127,7 +127,7 @@ export default function Blog({ isBangla, onBlogClick }: BlogProps) {
                 <article
                   key={post.id}
                   onClick={() => onBlogClick(post)}
-                  className="bg-white rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-200 transition-all flex flex-col h-full group cursor-pointer text-left"
+                  className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-200 transition-all flex flex-col h-full group cursor-pointer text-left max-w-md mx-auto w-full sm:max-w-none"
                 >
                   {/* Photo thumbnail */}
                   <div className="relative aspect-video overflow-hidden">

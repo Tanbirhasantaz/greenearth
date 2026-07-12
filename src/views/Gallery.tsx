@@ -53,7 +53,7 @@ export default function Gallery({ isBangla, onImageClick }: GalleryProps) {
           <span className="text-xs font-mono font-black text-[#6BBF3A] uppercase tracking-widest block">
             {isBangla ? 'ক্যাম্পেইন ফটো' : 'Visual History'}
           </span>
-          <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-black text-[#1F5E2E]">
+          <h1 className="font-sans text-fluid-hero font-black text-[#1F5E2E]">
             {isBangla ? 'আমাদের কাজের গ্যালারি' : 'Green Earth Field Gallery'}
           </h1>
           <p className="font-sans text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed">
@@ -87,7 +87,7 @@ export default function Gallery({ isBangla, onImageClick }: GalleryProps) {
         </div>
 
         {/* Responsive Photo grid with Lightbox triggers */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="gallery-grid">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6" id="gallery-grid">
           {filteredItems.map((item, index) => {
             // Find its index in the filtered array for proper lightbox swipe navigation!
             const filteredIndex = filteredItems.findIndex((fi) => fi.id === item.id);
@@ -96,7 +96,7 @@ export default function Gallery({ isBangla, onImageClick }: GalleryProps) {
               <div
                 key={item.id}
                 onClick={() => onImageClick(filteredItems, filteredIndex)}
-                className="group relative aspect-square sm:aspect-video md:aspect-[4/3] rounded-3xl overflow-hidden border border-gray-200/40 bg-white shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all duration-300 cursor-zoom-in"
+                className="group relative aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden border border-gray-200/40 bg-gray-100 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all duration-300 cursor-zoom-in"
               >
                 {/* Image */}
                 <img
@@ -107,26 +107,26 @@ export default function Gallery({ isBangla, onImageClick }: GalleryProps) {
                 />
 
                 {/* Dark Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6 text-left" id={`gallery-item-overlay-${item.id}`}>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 sm:p-6 text-left" id={`gallery-item-overlay-${item.id}`}>
                   {/* Category tag */}
-                  <span className="bg-[#6BBF3A] text-white text-[9px] font-mono font-black uppercase tracking-widest py-1 px-2.5 rounded-full w-fit mb-2">
+                  <span className="bg-[#6BBF3A] text-white text-[8px] sm:text-[9px] font-mono font-black uppercase tracking-widest py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full w-fit mb-1.5">
                     {isBangla ? item.categoryLabelBn : item.categoryLabel}
                   </span>
 
                   {/* Title */}
-                  <h4 className="font-sans text-base sm:text-lg font-black text-white leading-snug mb-1">
+                  <h4 className="font-sans text-xs sm:text-base md:text-lg font-black text-white leading-snug mb-0.5 sm:mb-1">
                     {isBangla ? item.titleBn : item.title}
                   </h4>
 
                   {/* Date and Indicator */}
-                  <div className="flex items-center justify-between text-xs text-gray-300 mt-2 font-mono">
+                  <div className="flex items-center justify-between text-[9px] sm:text-xs text-gray-300 mt-1.5 sm:mt-2 font-mono">
                     <span className="flex items-center gap-1">
-                      <Calendar size={12} />
+                      <Calendar size={10} className="sm:size-3" />
                       {item.date}
                     </span>
-                    <span className="flex items-center gap-1.5 text-white bg-white/20 px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider">
-                      <Eye size={12} />
-                      Zoom
+                    <span className="flex items-center gap-1 text-white bg-white/20 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[8px] sm:text-[10px] uppercase font-bold tracking-wider">
+                      <Eye size={10} className="sm:size-3" />
+                      {isBangla ? 'দেখুন' : 'Zoom'}
                     </span>
                   </div>
                 </div>

@@ -138,17 +138,17 @@ export default function Header({
           {/* Lang Selector Mobile */}
           <button
             onClick={() => setIsBangla(!isBangla)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-gray-300/80 bg-[#FAFAF7] text-gray-700 text-xs font-bold cursor-pointer"
+            className="flex items-center gap-1 px-3 py-2.5 rounded-full border border-gray-300/80 bg-[#FAFAF7] text-gray-700 text-xs font-bold cursor-pointer min-h-[44px]"
             id="lang-toggle-mobile"
           >
-            <Globe size={12} className="text-[#6BBF3A]" />
+            <Globe size={14} className="text-[#6BBF3A]" />
             <span>{isBangla ? 'EN' : 'বাংলা'}</span>
           </button>
 
           {/* Hamburger trigger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-full hover:bg-gray-200/50 text-gray-700 transition-colors cursor-pointer"
+            className="p-2.5 rounded-full hover:bg-gray-200/50 text-gray-700 transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Toggle Menu"
             id="mobile-menu-toggle"
           >
