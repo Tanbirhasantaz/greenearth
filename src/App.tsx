@@ -72,7 +72,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Sync state transitions to browser URL hash and page titles
+  // Sync state transitions to browser URL hash, page titles, and dynamic SEO Meta tags
   useEffect(() => {
     // 1. Sync URL hash
     const currentHash = window.location.hash.replace(/^#\/?/, '');
@@ -108,7 +108,67 @@ export default function App() {
     };
 
     const pageTitle = isBangla ? pageNamesBn[currentPage] : pageNamesEn[currentPage];
-    document.title = `${siteName} | ${pageTitle}`;
+    const fullTitle = `${siteName} | ${pageTitle}`;
+    document.title = fullTitle;
+
+    // 3. Dynamic Meta Descriptions & Social Open Graph Tags for complete SEO
+    const pageDescEn: Record<Page, string> = {
+      home: 'Green Earth is a grassroots non-profit environmental organization in Bangladesh driving sustainable coastal reforestation, solar micro-grid installations, and safe water plants.',
+      about: 'Learn about Green Earth\'s mission, our core values of sustainability and radical transparency, our timeline milestones, and our dedicated team.',
+      projects: 'Explore our featured impact projects, including the Sundarbans Mangrove Reforestation, off-grid Solar Electrification, and Safe Drinking Water Solutions.',
+      involved: 'Join our green mission. Register as a volunteer, apply for lifetime membership, or make a tax-deductible contribution to accelerate climate action in Bangladesh.',
+      blog: 'Read the latest environmental articles, news updates, and scientific insights on ecology, renewable energy, and waste management from Green Earth experts.',
+      gallery: 'Browse photos from our field operations, community tree nurseries, solar panel installations, and active river cleanups across Bangladesh.',
+      contact: 'Get in touch with Green Earth. Reach out for corporate sponsorship opportunities, partnerships, volunteering queries, or support.',
+      admin: 'Green Earth internal administrative panel.',
+    };
+
+    const pageDescBn: Record<Page, string> = {
+      home: 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি সামাজিক সংস্থা। আমাদের ম্যানগ্রোভ বনায়ন, সৌর বিদ্যুৎ ও নিরাপদ বিশুদ্ধ পানি প্রকল্প সম্পর্কে জানুন।',
+      about: 'গ্রিন আর্থের লক্ষ্য, স্থায়িত্ব ও স্বচ্ছতার মূল নীতিসমূহ, আমাদের অর্জিত মাইলফলক এবং ডেডিকেটেড টিম সদস্যদের সম্পর্কে বিস্তারিত জানুন।',
+      projects: 'সুন্দরবন উপকূলীয় ম্যানগ্রোভ বনায়ন, অফ-গ্রিড বিদ্যালয়ে সৌর বিদ্যুতায়ন এবং চাঁদপুর জেলায় নিরাপদ বিশুদ্ধ পানি সরবরাহসহ আমাদের সব প্রকল্পের প্রভাব সম্পর্কে জানুন।',
+      involved: 'জলবায়ু মোকাবিলায় অংশ নিন। স্বেচ্ছাসেবক হিসেবে নিবন্ধন করুন, আজীবন সদস্যপদের আবেদন করুন অথবা আমাদের পরিবেশবান্ধব উদ্যোগে অবদান রাখুন।',
+      blog: 'পরিবেশবিদ্যা, নবায়নযোগ্য জ্বালানি ও বর্জ্য ব্যবস্থাপনা নিয়ে গ্রিন আর্থ-এর বিশেষজ্ঞদের সাম্প্রতিক নিবন্ধ ও খবর পড়ুন।',
+      gallery: 'আমাদের উপকূলীয় বৃক্ষরোপণ, সৌর প্যানেল ইনস্টলেশন ও বুড়িগঙ্গা নদী পরিচ্ছন্নতা অভিযানসহ মাঠপর্যায়ের কার্যক্রমের ছবি দেখুন।',
+      contact: 'আমাদের সাথে যোগাযোগ করুন। কর্পোরেট স্পন্সরশিপ, পরিবেশবান্ধব পার্টনারশিপ বা কোনো জিজ্ঞাসার জন্য মেসেজ পাঠান।',
+      admin: 'গ্রিন আর্থ অ্যাডমিন প্যানেল।',
+    };
+
+    const currentDesc = isBangla ? pageDescBn[currentPage] : pageDescEn[currentPage];
+
+    // Helper function to update/create meta tags dynamically
+    const updateMetaTag = (attrName: string, attrVal: string, contentVal: string) => {
+      let meta = document.querySelector(`meta[${attrName}="${attrVal}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute(attrName, attrVal);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', contentVal);
+    };
+
+    // Update primary tags
+    updateMetaTag('name', 'description', currentDesc);
+    updateMetaTag('name', 'title', fullTitle);
+
+    // Update Open Graph tags for Facebook / LinkedIn / Slack
+    updateMetaTag('property', 'og:title', fullTitle);
+    updateMetaTag('property', 'og:description', currentDesc);
+    updateMetaTag('property', 'og:url', window.location.href);
+
+    // Update Twitter Card tags
+    updateMetaTag('name', 'twitter:title', fullTitle);
+    updateMetaTag('name', 'twitter:description', currentDesc);
+
+    // Update canonical link
+    let canonical = document.getElementById('canonical-link') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.id = 'canonical-link';
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', window.location.href);
   }, [currentPage, isBangla, settings]);
 
   // Modal active states

@@ -1,0 +1,13 @@
+# robots.txt for Green Earth Bangladesh
+# Optimized for Search Engine Optimization (SEO)
+
+User-agent: *
+Allow: /
+
+# Disallow scraping or crawling of internal APIs and admin interfaces
+Disallow: /api/
+Disallow: /admin
+Disallow: /#/admin
+
+# Declaring the XML Sitemap location
+Sitemap: https://greenearthbd.25.org/sitemap.xml
