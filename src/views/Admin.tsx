@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, LayoutDashboard, Trees, BookOpen, Users, Heart, Image as ImageIcon, 
   Mail, Settings, Plus, Edit, Trash2, LogOut, Search, Check, X, Phone, MapPin, 
-  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Flag, Megaphone
+  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Flag, Megaphone,
+  Clock, Calendar
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
 
@@ -179,6 +180,10 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
   // Search filter states
   const [searchTerm, setSearchTerm] = useState('');
+  const [volSearchTerm, setVolSearchTerm] = useState('');
+  const [volFilterInterest, setVolFilterInterest] = useState('all');
+  const [volFilterMembership, setVolFilterMembership] = useState('all');
+  const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
 
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -2331,160 +2336,311 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
             )}
 
             {/* --- VOLUNTEERS TAB --- */}
-            {activeTab === 'volunteers' && (
-              <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4" id="volunteers-tab">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-                  <div className="text-left">
-                    <h3 className="text-lg font-black text-[#1F5E2E]">
-                      {isBangla ? 'স্বেচ্ছাসেবক আবেদনপত্রসমূহ' : 'Volunteer Applications'}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {isBangla 
-                        ? `মোট আবেদনকারী: ${volunteers.length} জন` 
-                        : `Total Applicants: ${volunteers.length}`}
-                    </p>
+            {activeTab === 'volunteers' && (() => {
+              const totalVols = volunteers.length;
+              const pendingVols = volunteers.filter(v => v.membership === 'submitted_pending').length;
+              const lifetimeMembers = volunteers.filter(v => v.membership === 'already_member').length;
+              const fieldOnlyVols = volunteers.filter(v => v.membership === 'no_intent' || !v.membership).length;
+
+              const filteredVolunteers = volunteers.filter((vol) => {
+                const matchesSearch = 
+                  !volSearchTerm ||
+                  vol.name.toLowerCase().includes(volSearchTerm.toLowerCase()) ||
+                  vol.email.toLowerCase().includes(volSearchTerm.toLowerCase()) ||
+                  vol.phone.includes(volSearchTerm) ||
+                  (vol.location && vol.location.toLowerCase().includes(volSearchTerm.toLowerCase())) ||
+                  (vol.message && vol.message.toLowerCase().includes(volSearchTerm.toLowerCase()));
+
+                const matchesInterest = volFilterInterest === 'all' || vol.interest === volFilterInterest;
+                const matchesMembership = volFilterMembership === 'all' || vol.membership === volFilterMembership;
+
+                return matchesSearch && matchesInterest && matchesMembership;
+              });
+
+              return (
+                <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6" id="volunteers-tab">
+                  {/* Top Header Row */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                    <div className="text-left">
+                      <h3 className="text-lg font-black text-[#1F5E2E]">
+                        {isBangla ? 'স্বেচ্ছাসেবক আবেদনপত্রসমূহ' : 'Volunteer Applications'}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {isBangla 
+                          ? `মোট আবেদনকারী: ${volunteers.length} জন` 
+                          : `Total Registered Volunteers: ${volunteers.length}`}
+                      </p>
+                    </div>
+                    
+                    {volunteers.length > 0 && (
+                      <button
+                        onClick={downloadVolunteersCSV}
+                        className="inline-flex items-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2.5 px-5 rounded-full text-xs font-black cursor-pointer shadow hover:shadow-md transition-all uppercase tracking-wider self-start md:self-center"
+                      >
+                        <Download size={14} className="stroke-[2.5]" />
+                        <span>{isBangla ? 'ডেটা শিট ডাউনলোড করুন (CSV)' : 'Download CSV Sheet'}</span>
+                      </button>
+                    )}
                   </div>
-                  
-                  {volunteers.length > 0 && (
-                    <button
-                      onClick={downloadVolunteersCSV}
-                      className="inline-flex items-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2.5 px-5 rounded-full text-xs font-black cursor-pointer shadow hover:shadow-md transition-all uppercase tracking-wider self-start sm:self-center"
-                    >
-                      <Download size={14} className="stroke-[2.5]" />
-                      <span>{isBangla ? 'ডেটা শিট ডাউনলোড করুন (CSV)' : 'Download Data Sheet (CSV)'}</span>
-                    </button>
-                  )}
-                </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-200 text-gray-400 font-mono text-xs uppercase font-bold">
-                        <th className="py-3 px-4">Volunteer Details</th>
-                        <th className="py-3 px-4">Profession & Area</th>
-                        <th className="py-3 px-4">Contact & Blood</th>
-                        <th className="py-3 px-4">Interest & Commitment</th>
-                        <th className="py-3 px-4">Membership Check</th>
-                        <th className="py-3 px-4">Intro Message</th>
-                        <th className="py-3 px-4">Submission Date</th>
-                        <th className="py-3 px-4">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {volunteers.map((vol) => {
-                        const getInterestLabel = (interest: string) => {
-                          switch (interest) {
-                            case 'plantation': return 'Mangrove Plantation';
-                            case 'renewable': return 'Solar Micro-Grids';
-                            case 'water': return 'Safe Water Plants';
-                            case 'waste': return 'Waste & Cleanup';
-                            case 'awareness': return 'School Campaigns';
-                            default: return interest;
-                          }
-                        };
+                  {/* Summary KPI Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Card 1: Total */}
+                    <div className="bg-emerald-50/50 border border-emerald-100/80 p-4 rounded-2xl flex items-center gap-3">
+                      <div className="p-2.5 bg-emerald-100 text-[#1F5E2E] rounded-xl">
+                        <Users size={18} />
+                      </div>
+                      <div>
+                        <div className="text-lg font-extrabold text-[#1F5E2E]">{totalVols}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                          {isBangla ? 'মোট স্বেচ্ছাসেবক' : 'Total Volunteers'}
+                        </div>
+                      </div>
+                    </div>
 
-                        const getProfessionLabel = (prof?: string) => {
-                          switch (prof) {
-                            case 'student': return 'Student';
-                            case 'job_holder': return 'Job Holder / Pro';
-                            case 'academician': return 'Teacher / Researcher';
-                            case 'business': return 'Business Owner';
-                            case 'other': return 'Other';
-                            default: return prof || '—';
-                          }
-                        };
+                    {/* Card 2: Lifetime Members */}
+                    <div className="bg-blue-50/50 border border-blue-100/80 p-4 rounded-2xl flex items-center gap-3">
+                      <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+                        <Award size={18} />
+                      </div>
+                      <div>
+                        <div className="text-lg font-extrabold text-blue-800">{lifetimeMembers}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                          {isBangla ? 'আজীবন সদস্য' : 'Lifetime Members'}
+                        </div>
+                      </div>
+                    </div>
 
-                        const getAvailabilityLabel = (avail?: string) => {
-                          switch (avail) {
-                            case 'flexible': return 'Flexible / Project';
-                            case 'weekends': return 'Weekends Only';
-                            case 'weekdays': return 'Weekdays Only';
-                            case 'fulltime': return 'Full-time Dedication';
-                            default: return avail || '—';
-                          }
-                        };
+                    {/* Card 3: Pending Approval */}
+                    <div className="bg-yellow-50/50 border border-yellow-100/80 p-4 rounded-2xl flex items-center gap-3">
+                      <div className="p-2.5 bg-yellow-100 text-yellow-700 rounded-xl">
+                        <FileText size={18} />
+                      </div>
+                      <div>
+                        <div className="text-lg font-extrabold text-yellow-800">{pendingVols}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                          {isBangla ? 'আবেদন পেন্ডিং' : 'Submitted Pending'}
+                        </div>
+                      </div>
+                    </div>
 
-                        const getMembershipBadge = (status?: string) => {
-                          switch (status) {
-                            case 'submitted_pending':
-                              return (
-                                <span className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                                  Submitted Form
-                                </span>
-                              );
-                            case 'already_member':
-                              return (
-                                <span className="bg-emerald-50 border border-emerald-200 text-[#1F5E2E] text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#6BBF3A]"></span>
-                                  Lifetime Member
-                                </span>
-                              );
-                            case 'no_intent':
-                            default:
-                              return (
-                                <span className="bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                                  Field Vol Only
-                                </span>
-                              );
-                          }
-                        };
+                    {/* Card 4: Field Vols */}
+                    <div className="bg-purple-50/50 border border-purple-100/80 p-4 rounded-2xl flex items-center gap-3">
+                      <div className="p-2.5 bg-purple-100 text-purple-700 rounded-xl">
+                        <Heart size={18} />
+                      </div>
+                      <div>
+                        <div className="text-lg font-extrabold text-purple-800">{fieldOnlyVols}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                          {isBangla ? 'ফিল্ড ভলান্টিয়ার' : 'Field Volunteer Only'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                        return (
-                          <tr key={vol.id} className="hover:bg-gray-50 text-xs">
-                            <td className="py-4 px-4 font-bold text-gray-900 text-sm">{vol.name}</td>
-                            <td className="py-4 px-4 space-y-1">
-                              <div className="text-gray-700 font-semibold">{getProfessionLabel(vol.profession)}</div>
-                              <div className="text-gray-400 flex items-center gap-0.5">
-                                <MapPin size={10} className="text-gray-400" />
-                                <span>{vol.location || '—'}</span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4 space-y-1">
-                              <div className="text-gray-600 font-medium">{vol.email}</div>
-                              <div className="text-gray-400 font-semibold font-mono">{vol.phone}</div>
-                              {vol.bloodGroup && vol.bloodGroup !== 'Unknown' && (
-                                <div className="text-[10px] font-black text-red-600 bg-red-50 border border-red-100 rounded px-1.5 py-0.5 inline-block">
-                                  Blood: {vol.bloodGroup}
+                  {/* Filter & Search Bar */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    {/* Search Field */}
+                    <div className="relative md:col-span-6">
+                      <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={volSearchTerm}
+                        onChange={(e) => setVolSearchTerm(e.target.value)}
+                        placeholder={isBangla ? 'নাম, ইমেল, ফোন বা এলাকা দিয়ে খুঁজুন...' : 'Search by name, email, phone, location...'}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] transition-all outline-none"
+                      />
+                    </div>
+
+                    {/* Interest Dropdown */}
+                    <div className="md:col-span-3">
+                      <select
+                        value={volFilterInterest}
+                        onChange={(e) => setVolFilterInterest(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-700 focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] transition-all outline-none select-hand"
+                      >
+                        <option value="all">{isBangla ? 'সব ধরণের আগ্রহ' : 'All Campaign Interests'}</option>
+                        <option value="plantation">{isBangla ? 'ম্যানগ্রোভ বৃক্ষরোপণ' : 'Mangrove Plantation'}</option>
+                        <option value="renewable">{isBangla ? 'সৌর বিদ্যুৎ' : 'Solar Micro-Grids'}</option>
+                        <option value="water">{isBangla ? 'বিশুদ্ধ পানি প্ল্যান্ট' : 'Safe Water Plants'}</option>
+                        <option value="waste">{isBangla ? 'বর্জ্য অপসারণ' : 'Waste & Cleanup'}</option>
+                        <option value="awareness">{isBangla ? 'সচেতনতা ক্যাম্পেইন' : 'School Campaigns'}</option>
+                      </select>
+                    </div>
+
+                    {/* Membership Dropdown */}
+                    <div className="md:col-span-3">
+                      <select
+                        value={volFilterMembership}
+                        onChange={(e) => setVolFilterMembership(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-700 focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] transition-all outline-none select-hand"
+                      >
+                        <option value="all">{isBangla ? 'সব সদস্যপদের ধরণ' : 'All Membership Statuses'}</option>
+                        <option value="submitted_pending">{isBangla ? 'আবেদন পেন্ডিং' : 'Submitted Form'}</option>
+                        <option value="already_member">{isBangla ? 'আজীবন সদস্য' : 'Lifetime Member'}</option>
+                        <option value="no_intent">{isBangla ? 'শুধু মাঠ ভলান্টিয়ার' : 'Field Vol Only'}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* List View / Table Container */}
+                  <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-mono text-[10px] uppercase font-bold tracking-wider">
+                          <th className="py-3.5 px-4">{isBangla ? 'স্বেচ্ছাসেবক' : 'Volunteer Info'}</th>
+                          <th className="py-3.5 px-4">{isBangla ? 'পেশা ও এলাকা' : 'Profession & Location'}</th>
+                          <th className="py-3.5 px-4">{isBangla ? 'আগ্রহ ও সময়' : 'Interest & Availability'}</th>
+                          <th className="py-3.5 px-4">{isBangla ? 'সদস্যপদ' : 'Membership'}</th>
+                          <th className="py-3.5 px-4">{isBangla ? 'বার্তা' : 'Intro Message'}</th>
+                          <th className="py-3.5 px-4 text-right">{isBangla ? 'অ্যাকশন' : 'Action'}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {filteredVolunteers.map((vol) => {
+                          const getInterestLabel = (interest: string) => {
+                            switch (interest) {
+                              case 'plantation': return 'Mangrove Plantation';
+                              case 'renewable': return 'Solar Micro-Grids';
+                              case 'water': return 'Safe Water Plants';
+                              case 'waste': return 'Waste & Cleanup';
+                              case 'awareness': return 'School Campaigns';
+                              default: return interest;
+                            }
+                          };
+
+                          const getProfessionLabel = (prof?: string) => {
+                            switch (prof) {
+                              case 'student': return 'Student';
+                              case 'job_holder': return 'Job Holder / Pro';
+                              case 'academician': return 'Teacher / Researcher';
+                              case 'business': return 'Business Owner';
+                              case 'other': return 'Other';
+                              default: return prof || '—';
+                            }
+                          };
+
+                          const getAvailabilityLabel = (avail?: string) => {
+                            switch (avail) {
+                              case 'flexible': return 'Flexible / Project';
+                              case 'weekends': return 'Weekends Only';
+                              case 'weekdays': return 'Weekdays Only';
+                              case 'fulltime': return 'Full-time Dedication';
+                              default: return avail || '—';
+                            }
+                          };
+
+                          const getMembershipBadge = (status?: string) => {
+                            switch (status) {
+                              case 'submitted_pending':
+                                return (
+                                  <span className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                                    Submitted Form
+                                  </span>
+                                );
+                              case 'already_member':
+                                return (
+                                  <span className="bg-emerald-50 border border-emerald-200 text-[#1F5E2E] text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#6BBF3A]"></span>
+                                    Lifetime Member
+                                  </span>
+                                );
+                              case 'no_intent':
+                              default:
+                                return (
+                                  <span className="bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                    Field Vol Only
+                                  </span>
+                                );
+                            }
+                          };
+
+                          // Get initial for avatar
+                          const initials = vol.name ? vol.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'V';
+
+                          return (
+                            <tr key={vol.id} className="hover:bg-gray-50/50 transition-colors text-xs">
+                              {/* Volunteer info with initial avatar */}
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1F5E2E]/10 to-[#6BBF3A]/20 text-[#1F5E2E] flex items-center justify-center font-black font-mono text-xs shadow-inner">
+                                    {initials}
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <div className="font-extrabold text-gray-900 text-sm leading-tight hover:text-[#1F5E2E] transition-colors">{vol.name}</div>
+                                    <div className="text-gray-400 font-mono text-[10px]">{new Date(vol.date).toLocaleDateString()}</div>
+                                  </div>
                                 </div>
-                              )}
-                            </td>
-                            <td className="py-4 px-4 space-y-1">
-                              <span className="bg-emerald-50 border border-emerald-100 text-[#1F5E2E] text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-full inline-block">
-                                {getInterestLabel(vol.interest)}
-                              </span>
-                              <div className="text-gray-500 text-[10px] font-medium">{getAvailabilityLabel(vol.availability)}</div>
-                            </td>
-                            <td className="py-4 px-4">
-                              {getMembershipBadge(vol.membership)}
-                            </td>
-                            <td className="py-4 px-4 text-xs text-gray-500 max-w-xs truncate" title={vol.message}>
-                              {vol.message || '—'}
-                            </td>
-                            <td className="py-4 px-4 text-xs text-gray-400 font-mono">
-                              {new Date(vol.date).toLocaleDateString()}
-                            </td>
-                            <td className="py-4 px-4">
-                              <button
-                                onClick={() => handleVolunteerDelete(vol.id)}
-                                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 cursor-pointer"
-                                title="Delete application"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  {volunteers.length === 0 && (
-                    <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No volunteer registrations found.</p>
-                  )}
+                              </td>
+
+                              {/* Profession and Area */}
+                              <td className="py-4 px-4 space-y-1">
+                                <div className="text-gray-700 font-semibold">{getProfessionLabel(vol.profession)}</div>
+                                <div className="text-gray-400 flex items-center gap-0.5">
+                                  <MapPin size={11} className="text-gray-400" />
+                                  <span>{vol.location || '—'}</span>
+                                </div>
+                              </td>
+
+                              {/* Interest and availability */}
+                              <td className="py-4 px-4 space-y-1">
+                                <span className="bg-[#1F5E2E]/10 border border-[#1F5E2E]/20 text-[#1F5E2E] text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full inline-block">
+                                  {getInterestLabel(vol.interest)}
+                                </span>
+                                <div className="text-gray-500 text-[10px] font-medium">{getAvailabilityLabel(vol.availability)}</div>
+                              </td>
+
+                              {/* Membership badge */}
+                              <td className="py-4 px-4">
+                                {getMembershipBadge(vol.membership)}
+                              </td>
+
+                              {/* Intro message */}
+                              <td className="py-4 px-4 max-w-xs">
+                                <p className="text-gray-500 line-clamp-2 pr-4 text-[11px]" title={vol.message}>
+                                  {vol.message || '—'}
+                                </p>
+                              </td>
+
+                              {/* Action buttons */}
+                              <td className="py-4 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => setSelectedVolunteer(vol)}
+                                    className="p-1.5 bg-[#1F5E2E]/10 hover:bg-[#1F5E2E]/20 text-[#1F5E2E] rounded-xl cursor-pointer transition-colors"
+                                    title={isBangla ? 'বিস্তারিত বিবরণ দেখুন' : 'View Full Details'}
+                                  >
+                                    <Eye size={15} className="stroke-[2.5]" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleVolunteerDelete(vol.id)}
+                                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl cursor-pointer transition-colors"
+                                    title={isBangla ? 'আবেদনটি মুছে ফেলুন' : 'Delete Application'}
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+
+                    {filteredVolunteers.length === 0 && (
+                      <div className="py-12 text-center text-gray-400 space-y-2">
+                        <Users size={32} className="mx-auto text-gray-300 stroke-[1.5]" />
+                        <p className="font-bold uppercase tracking-wider text-xs">
+                          {isBangla ? 'কোনো স্বেচ্ছাসেবক পাওয়া যায়নি।' : 'No matching volunteers found.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* --- DONATIONS TAB --- */}
             {activeTab === 'donations' && (
@@ -4813,6 +4969,245 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                   className="py-2.5 px-6 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-bold transition-all cursor-pointer shadow hover:shadow-lg"
                 >
                   {isBangla ? 'মুছে ফেলুন' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Volunteer Details Modal */}
+        {selectedVolunteer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedVolunteer(null)}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="relative w-full max-w-2xl bg-white border border-gray-100 rounded-3xl shadow-2xl z-10 text-left font-sans flex flex-col overflow-hidden max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-[#1F5E2E] to-[#2E7D32] text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 text-white rounded-full flex items-center justify-center font-black text-sm">
+                    {selectedVolunteer.name ? selectedVolunteer.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'V'}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black leading-tight">{selectedVolunteer.name}</h4>
+                    <p className="text-[10px] text-emerald-100 font-medium uppercase tracking-wider">
+                      {isBangla ? 'স্বেচ্ছাসেবক আবেদনপত্র' : 'Volunteer Application Details'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedVolunteer(null)}
+                  className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="p-6 overflow-y-auto space-y-6">
+                
+                {/* Section 1: Key Metadata badging */}
+                <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-100">
+                  {/* Status badge */}
+                  {selectedVolunteer.membership === 'submitted_pending' && (
+                    <span className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                      {isBangla ? 'আবেদন পেন্ডিং' : 'Submitted & Pending'}
+                    </span>
+                  )}
+                  {selectedVolunteer.membership === 'already_member' && (
+                    <span className="bg-emerald-50 border border-emerald-200 text-[#1F5E2E] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#6BBF3A]"></span>
+                      {isBangla ? 'আজীবন সদস্য' : 'Lifetime Member'}
+                    </span>
+                  )}
+                  {(selectedVolunteer.membership === 'no_intent' || !selectedVolunteer.membership) && (
+                    <span className="bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                      {isBangla ? 'মাঠ ভলান্টিয়ার' : 'Field Volunteer Only'}
+                    </span>
+                  )}
+
+                  {/* Campaign Interest */}
+                  <span className="bg-[#1F5E2E]/10 border border-[#1F5E2E]/20 text-[#1F5E2E] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 uppercase font-mono">
+                    🎯 {(() => {
+                      switch (selectedVolunteer.interest) {
+                        case 'plantation': return isBangla ? 'ম্যানগ্রোভ রোপণ' : 'Mangrove Plantation';
+                        case 'renewable': return isBangla ? 'সৌর বিদ্যুৎ' : 'Solar Micro-Grids';
+                        case 'water': return isBangla ? 'বিশুদ্ধ পানি' : 'Safe Water Plants';
+                        case 'waste': return isBangla ? 'বর্জ্য অপসারণ' : 'Waste & Cleanup';
+                        case 'awareness': return isBangla ? 'সচেতনতা প্রচার' : 'School Campaigns';
+                        default: return selectedVolunteer.interest;
+                      }
+                    })()}
+                  </span>
+
+                  {/* Blood Group */}
+                  {selectedVolunteer.bloodGroup && selectedVolunteer.bloodGroup !== 'Unknown' && (
+                    <span className="bg-red-50 border border-red-100 text-red-600 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                      🩸 {isBangla ? `রক্তের গ্রুপ: ${selectedVolunteer.bloodGroup}` : `Blood Group: ${selectedVolunteer.bloodGroup}`}
+                    </span>
+                  )}
+                </div>
+
+                {/* Grid Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* Column Left: Contact & Profile */}
+                  <div className="space-y-4">
+                    <h5 className="text-xs font-black text-gray-400 uppercase tracking-wider font-mono">
+                      {isBangla ? 'যোগাযোগ ও পরিচিতি' : 'Contact & Profile'}
+                    </h5>
+                    
+                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
+                      {/* Email */}
+                      <div className="flex items-start gap-2.5">
+                        <Mail size={14} className="text-gray-400 mt-0.5" />
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'ইমেল' : 'Email Address'}</div>
+                          <a href={`mailto:${selectedVolunteer.email}`} className="text-xs font-semibold text-[#1F5E2E] hover:underline break-all">
+                            {selectedVolunteer.email}
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Phone */}
+                      <div className="flex items-start gap-2.5">
+                        <Phone size={14} className="text-gray-400 mt-0.5" />
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'মোবাইল নম্বর' : 'Phone Number'}</div>
+                          <a href={`tel:${selectedVolunteer.phone}`} className="text-xs font-semibold text-gray-700 hover:underline">
+                            {selectedVolunteer.phone}
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Location */}
+                      <div className="flex items-start gap-2.5">
+                        <MapPin size={14} className="text-gray-400 mt-0.5" />
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'জেলা / এলাকা' : 'Location / Area'}</div>
+                          <div className="text-xs font-semibold text-gray-700">
+                            {selectedVolunteer.location || '—'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column Right: Engagement Details */}
+                  <div className="space-y-4">
+                    <h5 className="text-xs font-black text-gray-400 uppercase tracking-wider font-mono">
+                      {isBangla ? 'সংযুক্তি ও সময়সূচী' : 'Engagement & Availability'}
+                    </h5>
+
+                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
+                      {/* Profession */}
+                      <div className="flex items-start gap-2.5">
+                        <Award size={14} className="text-gray-400 mt-0.5" />
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'পেশা' : 'Profession'}</div>
+                          <div className="text-xs font-semibold text-gray-700">
+                            {(() => {
+                              switch (selectedVolunteer.profession) {
+                                case 'student': return isBangla ? 'শিক্ষার্থী' : 'Student';
+                                case 'job_holder': return isBangla ? 'চাকুরীজীবী' : 'Job Holder / Professional';
+                                case 'academician': return isBangla ? 'শিক্ষক / গবেষক' : 'Teacher / Researcher';
+                                case 'business': return isBangla ? 'ব্যবসায়ী' : 'Business Owner';
+                                case 'other': return isBangla ? 'অন্যান্য' : 'Other';
+                                default: return selectedVolunteer.profession || '—';
+                              }
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Availability */}
+                      <div className="flex items-start gap-2.5">
+                        <Clock size={14} className="text-gray-400 mt-0.5" />
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'কাজের সময়' : 'Time Availability'}</div>
+                          <div className="text-xs font-semibold text-gray-700">
+                            {(() => {
+                              switch (selectedVolunteer.availability) {
+                                case 'flexible': return isBangla ? 'ফ্লেক্সিবল / প্রজেক্ট ভিত্তিক' : 'Flexible / Project Based';
+                                case 'weekends': return isBangla ? 'শুধু সাপ্তাহিক ছুটির দিন' : 'Weekends Only';
+                                case 'weekdays': return isBangla ? 'कर्मदिवस সমূহে' : 'Weekdays Only';
+                                case 'fulltime': return isBangla ? 'ফুল-টাইম ডেডিকেশন' : 'Full-time Dedication';
+                                default: return selectedVolunteer.availability || '—';
+                              }
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Submitted Date */}
+                      <div className="flex items-start gap-2.5">
+                        <Calendar size={14} className="text-gray-400 mt-0.5" />
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'আবেদনের তারিখ' : 'Application Date'}</div>
+                          <div className="text-xs font-semibold text-gray-700">
+                            {new Date(selectedVolunteer.date).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Section: Motivation / Intro Message */}
+                <div className="space-y-3">
+                  <h5 className="text-xs font-black text-gray-400 uppercase tracking-wider font-mono">
+                    {isBangla ? 'স্বেচ্ছাসেবক হওয়ার মূল প্রেরণা ও বার্তা' : 'Motivation Message & Message Details'}
+                  </h5>
+                  <div className="bg-[#1F5E2E]/5 border border-[#1F5E2E]/10 rounded-2xl p-5 relative">
+                    <span className="absolute right-5 top-4 text-[#1F5E2E]/15 font-serif text-6xl leading-none select-none">“</span>
+                    <p className="text-gray-700 text-xs leading-relaxed font-sans font-medium whitespace-pre-wrap relative z-10">
+                      {selectedVolunteer.message || (isBangla ? 'কোনো বার্তা প্রদান করা হয়নি।' : 'No custom message was submitted.')}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <a
+                    href={`mailto:${selectedVolunteer.email}`}
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow"
+                  >
+                    <Mail size={13} />
+                    <span>{isBangla ? 'ইমেল পাঠান' : 'Send Email'}</span>
+                  </a>
+                  <a
+                    href={`tel:${selectedVolunteer.phone}`}
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-100 text-[#1F5E2E] border border-gray-200 py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                  >
+                    <Phone size={13} />
+                    <span>{isBangla ? 'কল করুন' : 'Call Mobile'}</span>
+                  </a>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedVolunteer(null)}
+                  className="w-full sm:w-auto py-2 px-5 border border-gray-200 hover:bg-gray-100 text-gray-700 bg-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                >
+                  {isBangla ? 'বন্ধ করুন' : 'Close Details'}
                 </button>
               </div>
             </motion.div>

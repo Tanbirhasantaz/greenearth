@@ -352,11 +352,11 @@ export default function About({ isBangla, settings }: AboutProps) {
             </button>
 
             {/* Profile Image */}
-            <div className="w-full md:w-2/5 aspect-square md:aspect-auto md:min-h-full bg-gray-100 relative shrink-0">
+            <div className="w-full md:w-2/5 aspect-square md:aspect-auto md:min-h-full bg-gray-100 relative shrink-0 flex items-center justify-center">
               <img
                 src={selectedMember.image}
                 alt={isBangla ? (selectedMember.nameBn || selectedMember.name) : selectedMember.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain md:object-cover"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-[#1F5E2E]/10" />

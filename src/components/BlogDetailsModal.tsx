@@ -6,20 +6,22 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Calendar, User, Clock, Share2, Facebook, Twitter, MessageSquare, ArrowLeft } from 'lucide-react';
-import { BlogPost } from '../types';
+import { BlogPost, GalleryItem } from '../types';
 
 interface BlogDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   post: BlogPost | null;
   isBangla: boolean;
+  onImageClick?: (items: GalleryItem[], index: number) => void;
 }
 
 export default function BlogDetailsModal({
   isOpen,
   onClose,
   post,
-  isBangla
+  isBangla,
+  onImageClick
 }: BlogDetailsModalProps) {
   if (!post) return null;
 
@@ -87,14 +89,44 @@ export default function BlogDetailsModal({
               </h2>
 
               {/* Featured Image */}
-              <div className="relative aspect-video rounded-2xl overflow-hidden shadow-md border border-gray-200 mb-6 bg-gray-100 flex items-center justify-center">
+              <div
+                onClick={() => {
+                  if (onImageClick && post) {
+                    const items: GalleryItem[] = [{
+                      id: `blog-img-${post.id}`,
+                      title: post.title,
+                      titleBn: post.titleBn,
+                      category: 'campaign',
+                      categoryLabel: post.category,
+                      categoryLabelBn: post.categoryBn,
+                      image: post.image,
+                      date: isBangla ? post.dateBn : post.date
+                    }];
+                    onImageClick(items, 0);
+                  }
+                }}
+                className="relative aspect-video rounded-2xl overflow-hidden shadow-md border border-gray-200 mb-6 bg-gray-900 flex items-center justify-center cursor-zoom-in group"
+              >
+                {/* Blurred Ambient Cover Background */}
+                <img
+                  src={post.image}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover filter blur-md scale-110 opacity-30 select-none pointer-events-none"
+                  referrerPolicy="no-referrer"
+                />
                 <img
                   src={post.image}
                   alt={isBangla ? post.titleBn : post.title}
-                  className="max-w-full max-h-full object-contain"
+                  className="relative z-10 max-w-full max-h-full object-contain transition-all duration-300 group-hover:scale-[1.02]"
                   referrerPolicy="no-referrer"
                   id="blog-modal-main-img"
                 />
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center z-20">
+                  <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+                    <span>🔍</span>
+                    <span>{isBangla ? 'বড় করে দেখুন' : 'Click to Zoom / View Large'}</span>
+                  </span>
+                </div>
               </div>
 
               {/* Content text */}

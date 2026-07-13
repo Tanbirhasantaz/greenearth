@@ -484,15 +484,22 @@ export default function Home({
                 className="bg-white rounded-2xl md:rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col h-full max-w-md mx-auto w-full md:max-w-none"
               >
                 {/* Image */}
-                <div className="relative aspect-video overflow-hidden">
+                <div className="relative aspect-video overflow-hidden bg-gray-900 flex items-center justify-center">
+                  {/* Blurred Ambient Cover Background */}
+                  <img
+                    src={project.image}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover filter blur-md scale-110 opacity-30 select-none"
+                    referrerPolicy="no-referrer"
+                  />
                   <img
                     src={project.image}
                     alt={isBangla ? project.titleBn : project.title}
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-500"
+                    className="relative z-10 max-w-full max-h-full object-contain transform group-hover:scale-105 transition-all duration-500"
                     referrerPolicy="no-referrer"
                   />
                   {/* Category overlay badge */}
-                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-[#1F5E2E] text-[10px] font-mono font-extrabold px-3 py-1 rounded-full uppercase shadow">
+                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-[#1F5E2E] text-[10px] font-mono font-extrabold px-3 py-1 rounded-full uppercase shadow z-20">
                     {isBangla ? project.categoryLabelBn : project.categoryLabel}
                   </span>
                 </div>
@@ -661,14 +668,21 @@ export default function Home({
                 className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col h-full group cursor-pointer"
                 onClick={() => onBlogClick(post)}
               >
-                <div className="relative aspect-video overflow-hidden">
+                <div className="relative aspect-video overflow-hidden bg-gray-900 flex items-center justify-center">
+                  {/* Blurred Ambient Cover Background */}
+                  <img
+                    src={post.image}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover filter blur-md scale-110 opacity-30 select-none"
+                    referrerPolicy="no-referrer"
+                  />
                   <img
                     src={post.image}
                     alt={isBangla ? post.titleBn : post.title}
-                    className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-300"
+                    className="relative z-10 max-w-full max-h-full object-contain transform group-hover:scale-103 transition-transform duration-300"
                     referrerPolicy="no-referrer"
                   />
-                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#1F5E2E]">
+                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#1F5E2E] z-20">
                     {isBangla ? post.categoryBn : post.category}
                   </span>
                 </div>

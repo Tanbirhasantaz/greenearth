@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, MapPin, Award, CheckCircle, Clock, Heart, ArrowRight } from 'lucide-react';
-import { Project } from '../types';
+import { Project, GalleryItem } from '../types';
 
 interface ProjectDetailsModalProps {
   isOpen: boolean;
@@ -14,6 +14,7 @@ interface ProjectDetailsModalProps {
   project: Project | null;
   isBangla: boolean;
   onSupportClick: () => void;
+  onImageClick?: (items: GalleryItem[], index: number) => void;
 }
 
 export default function ProjectDetailsModal({
@@ -21,7 +22,8 @@ export default function ProjectDetailsModal({
   onClose,
   project,
   isBangla,
-  onSupportClick
+  onSupportClick,
+  onImageClick
 }: ProjectDetailsModalProps) {
   const [activeImage, setActiveImage] = useState<string>('');
 
@@ -88,14 +90,46 @@ export default function ProjectDetailsModal({
             <div className="p-6 md:p-8 flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-visible">
               {/* Left Column: Image Gallery */}
               <div className="flex flex-col gap-4">
-                <div className="relative aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-gray-100 flex items-center justify-center">
+                <div
+                  onClick={() => {
+                    if (onImageClick && project) {
+                      const galleryList = project.gallery && project.gallery.length > 0 ? project.gallery : [project.image];
+                      const activeIdx = galleryList.indexOf(activeImage || project.image);
+                      const items: GalleryItem[] = galleryList.map((img, idx) => ({
+                        id: `proj-img-${idx}`,
+                        title: project.title,
+                        titleBn: project.titleBn,
+                        category: 'campaign',
+                        categoryLabel: project.categoryLabel,
+                        categoryLabelBn: project.categoryLabelBn,
+                        image: img,
+                        date: isBangla ? 'প্রকল্পের ছবি' : 'Project Gallery'
+                      }));
+                      onImageClick(items, activeIdx !== -1 ? activeIdx : 0);
+                    }
+                  }}
+                  className="relative aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-gray-900 flex items-center justify-center cursor-zoom-in group"
+                >
+                  {/* Blurred Ambient Cover Background */}
+                  <img
+                    src={activeImage || project.image}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover filter blur-md scale-110 opacity-30 select-none pointer-events-none"
+                    referrerPolicy="no-referrer"
+                  />
                   <img
                     src={activeImage || project.image}
                     alt={isBangla ? project.titleBn : project.title}
-                    className="max-w-full max-h-full object-contain transition-all duration-300"
+                    className="relative z-10 max-w-full max-h-full object-contain transition-all duration-300 group-hover:scale-[1.02]"
                     referrerPolicy="no-referrer"
                     id="proj-modal-main-img"
                   />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center z-20">
+                    <span className="bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+                      <span>🔍</span>
+                      <span>{isBangla ? 'বড় করে দেখুন' : 'Click to Zoom / View Large'}</span>
+                    </span>
+                  </div>
                 </div>
                 {/* Thumbnails */}
                 {project.gallery && project.gallery.length > 1 && (

@@ -25,6 +25,8 @@ export default function LightboxModal({
   onIndexChange,
   isBangla
 }: LightboxModalProps) {
+  const [isZoomed, setIsZoomed] = React.useState(false);
+
   // Key bindings
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,6 +38,10 @@ export default function LightboxModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, activeIndex, items]);
+
+  useEffect(() => {
+    setIsZoomed(false);
+  }, [activeIndex]);
 
   if (!isOpen || items.length === 0 || activeIndex < 0 || activeIndex >= items.length) {
     return null;
@@ -88,15 +94,21 @@ export default function LightboxModal({
           <motion.div
             key={currentItem.id}
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 1, scale: isZoomed ? 1.25 : 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-            className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className={`relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 pointer-events-auto transition-shadow duration-300 ${
+              isZoomed ? 'cursor-zoom-out shadow-black/80 ring-2 ring-[#6BBF3A]/40' : 'cursor-zoom-in hover:shadow-black/60'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsZoomed(!isZoomed);
+            }}
           >
             <img
               src={currentItem.image}
               alt={isBangla ? currentItem.titleBn : currentItem.title}
-              className="max-w-full max-h-[55vh] sm:max-h-[70vh] object-contain rounded-2xl"
+              className="max-w-full max-h-[55vh] sm:max-h-[70vh] object-contain rounded-2xl select-none"
               referrerPolicy="no-referrer"
               id="lightbox-main-img"
             />

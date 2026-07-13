@@ -311,6 +311,10 @@ export default function App() {
         project={activeProject}
         isBangla={isBangla}
         onSupportClick={handleDonateTrigger}
+        onImageClick={(items, idx) => {
+          setLightboxItems(items);
+          setLightboxIndex(idx);
+        }}
       />
 
       {/* Blog reading modal */}
@@ -319,6 +323,10 @@ export default function App() {
         onClose={() => setActiveBlog(null)}
         post={activeBlog}
         isBangla={isBangla}
+        onImageClick={(items, idx) => {
+          setLightboxItems(items);
+          setLightboxIndex(idx);
+        }}
       />
 
       {/* Photo lightbox popup */}

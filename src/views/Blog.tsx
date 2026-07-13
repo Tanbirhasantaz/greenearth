@@ -140,14 +140,21 @@ export default function Blog({ isBangla, onBlogClick }: BlogProps) {
                   className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200/50 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-200 transition-all flex flex-col h-full group cursor-pointer text-left max-w-md mx-auto w-full sm:max-w-none"
                 >
                   {/* Photo thumbnail */}
-                  <div className="relative aspect-video overflow-hidden">
+                  <div className="relative aspect-video overflow-hidden bg-gray-900 flex items-center justify-center">
+                    {/* Blurred Ambient Cover Background */}
+                    <img
+                      src={post.image}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover filter blur-md scale-110 opacity-30 select-none"
+                      referrerPolicy="no-referrer"
+                    />
                     <img
                       src={post.image}
                       alt={isBangla ? post.titleBn : post.title}
-                      className="w-full h-full object-cover transform group-hover:scale-103 transition-transform duration-300"
+                      className="relative z-10 max-w-full max-h-full object-contain transform group-hover:scale-103 transition-transform duration-300"
                       referrerPolicy="no-referrer"
                     />
-                    <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#1F5E2E] shadow-sm">
+                    <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#1F5E2E] shadow-sm z-20">
                       {isBangla ? post.categoryBn : post.category}
                     </span>
                   </div>
