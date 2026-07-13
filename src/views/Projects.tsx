@@ -17,7 +17,17 @@ type ProjectCategoryFilter = string;
 
 export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
+  const [projectsList, setProjectsList] = useState<Project[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_projects');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return PROJECTS;
+  });
 
   // Dynamic fetch on mount
   useEffect(() => {

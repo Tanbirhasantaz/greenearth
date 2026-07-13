@@ -75,16 +75,16 @@ export default function LightboxModal({
         {items.length > 1 && (
           <button
             onClick={handlePrev}
-            className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all transform -translate-y-1/2 top-1/2 hover:scale-110 active:scale-95 cursor-pointer"
+            className="absolute left-2 sm:left-4 z-10 p-2 sm:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all transform -translate-y-1/2 top-1/2 hover:scale-110 active:scale-95 cursor-pointer"
             aria-label="Previous Image"
             id="lightbox-prev-btn"
           >
-            <ChevronLeft size={28} />
+            <ChevronLeft className="w-5 h-5 sm:w-7 sm:h-7" />
           </button>
         )}
 
         {/* Active Image and details */}
-        <div className="relative max-w-5xl max-h-[80vh] px-12 flex flex-col justify-center items-center pointer-events-none">
+        <div className="relative max-w-5xl max-h-[80vh] px-2 sm:px-12 flex flex-col justify-center items-center pointer-events-none">
           <motion.div
             key={currentItem.id}
             initial={{ opacity: 0, scale: 0.95 }}
@@ -96,24 +96,24 @@ export default function LightboxModal({
             <img
               src={currentItem.image}
               alt={isBangla ? currentItem.titleBn : currentItem.title}
-              className="max-w-full max-h-[70vh] object-contain rounded-2xl"
+              className="max-w-full max-h-[55vh] sm:max-h-[70vh] object-contain rounded-2xl"
               referrerPolicy="no-referrer"
               id="lightbox-main-img"
             />
           </motion.div>
 
           {/* Label Card */}
-          <div className="mt-4 text-center pointer-events-auto bg-black/50 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/5 max-w-lg">
-            <span className="inline-block bg-[#6BBF3A] text-white text-[10px] uppercase font-mono font-black tracking-widest px-2.5 py-1 rounded-full mb-1">
+          <div className="mt-4 text-center pointer-events-auto bg-black/60 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-3 rounded-2xl border border-white/5 max-w-sm sm:max-w-lg mx-4">
+            <span className="inline-block bg-[#6BBF3A] text-white text-[9px] sm:text-[10px] uppercase font-mono font-black tracking-widest px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full mb-1">
               {isBangla ? currentItem.categoryLabelBn : currentItem.categoryLabel}
             </span>
-            <h4 className="text-white text-base font-sans font-bold leading-tight" id="lightbox-title">
+            <h4 className="text-white text-xs sm:text-base font-sans font-bold leading-tight" id="lightbox-title">
               {isBangla ? currentItem.titleBn : currentItem.title}
             </h4>
-            <div className="flex justify-center items-center gap-1.5 text-xs text-gray-400 mt-1 font-mono">
-              <Calendar size={12} />
+            <div className="flex justify-center items-center gap-1.5 text-[10px] sm:text-xs text-gray-400 mt-1 font-mono">
+              <Calendar size={10} className="sm:size-3" />
               <span>{currentItem.date}</span>
-              <span className="mx-2">•</span>
+              <span className="mx-1 sm:mx-2">•</span>
               <span>{activeIndex + 1} / {items.length}</span>
             </div>
           </div>
@@ -123,11 +123,11 @@ export default function LightboxModal({
         {items.length > 1 && (
           <button
             onClick={handleNext}
-            className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all transform -translate-y-1/2 top-1/2 hover:scale-110 active:scale-95 cursor-pointer"
+            className="absolute right-2 sm:right-4 z-10 p-2 sm:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all transform -translate-y-1/2 top-1/2 hover:scale-110 active:scale-95 cursor-pointer"
             aria-label="Next Image"
             id="lightbox-next-btn"
           >
-            <ChevronRight size={28} />
+            <ChevronRight className="w-5 h-5 sm:w-7 sm:h-7" />
           </button>
         )}
       </div>

@@ -88,11 +88,11 @@ export default function ProjectDetailsModal({
             <div className="p-6 md:p-8 flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-visible">
               {/* Left Column: Image Gallery */}
               <div className="flex flex-col gap-4">
-                <div className="relative aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="relative aspect-video md:aspect-[4/3] rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-gray-100 flex items-center justify-center">
                   <img
                     src={activeImage || project.image}
                     alt={isBangla ? project.titleBn : project.title}
-                    className="w-full h-full object-cover transition-all duration-300"
+                    className="max-w-full max-h-full object-contain transition-all duration-300"
                     referrerPolicy="no-referrer"
                     id="proj-modal-main-img"
                   />
@@ -104,14 +104,14 @@ export default function ProjectDetailsModal({
                       <button
                         key={index}
                         onClick={() => setActiveImage(imgUrl)}
-                        className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                        className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-gray-100 flex items-center justify-center ${
                           activeImage === imgUrl ? 'border-[#6BBF3A] scale-95 shadow' : 'border-transparent opacity-75 hover:opacity-100'
                         }`}
                       >
                         <img
                           src={imgUrl}
                           alt="Project thumbnail"
-                          className="w-full h-full object-cover"
+                          className="max-w-full max-h-full object-contain"
                           referrerPolicy="no-referrer"
                         />
                       </button>

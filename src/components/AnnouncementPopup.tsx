@@ -73,14 +73,14 @@ export default function AnnouncementPopup({ settings, isBangla }: AnnouncementPo
 
           {/* Visual Banner (if available) */}
           {imageUrl ? (
-            <div className="w-full h-48 sm:h-56 relative overflow-hidden bg-emerald-950">
+            <div className="w-full h-48 sm:h-56 relative overflow-hidden bg-emerald-950/10 flex items-center justify-center">
               <img
                 src={imageUrl}
                 alt={title}
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-full object-contain"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4">
                 <span className="bg-[#6BBF3A] text-white text-[10px] font-mono font-black uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
                   <Bell size={10} className="animate-bounce" />
                   <span>{isBangla ? 'বিশেষ ঘোষণা' : 'Special Notice'}</span>

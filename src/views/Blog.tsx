@@ -16,7 +16,17 @@ interface BlogProps {
 export default function Blog({ isBangla, onBlogClick }: BlogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [blogsList, setBlogsList] = useState<BlogPost[]>(BLOG_POSTS);
+  const [blogsList, setBlogsList] = useState<BlogPost[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_blogs');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return BLOG_POSTS;
+  });
 
   // Dynamic fetch on mount
   useEffect(() => {

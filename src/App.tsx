@@ -50,7 +50,17 @@ export default function App() {
     return 'home';
   });
   const [isBangla, setIsBangla] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_settings');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return null;
+  });
 
   // Sync hash routing on window backward/forward navigations
   useEffect(() => {

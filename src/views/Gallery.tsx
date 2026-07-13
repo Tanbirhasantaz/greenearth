@@ -15,7 +15,17 @@ interface GalleryProps {
 
 export default function Gallery({ isBangla, onImageClick }: GalleryProps) {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [galleryList, setGalleryList] = useState<GalleryItem[]>(GALLERY_ITEMS);
+  const [galleryList, setGalleryList] = useState<GalleryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_gallery');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return GALLERY_ITEMS;
+  });
 
   // Dynamic fetch on mount
   useEffect(() => {

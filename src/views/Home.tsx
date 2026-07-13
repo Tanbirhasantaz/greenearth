@@ -76,9 +76,39 @@ export default function Home({
   settings
 }: HomeProps) {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
-  const [blogsList, setBlogsList] = useState<BlogPost[]>(BLOG_POSTS);
-  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>(TESTIMONIALS);
+  const [projectsList, setProjectsList] = useState<Project[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_projects');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return PROJECTS;
+  });
+  const [blogsList, setBlogsList] = useState<BlogPost[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_blogs');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return BLOG_POSTS;
+  });
+  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_testimonials');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return TESTIMONIALS;
+  });
 
   const defaultFocusAreas = [
     {
@@ -119,7 +149,17 @@ export default function Home({
     }
   ];
 
-  const [focusAreasList, setFocusAreasList] = useState<any[]>(defaultFocusAreas);
+  const [focusAreasList, setFocusAreasList] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_focusareas');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return defaultFocusAreas;
+  });
 
   // Dynamic fetch on mount
   useEffect(() => {

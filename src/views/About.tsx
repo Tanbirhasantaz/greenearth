@@ -17,9 +17,39 @@ interface AboutProps {
 }
 
 export default function About({ isBangla, settings }: AboutProps) {
-  const [teamList, setTeamList] = React.useState<any[]>(TEAM_MEMBERS);
-  const [milestonesList, setMilestonesList] = React.useState<any[]>(MILESTONES);
-  const [coreValuesList, setCoreValuesList] = React.useState<any[]>(CORE_VALUES);
+  const [teamList, setTeamList] = React.useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_team');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return TEAM_MEMBERS;
+  });
+  const [milestonesList, setMilestonesList] = React.useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_milestones');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return MILESTONES;
+  });
+  const [coreValuesList, setCoreValuesList] = React.useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ge_db_corevalues');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return CORE_VALUES;
+  });
   const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
 
   React.useEffect(() => {

@@ -87,11 +87,11 @@ export default function BlogDetailsModal({
               </h2>
 
               {/* Featured Image */}
-              <div className="relative aspect-video rounded-2xl overflow-hidden shadow-md border border-gray-200 mb-6">
+              <div className="relative aspect-video rounded-2xl overflow-hidden shadow-md border border-gray-200 mb-6 bg-gray-100 flex items-center justify-center">
                 <img
                   src={post.image}
                   alt={isBangla ? post.titleBn : post.title}
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                   referrerPolicy="no-referrer"
                   id="blog-modal-main-img"
                 />

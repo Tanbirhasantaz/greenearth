@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, LayoutDashboard, Trees, BookOpen, Users, Heart, Image as ImageIcon, 
   Mail, Settings, Plus, Edit, Trash2, LogOut, Search, Check, X, Phone, MapPin, 
-  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Flag
+  Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Flag, Megaphone
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
 
@@ -144,7 +144,7 @@ interface OrgSettings {
   aboutTeamTitleBn?: string;
 }
 
-type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones';
+type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones' | 'popup';
 
 interface AdminProps {
   isBangla?: boolean;
@@ -1606,6 +1606,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               { tab: 'testimonials', label: 'Manage Testimonials', icon: <MessageSquare size={18} /> },
               { tab: 'subscribers', label: 'Subscribers', icon: <Mail size={18} />, count: subscribers.length },
               { tab: 'contacts', label: 'Contact Inquiries', icon: <FileText size={18} />, count: contacts.length },
+              { tab: 'popup', label: 'Announcement Popup', icon: <Megaphone size={18} /> },
               { tab: 'settings', label: 'System Settings', icon: <Settings size={18} /> }
             ].map((item) => (
               <button
@@ -1679,6 +1680,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               <option value="testimonials">Testimonials</option>
               <option value="subscribers">Subscribers</option>
               <option value="contacts">Contact submissions</option>
+              <option value="popup">Announcement Popup</option>
               <option value="settings">Settings</option>
             </select>
 
@@ -3858,130 +3860,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </div>
                   </div>
 
-                  {/* SECTION 8: EVENT POP-UP ANNOUNCEMENT & NOTICE */}
-                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-200/50 space-y-4">
-                    <h4 className="text-sm font-black text-[#1F5E2E] uppercase tracking-wider flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[#6BBF3A]" />
-                        {isBangla ? '৮. ওয়েবসাইট পপ-আপ নোটিশ ও আসন্ন ইভেন্ট ঘোষণা' : '8. Web Pop-Up Announcement & Notice'}
-                      </span>
-                      
-                      {/* Enable/Disable Toggle */}
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <span className="text-[10px] font-mono font-black tracking-wide text-gray-500 uppercase">
-                          {popupEnabled ? (isBangla ? 'সক্রিয়' : 'ACTIVE') : (isBangla ? 'নিষ্ক্রিয়' : 'DISABLED')}
-                        </span>
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            checked={popupEnabled}
-                            onChange={(e) => setPopupEnabled(e.target.checked)}
-                            className="sr-only"
-                          />
-                          <div className={`block w-9 h-5 rounded-full transition-colors ${popupEnabled ? 'bg-[#6BBF3A]' : 'bg-gray-300'}`}></div>
-                          <div className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${popupEnabled ? 'transform translate-x-4' : ''}`}></div>
-                        </div>
-                      </label>
-                    </h4>
 
-                    <p className="text-xs text-gray-500 font-sans leading-relaxed">
-                      {isBangla 
-                        ? 'এটি সক্রিয় করলে দর্শকরা ওয়েবসাইটে প্রবেশ করা মাত্র একটি সুন্দর পপ-আপ মেসেজে যেকোনো জরুরি ঘোষণা, আসন্ন ইভেন্ট বা পরিবর্তন দেখতে পাবেন। একই ব্রাউজারে একবার বন্ধ (Dismiss) করলে পরবর্তীতে বিরক্তি এড়াতে এটি পুনরায় স্বয়ংক্রিয়ভাবে দেখাবে না।'
-                        : 'Enabling this option triggers a beautiful alert pop-up window to any visitor entering your website. Useful for announcing beach cleanups, solar projects, or urgent notices. The popup caches close states so dismissed users are not repeatedly disrupted.'}
-                    </p>
-
-                    <div className="space-y-4 pt-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Title (EN)</label>
-                          <input
-                            type="text"
-                            value={popupTitle}
-                            onChange={(e) => setPopupTitle(e.target.value)}
-                            placeholder="e.g. Satkhira Mangrove Planting Drive"
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Title (BN)</label>
-                          <input
-                            type="text"
-                            value={popupTitleBn}
-                            onChange={(e) => setPopupTitleBn(e.target.value)}
-                            placeholder="যেমন: সাতক্ষীরায় ম্যানগ্রোভ বনায়ন কর্মসূচি"
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Message (EN)</label>
-                          <textarea
-                            rows={3}
-                            value={popupMessage}
-                            onChange={(e) => setPopupMessage(e.target.value)}
-                            placeholder="Describe the notice details, date, venue, and participation guidelines..."
-                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none font-medium"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Message (BN)</label>
-                          <textarea
-                            rows={3}
-                            value={popupMessageBn}
-                            onChange={(e) => setPopupMessageBn(e.target.value)}
-                            placeholder="নোটিশের বিস্তারিত তথ্য, তারিখ, সময়, কীভাবে অংশ নেবে ইত্যাদি এখানে লিখুন..."
-                            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none font-medium"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Action Link URL (Optional)</label>
-                          <input
-                            type="text"
-                            value={popupLinkUrl}
-                            onChange={(e) => setPopupLinkUrl(e.target.value)}
-                            placeholder="e.g. #/involved or https://forms.gle/..."
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Text (EN)</label>
-                          <input
-                            type="text"
-                            value={popupLinkText}
-                            onChange={(e) => setPopupLinkText(e.target.value)}
-                            placeholder="e.g. Join as Volunteer"
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Text (BN)</label>
-                          <input
-                            type="text"
-                            value={popupLinkTextBn}
-                            onChange={(e) => setPopupLinkTextBn(e.target.value)}
-                            placeholder="যেমন: স্বেচ্ছাসেবক হোন"
-                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <ImageUploadInput
-                          label={isBangla ? "ঘোষণার ব্যানার ইমেজ (ঐচ্ছিক)" : "Announcement Banner Image (Optional)"}
-                          value={popupImageUrl}
-                          onChange={setPopupImageUrl}
-                          placeholder="https://images.unsplash.com/... or upload"
-                          filenamePrefix="notice"
-                          isBangla={isBangla}
-                        />
-                      </div>
-                    </div>
-                  </div>
 
 
                   <div className="flex justify-end pt-4 border-t border-gray-100">
@@ -4736,6 +4615,148 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* --- MANAGE ANNOUNCEMENT POPUP TAB --- */}
+            {activeTab === 'popup' && (
+              <div className="max-w-4xl mx-auto" id="popup-tab">
+                <form onSubmit={handleSettingsSave} className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-8 text-left">
+                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
+                    <h3 className="text-xl font-black text-[#1F5E2E] flex items-center gap-2">
+                      <Megaphone size={24} className="text-[#6BBF3A]" />
+                      <span>{isBangla ? 'ওয়েবসাইট ঘোষণা পপ-আপ' : 'Web Announcement Pop-Up'}</span>
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider">
+                        {isBangla ? 'সক্রিয়তা নিয়ন্ত্রণ' : 'Visibility Control'}
+                      </span>
+                      {/* Enable/Disable Toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <span className="text-[10px] font-mono font-black tracking-wide text-gray-500 uppercase">
+                          {popupEnabled ? (isBangla ? 'সক্রিয়' : 'ACTIVE') : (isBangla ? 'নিষ্ক্রিয়' : 'DISABLED')}
+                        </span>
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={popupEnabled}
+                            onChange={(e) => setPopupEnabled(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div className={`block w-9 h-5 rounded-full transition-colors ${popupEnabled ? 'bg-[#6BBF3A]' : 'bg-gray-300'}`}></div>
+                          <div className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${popupEnabled ? 'transform translate-x-4' : ''}`}></div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-500 font-sans leading-relaxed">
+                    {isBangla 
+                      ? 'এটি সক্রিয় করলে দর্শকরা ওয়েবসাইটে প্রবেশ করা মাত্র একটি সুন্দর পপ-আপ মেসেজে যেকোনো জরুরি ঘোষণা, আসন্ন ইভেন্ট বা পরিবর্তন দেখতে পাবেন। একই ব্রাউজারে একবার বন্ধ (Dismiss) করলে পরবর্তীতে বিরক্তি এড়াতে এটি পুনরায় স্বয়ংক্রিয়ভাবে দেখাবে না।'
+                      : 'Enabling this option triggers a beautiful alert pop-up window to any visitor entering your website. Useful for announcing beach cleanups, solar projects, or urgent notices. The popup caches close states so dismissed users are not repeatedly disrupted.'}
+                  </p>
+
+                  <div className="space-y-6 pt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Title (EN)</label>
+                        <input
+                          type="text"
+                          value={popupTitle}
+                          onChange={(e) => setPopupTitle(e.target.value)}
+                          placeholder="e.g. Satkhira Mangrove Planting Drive"
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Title (BN)</label>
+                        <input
+                          type="text"
+                          value={popupTitleBn}
+                          onChange={(e) => setPopupTitleBn(e.target.value)}
+                          placeholder="যেমন: সাতক্ষীরায় ম্যানগ্রোভ বনায়ন কর্মসূচি"
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Message (EN)</label>
+                        <textarea
+                          rows={4}
+                          value={popupMessage}
+                          onChange={(e) => setPopupMessage(e.target.value)}
+                          placeholder="Describe the notice details, date, venue, and participation guidelines..."
+                          className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none font-medium"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Announcement Message (BN)</label>
+                        <textarea
+                          rows={4}
+                          value={popupMessageBn}
+                          onChange={(e) => setPopupMessageBn(e.target.value)}
+                          placeholder="নোটিশের বিস্তারিত তথ্য, তারিখ, সময়, কীভাবে অংশ নেবে ইত্যাদি এখানে লিখুন..."
+                          className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 resize-none font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Action Link URL (Optional)</label>
+                        <input
+                          type="text"
+                          value={popupLinkUrl}
+                          onChange={(e) => setPopupLinkUrl(e.target.value)}
+                          placeholder="e.g. #/involved or https://forms.gle/..."
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800 font-mono"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Text (EN)</label>
+                        <input
+                          type="text"
+                          value={popupLinkText}
+                          onChange={(e) => setPopupLinkText(e.target.value)}
+                          placeholder="e.g. Join as Volunteer"
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Text (BN)</label>
+                        <input
+                          type="text"
+                          value={popupLinkTextBn}
+                          onChange={(e) => setPopupLinkTextBn(e.target.value)}
+                          placeholder="যেমন: স্বেচ্ছাসেবক হোন"
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs text-gray-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <ImageUploadInput
+                        label={isBangla ? "ঘোষণার ব্যানার ইমেজ (ঐচ্ছিক)" : "Announcement Banner Image (Optional)"}
+                        value={popupImageUrl}
+                        onChange={setPopupImageUrl}
+                        placeholder="https://images.unsplash.com/... or upload"
+                        filenamePrefix="notice"
+                        isBangla={isBangla}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-6 border-t border-gray-100">
+                    <button
+                      type="submit"
+                      className="py-3.5 px-8 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-full text-xs font-black cursor-pointer shadow hover:shadow-lg transition-all uppercase tracking-wider"
+                    >
+                      {isBangla ? 'ঘোষণা সংরক্ষণ ও প্রকাশ করুন' : 'Save & Publish Announcement'}
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
             </AdminTabErrorBoundary>
