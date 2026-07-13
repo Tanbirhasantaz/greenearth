@@ -306,6 +306,7 @@ export default function App() {
 
       {/* Project detailed metadata modal */}
       <ProjectDetailsModal
+        key={activeProject?.id || 'empty'}
         isOpen={activeProject !== null}
         onClose={() => setActiveProject(null)}
         project={activeProject}

@@ -26,12 +26,14 @@ export default function ProjectDetailsModal({
   onImageClick
 }: ProjectDetailsModalProps) {
   const [activeImage, setActiveImage] = useState<string>('');
+  const [prevProjectId, setPrevProjectId] = useState<string>('');
 
   if (!project) return null;
 
-  // Initialize active image
-  if (!activeImage && project.image) {
-    setActiveImage(project.image);
+  // Sync active image when project changes
+  if (project.id !== prevProjectId) {
+    setPrevProjectId(project.id);
+    setActiveImage(project.image || '');
   }
 
   const handleSupport = () => {
