@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Award, Heart, CheckCircle, Info, Lock, ArrowRight, User, Mail, Phone, Calendar, MapPin, Clipboard, Briefcase, Clock, Droplet } from 'lucide-react';
+import { Award, Heart, CheckCircle, Info, Lock, ArrowRight, User, Mail, Phone, Calendar, MapPin, Clipboard, Briefcase, Clock, Droplet, Users } from 'lucide-react';
 
 interface InvolvedProps {
   isBangla: boolean;
@@ -33,6 +33,8 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
   const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad' | 'card' | 'bank'>('bkash');
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const [transactionId, setTransactionId] = useState('');
+  const [donorName, setDonorName] = useState('');
+  const [donorEmail, setDonorEmail] = useState('');
   const [donationError, setDonationError] = useState('');
 
   // Handle volunteer submission
@@ -76,6 +78,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       phone: volPhone,
       interest: volInterest,
       membershipStatus: volMembership,
+      membership: volMembership,
       profession: volProfession,
       location: volLocation,
       bloodGroup: volBloodGroup,
@@ -118,9 +121,34 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
     e.preventDefault();
     setDonationError('');
 
+    if (!donorName.trim()) {
+      setDonationError(isBangla ? 'অনুগ্রহ করে আপনার নাম দিন' : 'Please enter your name');
+      return;
+    }
+
+    if (!donorEmail.trim()) {
+      setDonationError(isBangla ? 'অনুগ্রহ করে আপনার ইমেইল দিন' : 'Please enter your email');
+      return;
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(donorEmail.trim())) {
+        setDonationError(isBangla ? 'একটি সঠিক ইমেইল ঠিকানা দিন' : 'Please enter a valid email address');
+        return;
+      }
+    }
+
     const finalAmount = selectedTier === 'custom' ? Number(customAmount) : selectedTier;
     if (!finalAmount || finalAmount <= 0) {
       setDonationError(isBangla ? 'অনুগ্রহ করে সঠিক অনুদানের পরিমাণ দিন' : 'Please specify a valid donation amount');
+      return;
+    }
+
+    if (paymentMethod === 'card' || paymentMethod === 'bank') {
+      setDonationError(
+        isBangla 
+          ? 'কার্ড এবং ব্যাংক পেমেন্ট সাময়িকভাবে বন্ধ রয়েছে। অনুগ্রহ করে বিকাশ অথবা নগদ ব্যবহার করুন।' 
+          : 'Card and Bank payments are temporarily offline. Please use bKash or Nagad.'
+      );
       return;
     }
 
@@ -129,11 +157,16 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       setShowPaymentInstructions(true);
     } else {
       // Simulate direct bank/card success and POST immediately
+      const txnId = `TXN-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const payload = {
+        name: donorName,
+        email: donorEmail,
         amount: finalAmount,
         method: paymentMethod,
-        transactionId: `TXN-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-        status: 'approved',
+        paymentMethod: paymentMethod,
+        transactionId: txnId,
+        transId: txnId,
+        status: 'verified',
         date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
       };
 
@@ -143,11 +176,13 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         body: JSON.stringify(payload)
       })
         .then((res) => {
+          setDonorName('');
+          setDonorEmail('');
           onFormSuccess(
-            isBangla ? 'অনুদান সফল হয়েছে!' : 'Donation Received!',
+            isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
             isBangla
-              ? `আপনার অত্যন্ত উদার ৳${finalAmount.toLocaleString('bn-BD')} অনুদান সফলভাবে জমা হয়েছে। আপনার ইমেইলে একটি অফিসিয়াল মানি রিসিট পাঠানো হবে!`
-              : `Your generous donation of ৳${finalAmount.toLocaleString('en-US')} has been successfully processed! An official tax-deductible receipt has been sent to your email.`
+              ? `ধন্যবাদ! আপনার ৳${finalAmount.toLocaleString('bn-BD')} অনুদানটি সফলভাবে জমা হয়েছে। আমাদের অ্যাডমিন টিম ট্রানজেকশনটি যাচাই করে অনুমোদন করার পর এটি আপডেট করা হবে।`
+              : `Thank you! Your donation of ৳${finalAmount.toLocaleString('en-US')} has been submitted successfully. Our admin team will review and approve the transaction shortly.`
           );
         })
         .catch((err) => {
@@ -167,9 +202,13 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
     const finalAmount = selectedTier === 'custom' ? Number(customAmount) : selectedTier;
 
     const payload = {
+      name: donorName,
+      email: donorEmail,
       amount: finalAmount,
       method: paymentMethod,
+      paymentMethod: paymentMethod,
       transactionId: transactionId,
+      transId: transactionId,
       status: 'pending',
       date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     };
@@ -182,12 +221,14 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       .then((res) => {
         setShowPaymentInstructions(false);
         setTransactionId('');
+        setDonorName('');
+        setDonorEmail('');
 
         onFormSuccess(
-          isBangla ? 'অনুদান ভেরিফিকেশন সফল!' : 'Donation Verified!',
+          isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
           isBangla
-            ? `৳${finalAmount.toLocaleString('bn-BD')} অনুদানটি সফলভাবে ভেরিফাই করা হয়েছে! গ্রিন আর্থের পরিবেশবান্ধব উদ্যোগে সহায়তা করার জন্য ধন্যবাদ।`
-            : `Thank you! Your donation of ৳${finalAmount.toLocaleString('en-US')} via ${paymentMethod.toUpperCase()} has been verified under Trans ID: ${transactionId}. Your support drives real change!`
+            ? `ধন্যবাদ! আপনার ৳${finalAmount.toLocaleString('bn-BD')} অনুদান ভেরিফিকেশন অনুরোধটি সফলভাবে সাবমিট করা হয়েছে। আমাদের অ্যাডমিন টিম ট্রানজেকশন আইডি (${transactionId}) যাচাই করে এটি অনুমোদন করবে।`
+            : `Thank you! Your donation verification request of ৳${finalAmount.toLocaleString('en-US')} under Trans ID: ${transactionId} has been submitted. Our admin team will verify and approve the transaction shortly.`
         );
       })
       .catch((err) => {
@@ -225,84 +266,83 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
 
       {/* MEMBERSHIP REGISTRATION SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" id="membership-section">
-        <div className="bg-white border border-[#1F5E2E]/10 rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden flex flex-col md:flex-row gap-8 items-center">
+        <div className="bg-white border border-[#1F5E2E]/10 rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden flex flex-col gap-8">
           {/* Subtle decorative background plant leaf pattern */}
           <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none text-[#1F5E2E]">
             <Award size={300} />
           </div>
           
-          <div className="flex-1 text-left space-y-4">
+          <div className="text-left space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#6BBF3A]/10 text-[#1F5E2E] text-xs font-mono font-bold uppercase tracking-wider">
               <Award size={14} className="text-[#6BBF3A]" />
-              <span>{isBangla ? 'অফিশিয়াল সদস্যপদ' : 'Official Membership'}</span>
+              <span>{isBangla ? 'অংশগ্রহণের ২টি সহজ মাধ্যম' : '2 Simple Ways to Join'}</span>
             </div>
             
             <h2 className="font-sans text-2xl sm:text-3xl font-black text-[#1F5E2E]">
-              {isBangla ? 'গ্রিন আর্থ-এর সদস্য হোন' : 'Become a Lifetime Green Earth Member'}
+              {isBangla ? 'গ্রিন আর্থ-এর আন্দোলনের সাথে যুক্ত হোন' : 'Join the Green Earth Movement'}
             </h2>
             
-            <p className="font-sans text-sm sm:text-base text-gray-600 leading-relaxed max-w-3xl">
+            <p className="font-sans text-sm sm:text-base text-gray-600 leading-relaxed max-w-4xl">
               {isBangla
-                ? 'পরিবেশ সংরক্ষণ ও জলবায়ু পরিবর্তন মোকাবিলায় আমাদের স্থায়ী নীতি নির্ধারণী দলের সঙ্গী হোন। গ্রিন আর্থ সদস্য হিসেবে আপনি অফিশিয়াল মেম্বারশিপ সার্টিফিকেট পাবেন, বার্ষিক সাধারণ সভায় সিদ্ধান্ত গ্রহণে সরাসরি ভূমিকা রাখবেন এবং আমাদের প্রকল্পসমূহে সরাসরি অবদান রাখবেন।'
-                : 'Join our formal membership program to play a key role in guiding our environmental initiatives. As a registered member, you will receive an official digital membership certificate, voting rights in our annual summit, and direct access to field planning operations.'
+                ? 'পরিবেশ সংরক্ষণ ও জলবায়ু পরিবর্তন মোকাবিলায় আমাদের সাথে যুক্ত হওয়া এখন আরও সহজ। আপনি যেকোনো একটি সুবিধাজনক উপায় বেছে নিয়ে আমাদের গ্রিন ফোর্সের সঙ্গী হতে পারেন:'
+                : 'Getting involved in environmental protection is now easier than ever. You can choose either of our two structured paths to join our dedicated Green Force:'
               }
             </p>
             
-            {/* Benefits Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
-                <span>
-                  {isBangla 
-                    ? 'অফিশিয়াল মেম্বারশিপ সার্টিফিকেট ও আইডি কার্ড' 
-                    : 'Official Member Certificate & ID Card'}
-                </span>
+            {/* The 2 Paths Comparison */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              {/* Path 1 Card */}
+              <div className="bg-[#6BBF3A]/5 border border-[#6BBF3A]/15 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[#1F5E2E] font-sans font-extrabold text-base">
+                    <Users size={18} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? '১. নিবন্ধিত ফিল্ড ভলান্টিয়ার' : '1. Registered Field Volunteer'}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {isBangla
+                      ? 'সম্পূর্ণ বিনামূল্যে মাঠ পর্যায়ের বিভিন্ন বৃক্ষরোপণ, নদী পরিচ্ছন্নতা, সোলার ইলেকট্রোলাইট প্যাক ও বিশুদ্ধ পানির ফিল্টার স্থাপনের কার্যক্রমে সরাসরি অংশ নিন।'
+                      : 'Join hands-on field operations: mangrove planting, solar microgrid installations, and clean water deployment. Completely free & flexible.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVolMembership('no_intent');
+                    const element = document.getElementById('volunteer-form-container');
+                    if (element) element.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full mt-2 bg-[#6BBF3A]/15 hover:bg-[#6BBF3A]/25 text-[#1F5E2E] font-sans font-bold text-xs py-2.5 px-4 rounded-xl text-center cursor-pointer transition-colors"
+                >
+                  {isBangla ? 'ভলান্টিয়ার হিসেবে আবেদন করুন' : 'Register as Volunteer'}
+                </button>
               </div>
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
-                <span>
-                  {isBangla 
-                    ? 'বার্ষিক সম্মেলন ও ইকো-ক্যাম্পিংয়ে সরাসরি অংশ নিন' 
-                    : 'Priority Access to Reforestation Camps & Summits'}
-                </span>
-              </div>
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
-                <span>
-                  {isBangla 
-                    ? 'গ্রিন আর্থ-এর নীতি নির্ধারণে ভোটাধিকার' 
-                    : 'Voting Rights & Org Decision Contributions'}
-                </span>
-              </div>
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle size={16} className="text-[#6BBF3A] shrink-0 mt-0.5" />
-                <span>
-                  {isBangla 
-                    ? 'মাসিক ও বার্ষিক পরিবেশ কার্যবিবরণী রিপোর্ট' 
-                    : 'Exclusive Quarterly Ecological Impact Briefings'}
-                </span>
+
+              {/* Path 2 Card */}
+              <div className="bg-[#1F5E2E]/5 border border-[#1F5E2E]/15 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[#1F5E2E] font-sans font-extrabold text-base">
+                    <Award size={18} className="text-[#1F5E2E]" />
+                    <span>{isBangla ? '২. অফিশিয়াল আজীবন সদস্য' : '2. Official Lifetime Member'}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {isBangla
+                      ? 'নীতি নির্ধারণী সিদ্ধান্ত গ্রহণে ভোটাধিকার, বার্ষিক সাধারণ সভায় অংশগ্রহণ এবং অফিশিয়াল ডিজিটাল মেম্বারশিপ আইডি কার্ড ও সার্টিফিকেট লাভ করুন।'
+                      : 'Play a key role in decision-making, gain voting rights, attend summits, and receive an official printed/digital ID card & certificate.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVolMembership('submitted_pending');
+                    const element = document.getElementById('volunteer-form-container');
+                    if (element) element.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full mt-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-bold text-xs py-2.5 px-4 rounded-xl text-center cursor-pointer shadow-sm transition-colors"
+                >
+                  {isBangla ? 'আজীবন সদস্যপদের ধাপসমূহ দেখুন' : 'Become a Lifetime Member'}
+                </button>
               </div>
             </div>
-          </div>
-          
-          {/* CTA Box */}
-          <div className="w-full md:w-auto shrink-0 flex flex-col items-center gap-3">
-            <motion.a
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              href={settings?.membershipFormUrl || 'https://forms.gle/51Kt57CfRuAnAGy88'}
-              target="_blank"
-              referrerPolicy="no-referrer"
-              rel="noopener noreferrer"
-              className="w-full md:w-auto bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-black py-4 px-8 rounded-full shadow-lg transition-colors cursor-pointer text-center flex items-center justify-center gap-2 text-base"
-              id="membership-google-form-btn"
-            >
-              <span>{isBangla ? 'মেম্বারশিপ ফরম পূরণ করুন' : 'Fill Out Membership Form'}</span>
-              <ArrowRight size={18} />
-            </motion.a>
-            <span className="text-xs font-mono font-medium text-gray-400">
-              {isBangla ? 'নিরাপদ গুগল ফরম সংযোগ' : 'Secured via Google Forms'}
-            </span>
           </div>
         </div>
       </section>
@@ -315,24 +355,177 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
           <div>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-[#6BBF3A]/10 text-[#1F5E2E] rounded-2xl">
-                <Award size={24} />
+                {volMembership === 'no_intent' ? <Users size={24} className="text-[#1F5E2E]" /> : <Award size={24} className="text-[#1F5E2E]" />}
               </div>
               <div>
                 <h2 className="font-sans text-2xl font-extrabold text-[#1F5E2E]">
-                  {isBangla ? 'স্বেচ্ছাসেবী হিসেবে নিবন্ধন' : 'Apply as Volunteer'}
+                  {volMembership === 'no_intent'
+                    ? (isBangla ? '১. ফিল্ড ভলান্টিয়ার নিবন্ধন' : '1. Field Volunteer Registration')
+                    : (isBangla ? '২. আজীবন সদস্য নিবন্ধন' : '2. Lifetime Member Registration')}
                 </h2>
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider font-mono mt-0.5">
-                  {isBangla ? 'মাঠ পর্যায়ে পরিবর্তন আনুন' : 'Join our grassroots crew'}
+                  {volMembership === 'no_intent'
+                    ? (isBangla ? 'মাঠ পর্যায়ে পরিবর্তন আনুন' : 'Join our grassroots crew')
+                    : (isBangla ? 'গুগল ফরম সাবমিটের পর তথ্য লিংক করুন' : 'Link your submitted Google form profile')}
                 </p>
               </div>
             </div>
 
             <p className="font-sans text-sm text-gray-600 leading-relaxed mb-6">
-              {isBangla
-                ? 'সুন্দরবনে ম্যানগ্রোভ রোপণ, উত্তরাঞ্চলের চরে স্কুলগুলোতে সৌরবিদ্যুৎ স্থাপন, অথবা বুড়িগঙ্গায় প্লাস্টিক পরিষ্কারের অভিযানে সরাসরি অংশ নিতে ফরমটি পূরণ করুন।'
-                : 'Join our planting drives in Satkhira, build clean solar systems in Kurigram chars, or participate in urban recycling projects. No prior expertise required.'
+              {volMembership === 'no_intent'
+                ? (isBangla
+                    ? 'সুন্দরবনে ম্যানগ্রোভ রোপণ, উত্তরাঞ্চলের চরে স্কুলগুলোতে সৌরবিদ্যুৎ স্থাপন, অথবা বুড়িগঙ্গায় প্লাস্টিক পরিষ্কারের অভিযানে সরাসরি অংশ নিতে নিচের দ্রুত ফর্মটি পূরণ করুন।'
+                    : 'Join our planting drives in Satkhira, build clean solar systems in Kurigram chars, or participate in urban recycling projects. No prior expertise required.')
+                : (isBangla
+                    ? 'আজীবন সদস্যপদের সকল সুযোগ-সুবিধা এবং অফিশিয়াল আইডি কার্ড পেতে প্রথমে ১ নম্বর ধাপে গুগল ফর্মটি পূরণ করুন, তারপর ২ নম্বর ধাপে আপনার আইডি লিংক করতে নিচের তথ্যগুলো সাবমিট করুন।'
+                    : 'To claim your Lifetime Member benefits and print your ID card, please fill out the official Google form first (Step 1), then submit the registration below to link your account (Step 2).')
               }
             </p>
+
+            {/* Path Selection Tabs */}
+            <div className="bg-gray-100 p-1.5 rounded-2xl grid grid-cols-2 gap-1.5 mb-6 border border-gray-200/50">
+              <button
+                type="button"
+                onClick={() => {
+                  setVolMembership('no_intent');
+                }}
+                className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-sans font-black transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                  volMembership === 'no_intent'
+                    ? 'bg-[#1F5E2E] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+                }`}
+              >
+                <Users size={16} />
+                <span>{isBangla ? 'ভলান্টিয়ার' : 'Volunteer'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setVolMembership('submitted_pending');
+                }}
+                className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-sans font-black transition-all duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                  volMembership !== 'no_intent'
+                    ? 'bg-[#1F5E2E] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+                }`}
+              >
+                <Award size={16} />
+                <span>{isBangla ? 'আজীবন সদস্য' : 'Lifetime Member'}</span>
+              </button>
+            </div>
+
+            {/* Interactive Step / Instruction Guides */}
+            <AnimatePresence mode="wait">
+              {volMembership === 'no_intent' ? (
+                <motion.div
+                  key="volunteer-info"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-[#6BBF3A]/5 border border-[#6BBF3A]/20 rounded-2xl p-4 mb-6 flex gap-3 text-left animate-fade-in"
+                >
+                  <Info size={18} className="text-[#1F5E2E] shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-[#1F5E2E] uppercase tracking-wider">
+                      {isBangla ? 'মাঠপর্যায়ের ভলান্টিয়ারিং নির্দেশিকা' : 'Field Volunteering Instructions'}
+                    </h4>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {isBangla
+                        ? 'এটি সম্পূর্ণ বিনামূল্যে এবং কোনো অতিরিক্ত ফরম পূরণ করতে হবে না। আমাদের পরবর্তী বৃক্ষরোপণ বা মাঠপর্যায়ের কর্মসূচির পূর্বে আমরা আপনার সাথে সরাসরি যোগাযোগ করব।'
+                        : 'Completely free to join. No extra paperwork required. We will contact you directly before our next field plantation, solar microgrid, or clean water deployment.'}
+                    </p>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="membership-info"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-[#1F5E2E]/5 border border-[#1F5E2E]/20 rounded-2xl p-5 mb-6 space-y-4 text-left animate-fade-in"
+                >
+                  <div className="flex gap-3">
+                    <Award size={20} className="text-[#1F5E2E] shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-[#1F5E2E] uppercase tracking-wider">
+                        {isBangla ? 'আজীবন সদস্যপদ পাওয়ার ২ টি সহজ ধাপ' : '2 Easy Steps for Lifetime Membership'}
+                      </h4>
+                      <p className="text-xs text-gray-600 leading-relaxed">
+                        {isBangla
+                          ? 'গ্রিন আর্থ-এর একজন অফিশিয়াল আজীবন সদস্য (আইডি কার্ড, ভোটাধিকার এবং সার্টিফিকেট সহ) হতে নিচে উল্লেখিত ২টি ধাপ সম্পন্ন করুন:'
+                          : 'To become an official approved Lifetime Member of Green Earth (including ID Card, Certificate, and voting rights), complete both steps below:'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3.5 pl-6 border-l-2 border-[#1F5E2E]/20">
+                    {/* Step 1 */}
+                    <div className="space-y-1 relative">
+                      <span className="absolute -left-[33px] top-0 bg-[#1F5E2E] text-white text-[10px] font-mono font-black h-5 w-5 rounded-full flex items-center justify-center">1</span>
+                      <h5 className="text-xs font-bold text-gray-800">
+                        {isBangla ? 'অফিশিয়াল গুগল ফর্মটি পূরণ করুন' : 'Fill out the Google Membership Form'}
+                      </h5>
+                      <p className="text-[11px] text-gray-500 leading-relaxed">
+                        {isBangla
+                          ? 'আপনার সার্টিফিকেট এবং আইডি কার্ডের জন্য প্রয়োজনীয় তথ্য ও ছবি প্রদান করতে গুগল ফর্মটি সাবমিট করুন।'
+                          : 'Submit your formal details, documents, and profile photo for printing the physical and digital membership ID card.'}
+                      </p>
+                      <div className="pt-1.5">
+                        <motion.a
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          href={settings?.membershipFormUrl || 'https://forms.gle/51Kt57CfRuAnAGy88'}
+                          target="_blank"
+                          referrerPolicy="no-referrer"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-black text-xs py-2 px-4 rounded-xl shadow-sm transition-colors cursor-pointer"
+                        >
+                          <span>{isBangla ? 'মেম্বারশিপ গুগল ফর্মটি খুলুন' : 'Open Google Form'}</span>
+                          <ArrowRight size={12} />
+                        </motion.a>
+                      </div>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="space-y-1 relative">
+                      <span className="absolute -left-[33px] top-0 bg-[#1F5E2E] text-white text-[10px] font-mono font-black h-5 w-5 rounded-full flex items-center justify-center">2</span>
+                      <h5 className="text-xs font-bold text-gray-800">
+                        {isBangla ? 'নিচের ডাটাবেজ ফর্মটি সাবমিট করুন' : 'Submit the Database Profile below'}
+                      </h5>
+                      <p className="text-[11px] text-gray-500 leading-relaxed">
+                        {isBangla
+                          ? 'নিচের ফর্মটিতে আপনার নাম, ফোন ও ইমেইল দিয়ে সাবমিট করুন যাতে আমাদের ডাটাবেজে আপনার সদস্যপদ লিংক করা যায়।'
+                          : 'Fill out and submit your profile details below to link your account. This registers your record in our system so admins can review and approve.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#1F5E2E]/10">
+                    <label className="text-[10px] font-bold text-[#1F5E2E] uppercase tracking-wider block mb-1">
+                      {isBangla ? 'আপনার মেম্বারশিপ স্ট্যাটাস নির্ধারণ করুন' : 'Select your Membership Status'}
+                    </label>
+                    <select
+                      value={volMembership}
+                      onChange={(e) => setVolMembership(e.target.value)}
+                      className="w-full bg-white border border-[#1F5E2E]/20 rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#1F5E2E] text-xs text-gray-700 font-bold transition-all"
+                    >
+                      <option value="submitted_pending">
+                        {isBangla 
+                          ? 'হ্যাঁ, আমি আজ গুগল ফর্মটি পূরণ করেছি (নতুন সদস্য)' 
+                          : 'Yes, I filled out the Google Form (New Member)'}
+                      </option>
+                      <option value="already_member">
+                        {isBangla 
+                          ? 'আমি ইতিমধ্যে গ্রিন আর্থ-এর একজন সক্রিয় সদস্য' 
+                          : 'I am already an active approved Lifetime Member'}
+                      </option>
+                    </select>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <form onSubmit={handleVolunteerSubmit} className="space-y-5 font-sans">
               {/* Name */}
@@ -481,39 +674,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                 </select>
               </div>
 
-              {/* Membership Form submission check - HIGHLIGHTED */}
-              <div className="bg-[#6BBF3A]/5 border border-[#6BBF3A]/30 rounded-2xl p-4 flex flex-col gap-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F5E2E] uppercase tracking-wider">
-                  <Clipboard size={14} className="text-[#6BBF3A]" />
-                  <span>{isBangla ? 'আজীবন মেম্বারশিপ চেক' : 'Lifetime Membership Status Check'}</span>
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  {isBangla 
-                    ? 'আপনি কি ওপরের "অফিশিয়াল সদস্যপদ" (Lifetime Membership) গুগল ফরমটি ইতিমধ্যে পূরণ করেছেন?' 
-                    : 'Have you filled out and submitted the Lifetime Membership google form shown at the top of this page?'}
-                </p>
-                <select
-                  value={volMembership}
-                  onChange={(e) => setVolMembership(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-xs text-gray-700 font-bold font-sans transition-all"
-                >
-                  <option value="no_intent">
-                    {isBangla 
-                      ? 'না, শুধু সাধারণ স্বেচ্ছাসেবক হিসেবে আবেদন করছি' 
-                      : 'No, registering as a field volunteer only'}
-                  </option>
-                  <option value="submitted_pending">
-                    {isBangla 
-                      ? 'হ্যাঁ, আমি আজ মেম্বারশিপ গুগল ফরমটি পূরণ করেছি' 
-                      : 'Yes, I have filled out the Google Form as well'}
-                  </option>
-                  <option value="already_member">
-                    {isBangla 
-                      ? 'আমি ইতিমধ্যে গ্রিন আর্থ-এর একজন সক্রিয় সদস্য' 
-                      : 'I am already an active approved Lifetime Member'}
-                  </option>
-                </select>
-              </div>
+
 
               {/* Message */}
               <div className="flex flex-col gap-1.5">
@@ -649,6 +810,45 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                 </div>
               )}
 
+              {/* Donor Contact Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <User size={12} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? 'আপনার নাম' : 'Your Name'} *</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={donorName}
+                    onChange={(e) => {
+                      setDonorName(e.target.value);
+                      setDonationError('');
+                    }}
+                    placeholder={isBangla ? 'যেমন: হাসিব রহমান' : 'e.g. Hasib Rahman'}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 transition-all font-semibold"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Mail size={12} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? 'ইমেইল ঠিকানা' : 'Email Address'} *</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={donorEmail}
+                    onChange={(e) => {
+                      setDonorEmail(e.target.value);
+                      setDonationError('');
+                    }}
+                    placeholder={isBangla ? 'যেমন: name@example.com' : 'e.g. name@example.com'}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 transition-all font-semibold"
+                    required
+                  />
+                </div>
+              </div>
+
               {/* Payment Methods */}
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider block">
@@ -657,10 +857,13 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                 <div className="grid grid-cols-4 gap-2 text-center text-xs font-bold font-mono">
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('bkash')}
+                    onClick={() => {
+                      setPaymentMethod('bkash');
+                      setDonationError('');
+                    }}
                     className={`py-3 rounded-xl border transition-all cursor-pointer ${
                       paymentMethod === 'bkash'
-                        ? 'border-pink-500 bg-pink-500/10 text-pink-700 font-extrabold'
+                        ? 'border-pink-500 bg-pink-500/10 text-pink-700 font-extrabold shadow-sm'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-500'
                     }`}
                   >
@@ -668,37 +871,36 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('nagad')}
+                    onClick={() => {
+                      setPaymentMethod('nagad');
+                      setDonationError('');
+                    }}
                     className={`py-3 rounded-xl border transition-all cursor-pointer ${
                       paymentMethod === 'nagad'
-                        ? 'border-orange-500 bg-orange-500/10 text-orange-700 font-extrabold'
+                        ? 'border-orange-500 bg-orange-500/10 text-orange-700 font-extrabold shadow-sm'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-500'
                     }`}
                   >
                     Nagad
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('card')}
-                    className={`py-3 rounded-xl border transition-all cursor-pointer ${
-                      paymentMethod === 'card'
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-700 font-extrabold'
-                        : 'border-gray-200 hover:bg-gray-50 text-gray-500'
-                    }`}
+                  <div
+                    className="py-3 rounded-xl border border-gray-100 bg-gray-50 text-gray-400 opacity-60 relative cursor-not-allowed select-none flex flex-col items-center justify-center min-h-[46px]"
+                    title={isBangla ? 'কার্ড পেমেন্ট সাময়িকভাবে বন্ধ আছে' : 'Card payment is temporarily offline'}
                   >
-                    Card
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('bank')}
-                    className={`py-3 rounded-xl border transition-all cursor-pointer ${
-                      paymentMethod === 'bank'
-                        ? 'border-emerald-600 bg-emerald-600/10 text-emerald-800 font-extrabold'
-                        : 'border-gray-200 hover:bg-gray-50 text-gray-500'
-                    }`}
+                    <span>Card</span>
+                    <span className="absolute -top-1.5 bg-red-500 text-white text-[8px] px-1 py-0.5 rounded-full font-sans font-extrabold uppercase scale-90 tracking-wider">
+                      {isBangla ? 'বন্ধ' : 'Offline'}
+                    </span>
+                  </div>
+                  <div
+                    className="py-3 rounded-xl border border-gray-100 bg-gray-50 text-gray-400 opacity-60 relative cursor-not-allowed select-none flex flex-col items-center justify-center min-h-[46px]"
+                    title={isBangla ? 'ব্যাংক ট্রান্সফার সাময়িকভাবে বন্ধ আছে' : 'Bank transfer is temporarily offline'}
                   >
-                    Bank
-                  </button>
+                    <span>Bank</span>
+                    <span className="absolute -top-1.5 bg-red-500 text-white text-[8px] px-1 py-0.5 rounded-full font-sans font-extrabold uppercase scale-90 tracking-wider">
+                      {isBangla ? 'বন্ধ' : 'Offline'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -772,7 +974,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
               <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 font-sans text-xs space-y-3 mb-6">
                 <div className="flex justify-between items-center pb-2 border-b border-gray-200/50">
                   <span className="text-gray-400 font-bold uppercase">Wallet Type</span>
-                  <span className="font-black text-[#1F5E2E]">{paymentMethod.toUpperCase()} Merchant Pay</span>
+                  <span className="font-black text-[#1F5E2E]">{paymentMethod.toUpperCase()} (Send Money)</span>
                 </div>
                 <div className="flex justify-between items-center pb-2 border-b border-gray-200/50">
                   <span className="text-gray-400 font-bold uppercase">Account No</span>

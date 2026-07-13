@@ -11,7 +11,7 @@ import { Page } from '../types';
 interface FooterProps {
   setCurrentPage: (page: Page) => void;
   isBangla: boolean;
-  onSubscribeSuccess: (title: string, msg: string) => void;
+  onSubscribeSuccess: (title: string, msg: string, fbLink?: string) => void;
   settings?: any;
 }
 
@@ -51,10 +51,11 @@ export default function Footer({
       .then((res) => {
         setEmail('');
         onSubscribeSuccess(
-          isBangla ? 'নিবন্ধিত হয়েছে!' : 'Subscribed Successfully!',
+          isBangla ? 'সাবস্ক্রাইব সম্পন্ন হয়েছে!' : 'Subscribed Successfully!',
           isBangla 
-            ? 'গ্রিন আর্থ নিউজলেটারে যুক্ত হওয়ার জন্য আপনাকে ধন্যবাদ। আমরা শীঘ্রই আপনার সাথে পরিবেশবান্ধব আপডেট শেয়ার করব!' 
-            : 'Thank you for joining the Green Earth family. We will share clean, green updates and community milestones directly to your inbox!'
+            ? 'গ্রিন আর্থ নিউজলেটারে যুক্ত হওয়ার জন্য আপনাকে ধন্যবাদ। জলবায়ু পদক্ষেপ, বৃক্ষরোপণ এবং পরিবেশ সংরক্ষণের খবরাখবর সবার আগে পেতে এখনই আমাদের অফিসিয়াল ফেসবুক পেজে যুক্ত হন!' 
+            : 'Thank you for subscribing to Green Earth updates! To stay closer to our grassroots activities, environmental campaigns, and community stories, please join our official Facebook page below!',
+          settings?.footerFbUrl || 'https://www.facebook.com/greenearthbd.25/'
         );
       })
       .catch((err) => {
@@ -199,14 +200,14 @@ export default function Footer({
         <div className="flex flex-col gap-4">
           <h4 className="font-sans text-lg font-bold text-green-200 border-b border-white/10 pb-2">
             {isBangla 
-              ? (settings?.footerNewsletterTitleBn || 'নিউজলেটার সাবস্ক্রাইব') 
-              : (settings?.footerNewsletterTitle || 'Subscribe to Eco-News')
+              ? (settings?.footerNewsletterTitleBn || 'গ্রিন আর্থের সাথে যুক্ত থাকুন') 
+              : (settings?.footerNewsletterTitle || 'Stay Connected with Green Earth')
             }
           </h4>
           <p className="text-green-100 font-sans text-sm leading-relaxed">
             {isBangla 
-              ? (settings?.footerNewsletterDescBn || 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।') 
-              : (settings?.footerNewsletterDesc || 'Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.')
+              ? (settings?.footerNewsletterDescBn || 'জলবায়ু পদক্ষেপ, বৃক্ষরোপণ, পরিবেশগত অভিযান, নবায়নযোগ্য শক্তি, স্বেচ্ছাসেবকের সুযোগ, ইভেন্ট এবং অনুপ্রেরণামূলক সামাজিক গল্পগুলোর সর্বশেষ আপডেট সরাসরি আপনার ইনবক্সে পান।') 
+              : (settings?.footerNewsletterDesc || 'Get the latest updates on climate action, tree plantation, environmental campaigns, renewable energy, volunteer opportunities, events, and inspiring community stories—delivered straight to your inbox.')
             }
           </p>
           <form onSubmit={handleSubscribe} className="flex flex-col gap-2 mt-1">

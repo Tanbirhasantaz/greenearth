@@ -181,6 +181,7 @@ export default function App() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [successTitle, setSuccessTitle] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [successFbLink, setSuccessFbLink] = useState<string | undefined>(undefined);
 
   // Floating back-to-top trigger state
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -220,9 +221,10 @@ export default function App() {
   };
 
   // Callback triggers for child form completions
-  const handleSuccessTrigger = (title: string, message: string) => {
+  const handleSuccessTrigger = (title: string, message: string, fbLink?: string) => {
     setSuccessTitle(title);
     setSuccessMsg(message);
+    setSuccessFbLink(fbLink);
     setSuccessOpen(true);
   };
 
@@ -358,10 +360,14 @@ export default function App() {
       {/* Success Banner popup */}
       <SuccessModal
         isOpen={successOpen}
-        onClose={() => setSuccessOpen(false)}
+        onClose={() => {
+          setSuccessOpen(false);
+          setSuccessFbLink(undefined);
+        }}
         title={successTitle}
         message={successMsg}
         isBangla={isBangla}
+        facebookLink={successFbLink}
       />
 
       {/* Project detailed metadata modal */}

@@ -5,7 +5,7 @@
 
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle, X, Leaf } from 'lucide-react';
+import { CheckCircle, X, Leaf, Facebook } from 'lucide-react';
 
 interface SuccessModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ interface SuccessModalProps {
   title: string;
   message: string;
   isBangla?: boolean;
+  facebookLink?: string;
 }
 
 export default function SuccessModal({
@@ -20,17 +21,18 @@ export default function SuccessModal({
   onClose,
   title,
   message,
-  isBangla = false
+  isBangla = false,
+  facebookLink
 }: SuccessModalProps) {
-  // Autoclose after 5 seconds
+  // Autoclose after 6 seconds only if facebookLink is NOT provided
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !facebookLink) {
       const timer = setTimeout(() => {
         onClose();
       }, 6000);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, facebookLink]);
 
   return (
     <AnimatePresence>
@@ -77,8 +79,8 @@ export default function SuccessModal({
             <div className="flex justify-center mb-6">
               <motion.div
                 initial={{ scale: 0 }}
-                animate={{ scale: [0, 1.2, 1] }}
-                transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 15 }}
                 className="bg-[#6BBF3A]/10 p-4 rounded-full text-[#6BBF3A]"
               >
                 <CheckCircle size={48} className="stroke-2" />
@@ -128,12 +130,28 @@ export default function SuccessModal({
               ))}
             </div>
 
+            {/* Facebook Link if provided */}
+            {facebookLink && (
+              <motion.a
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                href={facebookLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 bg-[#1877F2] hover:bg-[#166FE5] text-white font-sans font-bold py-3.5 px-6 rounded-2xl shadow-md transition-all cursor-pointer mb-4"
+                id="success-modal-fb-btn"
+              >
+                <Facebook size={18} fill="currentColor" />
+                <span>{isBangla ? 'ফেসবুকে আমাদের সাথে যুক্ত হোন' : 'Connect on Facebook'}</span>
+              </motion.a>
+            )}
+
             {/* Button */}
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               onClick={onClose}
-              className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-bold py-3 px-8 rounded-full shadow-lg transition-colors cursor-pointer"
+              className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white font-sans font-bold py-3 px-8 rounded-full shadow-lg transition-colors cursor-pointer w-full"
               id="success-modal-action-btn"
             >
               {isBangla ? 'ঠিক আছে' : 'Awesome!'}

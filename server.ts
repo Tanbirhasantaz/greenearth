@@ -994,6 +994,18 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.patch("/api/volunteers/:id", async (req, res) => {
+    const volunteers = await readData<any[]>("volunteers.json");
+    const index = volunteers.findIndex((v) => v.id === req.params.id);
+    if (index !== -1) {
+      volunteers[index] = { ...volunteers[index], ...req.body };
+      await writeData("volunteers.json", volunteers);
+      res.json({ success: true, volunteer: volunteers[index] });
+    } else {
+      res.status(404).json({ error: "Volunteer not found" });
+    }
+  });
+
   // Donations API (Submissions)
   app.get("/api/donations", async (req, res) => {
     res.json(await readData("donations.json"));
@@ -1016,6 +1028,18 @@ async function startServer() {
     const filtered = donations.filter((d) => d.id !== req.params.id);
     await writeData("donations.json", filtered);
     res.json({ success: true });
+  });
+
+  app.patch("/api/donations/:id", async (req, res) => {
+    const donations = await readData<any[]>("donations.json");
+    const index = donations.findIndex((d) => d.id === req.params.id);
+    if (index !== -1) {
+      donations[index] = { ...donations[index], ...req.body };
+      await writeData("donations.json", donations);
+      res.json({ success: true, donation: donations[index] });
+    } else {
+      res.status(404).json({ error: "Donation not found" });
+    }
   });
 
   // Subscribers API

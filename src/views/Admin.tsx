@@ -75,8 +75,10 @@ interface Donation {
   email: string;
   amount: number;
   paymentMethod: string;
+  method?: string;
   status: string;
   transId: string;
+  transactionId?: string;
   date: string;
 }
 
@@ -1109,6 +1111,26 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     });
   };
 
+  const handleUpdateVolunteerStatus = async (id: string, newMembership: string) => {
+    try {
+      const res = await fetch(`/api/volunteers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membership: newMembership, membershipStatus: newMembership }),
+      });
+      if (res.ok) {
+        // Update local state
+        setVolunteers(prev => prev.map(v => v.id === id ? { ...v, membership: newMembership, membershipStatus: newMembership } : v));
+        // Update selected volunteer
+        if (selectedVolunteer && selectedVolunteer.id === id) {
+          setSelectedVolunteer(prev => prev ? { ...prev, membership: newMembership, membershipStatus: newMembership } : null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Download Volunteer list as CSV
   const downloadVolunteersCSV = () => {
     if (!Array.isArray(volunteers) || volunteers.length === 0) return;
@@ -1228,6 +1250,21 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         body: JSON.stringify(updated)
       });
       if (res.ok) fetchAllData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateDonationStatus = async (id: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/donations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setDonations(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
+      }
     } catch (err) {
       console.error(err);
     }
@@ -2645,75 +2682,95 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
             {/* --- DONATIONS TAB --- */}
             {activeTab === 'donations' && (
               <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4" id="donations-tab">
-                <h3 className="text-lg font-black text-[#1F5E2E] text-left">Donations Audit Ledger</h3>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h3 className="text-lg font-black text-[#1F5E2E] text-left">
+                      {isBangla ? 'অনুদান ও লেনদেন অডিট লেজার' : 'Donations Audit Ledger'}
+                    </h3>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider font-mono mt-0.5">
+                      {isBangla ? 'গ্রাসরুট ফান্ডিং ও মোবাইল পেমেন্ট ট্র্যাকিং' : 'Grassroots funding & mobile transfer validation'}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-[#1F5E2E] font-bold font-mono bg-[#6BBF3A]/10 px-3 py-1.5 rounded-lg border border-[#6BBF3A]/20">
+                    {isBangla ? 'তাত্ক্ষণিক ড্রপডাউন আপডেট' : 'Dropdown Saves Instantly'}
+                  </span>
+                </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm border-collapse">
                     <thead>
                       <tr className="border-b border-gray-200 text-gray-400 font-mono text-xs uppercase font-bold">
-                        <th className="py-3 px-4">Contributor</th>
-                        <th className="py-3 px-4">Email</th>
-                        <th className="py-3 px-4">Amount</th>
-                        <th className="py-3 px-4">Channel</th>
-                        <th className="py-3 px-4">Trans ID</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4">Date</th>
-                        <th className="py-3 px-4">Actions</th>
+                        <th className="py-3 px-4">{isBangla ? 'দাতা / অবদানকারী' : 'Contributor'}</th>
+                        <th className="py-3 px-4">{isBangla ? 'ইমেইল' : 'Email'}</th>
+                        <th className="py-3 px-4">{isBangla ? 'পরিমাণ' : 'Amount'}</th>
+                        <th className="py-3 px-4">{isBangla ? 'মাধ্যম' : 'Channel'}</th>
+                        <th className="py-3 px-4">{isBangla ? 'ট্রানজেকশন আইডি' : 'Trans ID'}</th>
+                        <th className="py-3 px-4">{isBangla ? 'স্ট্যাটাস / পেমেন্ট প্রাপ্তি' : 'Status / Received'}</th>
+                        <th className="py-3 px-4">{isBangla ? 'তারিখ' : 'Date'}</th>
+                        <th className="py-3 px-4">{isBangla ? 'অ্যাকশন' : 'Actions'}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {donations.map((don) => (
-                        <tr key={don.id} className="hover:bg-gray-50">
-                          <td className="py-4 px-4 font-bold text-gray-900">{don.name || 'Anonymous'}</td>
-                          <td className="py-4 px-4 text-xs text-gray-600">{don.email || '—'}</td>
-                          <td className="py-4 px-4 font-black text-[#1F5E2E]">৳{(don.amount || 0).toLocaleString()}</td>
-                          <td className="py-4 px-4">
-                            <span className="text-[10px] font-mono font-black uppercase tracking-wider text-gray-500 bg-gray-100 py-0.5 px-2 rounded-md">
-                              {don.paymentMethod}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 font-mono text-xs font-bold text-gray-400">{don.transId || 'Direct'}</td>
-                          <td className="py-4 px-4">
-                            {don.status === 'verified' ? (
-                              <span className="bg-green-100 text-green-800 text-[9px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 w-fit">
-                                <Check size={10} className="stroke-[3]" />
-                                Verified
+                      {donations.map((don) => {
+                        const channel = (don.paymentMethod || don.method || 'Direct').toUpperCase();
+                        const trans = don.transId || don.transactionId || '—';
+                        return (
+                          <tr key={don.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="py-4 px-4 font-bold text-gray-900">{don.name || 'Anonymous'}</td>
+                            <td className="py-4 px-4 text-xs text-gray-600">{don.email || '—'}</td>
+                            <td className="py-4 px-4 font-black text-[#1F5E2E]">৳{(don.amount || 0).toLocaleString()}</td>
+                            <td className="py-4 px-4">
+                              <span className={`text-[10px] font-mono font-black uppercase tracking-wider py-1 px-2.5 rounded-lg ${
+                                channel === 'BKASH' 
+                                  ? 'bg-pink-50 text-pink-700 border border-pink-100'
+                                  : channel === 'NAGAD'
+                                  ? 'bg-orange-50 text-orange-700 border border-orange-100'
+                                  : 'bg-gray-50 text-gray-500 border border-gray-100'
+                              }`}>
+                                {channel}
                               </span>
-                            ) : (
-                              <span className="bg-amber-100 text-amber-800 text-[9px] font-mono font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 w-fit">
-                                Pending
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="font-mono text-xs font-bold text-gray-700 bg-gray-100 py-1 px-2 rounded">
+                                {trans}
                               </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-4 text-xs text-gray-400 font-mono">
-                            {don.date ? new Date(don.date).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex gap-1.5">
-                              {don.status !== 'verified' && (
-                                <button
-                                  onClick={() => handleVerifyDonation(don)}
-                                  className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 cursor-pointer"
-                                  title="Approve & Verify Transaction"
-                                >
-                                  <Check size={16} />
-                                </button>
-                              )}
+                            </td>
+                            <td className="py-4 px-4">
+                              <select
+                                value={don.status || 'pending'}
+                                onChange={(e) => handleUpdateDonationStatus(don.id, e.target.value)}
+                                className={`text-[10px] font-mono font-black uppercase tracking-wider px-3 py-1.5 rounded-xl outline-none border focus:ring-2 focus:ring-offset-1 transition-all cursor-pointer font-bold ${
+                                  don.status === 'verified' || don.status === 'approved' || don.status === 'received'
+                                    ? 'bg-green-100 text-green-800 border-green-200 focus:ring-green-400'
+                                    : don.status === 'rejected'
+                                    ? 'bg-red-100 text-red-800 border-red-200 focus:ring-red-400'
+                                    : 'bg-amber-100 text-amber-800 border-amber-200 focus:ring-amber-400'
+                                }`}
+                              >
+                                <option value="pending">{isBangla ? 'পেন্ডিং / যাচাইাধীন (Pending)' : 'Pending / Review'}</option>
+                                <option value="verified">{isBangla ? 'অনুমোদিত ও প্রাপ্ত (Approved)' : 'Approved / Received'}</option>
+                                <option value="rejected">{isBangla ? 'প্রত্যাখ্যাত / ভুয়া (Rejected)' : 'Rejected / Fake'}</option>
+                              </select>
+                            </td>
+                            <td className="py-4 px-4 text-xs text-gray-400 font-mono">
+                              {don.date ? (don.date.includes('-') && don.date.length > 10 ? new Date(don.date).toLocaleDateString() : don.date) : 'N/A'}
+                            </td>
+                            <td className="py-4 px-4">
                               <button
                                 onClick={() => handleDonationDelete(don.id)}
-                                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 cursor-pointer"
+                                className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 cursor-pointer transition-colors"
                                 title="Delete record"
                               >
                                 <Trash2 size={16} />
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                   {donations.length === 0 && (
-                    <p className="py-8 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No donation records registered.</p>
+                    <p className="py-12 text-center text-gray-400 font-bold uppercase tracking-wider text-xs">No donation records registered.</p>
                   )}
                 </div>
               </div>
@@ -5166,6 +5223,29 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </div>
                   </div>
 
+                </div>
+
+                {/* Section: Admin Actions */}
+                <div className="bg-gray-50 border border-gray-200/80 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-gray-500 uppercase tracking-wider font-mono">
+                    <ShieldCheck size={14} className="text-[#1F5E2E]" />
+                    <span>{isBangla ? 'অ্যাডমিন কন্ট্রোল: সদস্যপদ আপডেট' : 'Admin Action: Update Membership Status'}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <select
+                      value={selectedVolunteer.membership || 'no_intent'}
+                      onChange={(e) => handleUpdateVolunteerStatus(selectedVolunteer.id, e.target.value)}
+                      className="flex-1 bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] transition-all outline-none"
+                    >
+                      <option value="no_intent">{isBangla ? 'মাঠ ভলান্টিয়ার (Field Volunteer Only)' : 'Field Volunteer Only'}</option>
+                      <option value="submitted_pending">{isBangla ? 'আবেদন পেন্ডিং (Submitted Form)' : 'Submitted Form'}</option>
+                      <option value="already_member">{isBangla ? 'আজীবন সদস্য (Lifetime Member)' : 'Lifetime Member'}</option>
+                    </select>
+                    
+                    <span className="text-[10px] text-[#1F5E2E] font-bold font-mono text-center sm:text-right bg-[#6BBF3A]/10 px-2.5 py-1.5 rounded-lg border border-[#6BBF3A]/20">
+                      {isBangla ? 'তাত্ক্ষণিক আপডেট হবে' : 'Saves Instantly'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Section: Motivation / Intro Message */}
