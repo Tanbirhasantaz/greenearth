@@ -212,6 +212,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
   const [plantingDate, setPlantingDate] = useState('2026-07-17');
   const [plantingAddress, setPlantingAddress] = useState('');
   const [treePhoto, setTreePhoto] = useState('');
+  const [treePhotos, setTreePhotos] = useState<string[]>([]);
   const [treeRegError, setTreeRegError] = useState('');
   const [treeRegSuccess, setTreeRegSuccess] = useState('');
   const [editTreeParticipant, setEditTreeParticipant] = useState<any | null>(null);
@@ -225,6 +226,29 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
         setter(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Helper to handle multiple image uploads up to 5 photos
+  const handleMultipleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const remainingSlots = 5 - treePhotos.length;
+      if (remainingSlots <= 0) return;
+      
+      const filesToProcess = Array.from(files).slice(0, remainingSlots);
+      filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setTreePhotos(prev => {
+            if (prev.length < 5) {
+              return [...prev, reader.result as string];
+            }
+            return prev;
+          });
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
@@ -438,7 +462,8 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     }
 
     // Default photo if empty
-    const finalPhoto = treePhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
+    const finalPhoto = treePhotos[0] || treePhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
+    const finalPhotos = treePhotos.length > 0 ? treePhotos : [finalPhoto];
 
     // Save registered trees
     const savedTrees = localStorage.getItem('ge_gh_trees');
@@ -471,6 +496,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
         location: plantingAddress.trim(),
         plantingDate: plantingDate,
         photo: row.photo || finalPhoto,
+        photos: finalPhotos,
         status: 'Approved' // auto-approved for client-demo flow!
       });
     });
@@ -485,6 +511,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     setTreeRows([{ id: 1, name: '', quantity: 1, type: 'Fruit Tree (ফলজ বৃক্ষ)', suggestions: [] }]);
     setPlantingAddress('');
     setTreePhoto('');
+    setTreePhotos([]);
     
     // Refresh parent datasets
     reloadData();
@@ -2131,18 +2158,29 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                             </div>
 
                             <div className="flex flex-col gap-1.5">
-                              <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Photo Upload (গাছের ছবি আপলোড)</label>
+                              <label className="font-bold text-gray-500 uppercase tracking-wider">
+                                Tree Photo Upload (গাছের ছবি আপলোড - সর্বোচ্চ ৫টি)
+                              </label>
                               <div className="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-2xl p-4 bg-white hover:bg-emerald-50/20 transition-all relative">
                                 <Camera size={24} className="text-[#1B5E20] mb-1.5" />
-                                <span className="text-xs text-gray-500 font-medium">Click to select or drag photo here</span>
-                                <span className="text-[10px] text-gray-400 mt-0.5">(JPG, PNG max 5MB)</span>
-                                <input 
-                                  type="file" 
-                                  accept="image/*"
-                                  onChange={(e) => handleImageUpload(e, setTreePhoto)}
-                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                  id="tree-photo-file-input"
-                                />
+                                <span className="text-xs text-gray-500 font-medium text-center">
+                                  {treePhotos.length >= 5 
+                                    ? 'Maximum 5 photos reached (৫টি ছবি আপলোড করা হয়েছে)' 
+                                    : 'Click to select or drag photo here (ছবি আপলোড করুন)'}
+                                </span>
+                                <span className="text-[10px] text-gray-400 mt-0.5">
+                                  ({treePhotos.length} of 5 uploaded)
+                                </span>
+                                {treePhotos.length < 5 && (
+                                  <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleMultipleImagesUpload}
+                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                    id="tree-photo-file-input"
+                                  />
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2159,12 +2197,52 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                             />
                           </div>
 
-                          {treePhoto && (
-                            <div className="space-y-1">
-                              <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] block">Photo Preview (গাছের ছবি প্রাকদর্শন)</span>
-                              <div className="w-full h-36 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200">
-                                <img src={treePhoto} alt="Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                          {(treePhotos.length > 0 || treePhoto) && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] block">
+                                  Photo Preview (গাছের ছবি প্রাকদর্শন) - {treePhotos.length || 1} of 5
+                                </span>
+                                {treePhotos.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setTreePhotos([])}
+                                    className="text-red-500 hover:text-red-700 text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                                  >
+                                    Clear All (সব মুছুন)
+                                  </button>
+                                )}
                               </div>
+                              
+                              {treePhotos.length > 0 ? (
+                                <div className="grid grid-cols-5 gap-2 pt-1">
+                                  {treePhotos.map((p, pIdx) => (
+                                    <div key={pIdx} className="relative aspect-square bg-gray-50 border border-gray-200 rounded-xl overflow-hidden shadow-2xs group">
+                                      <img src={p} alt={`Preview ${pIdx}`} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={() => setTreePhotos(prev => prev.filter((_, idx) => idx !== pIdx))}
+                                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-md cursor-pointer transition-all hover:scale-110 font-bold text-[10px]"
+                                        title="Remove photo"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="w-full h-36 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 relative group">
+                                  <img src={treePhoto} alt="Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => setTreePhoto('')}
+                                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md cursor-pointer transition-all hover:scale-110 font-bold"
+                                    title="Remove photo"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
