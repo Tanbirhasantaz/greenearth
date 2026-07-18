@@ -601,15 +601,45 @@ function initializeDataFiles() {
   }
 
   // 14. Initial Green Hero Files
-  if (!fs.existsSync(filePaths.ge_gh_participants)) {
+  try {
+    if (fs.existsSync(filePaths.ge_gh_participants)) {
+      const content = fs.readFileSync(filePaths.ge_gh_participants, "utf-8").trim();
+      if (content === "{}" || content === "" || !content.startsWith("[")) {
+        fs.writeFileSync(filePaths.ge_gh_participants, JSON.stringify([], null, 2));
+      }
+    } else {
+      fs.writeFileSync(filePaths.ge_gh_participants, JSON.stringify([], null, 2));
+    }
+  } catch (e) {
     fs.writeFileSync(filePaths.ge_gh_participants, JSON.stringify([], null, 2));
   }
-  if (!fs.existsSync(filePaths.ge_gh_trees)) {
+
+  try {
+    if (fs.existsSync(filePaths.ge_gh_trees)) {
+      const content = fs.readFileSync(filePaths.ge_gh_trees, "utf-8").trim();
+      if (content === "{}" || content === "" || !content.startsWith("[")) {
+        fs.writeFileSync(filePaths.ge_gh_trees, JSON.stringify([], null, 2));
+      }
+    } else {
+      fs.writeFileSync(filePaths.ge_gh_trees, JSON.stringify([], null, 2));
+    }
+  } catch (e) {
     fs.writeFileSync(filePaths.ge_gh_trees, JSON.stringify([], null, 2));
   }
-  if (!fs.existsSync(filePaths.ge_gh_logs)) {
+
+  try {
+    if (fs.existsSync(filePaths.ge_gh_logs)) {
+      const content = fs.readFileSync(filePaths.ge_gh_logs, "utf-8").trim();
+      if (content === "{}" || content === "" || !content.startsWith("[")) {
+        fs.writeFileSync(filePaths.ge_gh_logs, JSON.stringify([], null, 2));
+      }
+    } else {
+      fs.writeFileSync(filePaths.ge_gh_logs, JSON.stringify([], null, 2));
+    }
+  } catch (e) {
     fs.writeFileSync(filePaths.ge_gh_logs, JSON.stringify([], null, 2));
   }
+
   if (!fs.existsSync(filePaths.ge_gh_overview)) {
     const defaultOverview = {
       titleEn: "Green Hero Initiative (Adapt a Tree)",
