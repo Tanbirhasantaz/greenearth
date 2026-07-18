@@ -91,55 +91,86 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
   // Active Logged-In Participant state
   const [loggedInUser, setLoggedInUser] = useState<any | null>(null);
 
+  // Load Green Hero data from server APIs
+  const loadDataFromServer = async () => {
+    try {
+      // 1. Fetch Overview Settings
+      const overviewRes = await fetch("/api/greenhero/overview");
+      if (overviewRes.ok) {
+        const overviewData = await overviewRes.json();
+        setOverview(overviewData);
+        localStorage.setItem('ge_gh_overview', JSON.stringify(overviewData));
+      }
+
+      // 2. Fetch Participants
+      const partsRes = await fetch("/api/greenhero/participants");
+      if (partsRes.ok) {
+        const partsData = await partsRes.json();
+        setParticipants(partsData);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(partsData));
+        
+        // Update loggedInUser session state if logged in to keep participant info fresh
+        const currentSession = sessionStorage.getItem('ge_gh_logged_in');
+        if (currentSession) {
+          const storedUser = JSON.parse(currentSession);
+          const freshUser = partsData.find((p: any) => p.id === storedUser.id);
+          if (freshUser) {
+            setLoggedInUser(freshUser);
+            sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
+          }
+        }
+      }
+
+      // 3. Fetch Trees
+      const treesRes = await fetch("/api/greenhero/trees");
+      if (treesRes.ok) {
+        const treesData = await treesRes.json();
+        setTrees(treesData);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(treesData));
+      }
+
+      // 4. Fetch Logs
+      const logsRes = await fetch("/api/greenhero/logs");
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        setLogs(logsData);
+        localStorage.setItem('ge_gh_logs', JSON.stringify(logsData));
+      }
+    } catch (err) {
+      console.error("Error loading Green Hero data from server:", err);
+      // local fallback
+      const savedParts = localStorage.getItem('ge_gh_participants');
+      if (savedParts) setParticipants(JSON.parse(savedParts));
+      const savedTrees = localStorage.getItem('ge_gh_trees');
+      if (savedTrees) setTrees(JSON.parse(savedTrees));
+      const savedLogs = localStorage.getItem('ge_gh_logs');
+      if (savedLogs) setLogs(JSON.parse(savedLogs));
+      const savedOverview = localStorage.getItem('ge_gh_overview');
+      if (savedOverview) setOverview(JSON.parse(savedOverview));
+    }
+  };
+
   // Core Seed Data helper
   useEffect(() => {
-    // 1. Load Overview Settings
+    // Immediate local storage fallback for performance
     const savedOverview = localStorage.getItem('ge_gh_overview');
     if (savedOverview) {
-      try {
-        setOverview(JSON.parse(savedOverview));
-      } catch (e) {}
-    } else if (settings?.greenHeroOverview) {
-      setOverview(settings.greenHeroOverview);
+      try { setOverview(JSON.parse(savedOverview)); } catch (e) {}
     }
-
-    // 2. Pre-seed Participant list if empty
     const savedParts = localStorage.getItem('ge_gh_participants');
-    let preseedParticipants = [];
-
     if (savedParts) {
-      try {
-        preseedParticipants = JSON.parse(savedParts);
-        setParticipants(preseedParticipants);
-      } catch (e) {}
-    } else {
-      localStorage.setItem('ge_gh_participants', JSON.stringify([]));
-      setParticipants([]);
+      try { setParticipants(JSON.parse(savedParts)); } catch (e) {}
     }
-
-    // 3. Pre-seed Trees list if empty
     const savedTrees = localStorage.getItem('ge_gh_trees');
     if (savedTrees) {
-      try {
-        setTrees(JSON.parse(savedTrees));
-      } catch (e) {}
-    } else {
-      localStorage.setItem('ge_gh_trees', JSON.stringify([]));
-      setTrees([]);
+      try { setTrees(JSON.parse(savedTrees)); } catch (e) {}
     }
-
-    // 4. Pre-seed Logs if empty
     const savedLogs = localStorage.getItem('ge_gh_logs');
     if (savedLogs) {
-      try {
-        setLogs(JSON.parse(savedLogs));
-      } catch (e) {}
-    } else {
-      localStorage.setItem('ge_gh_logs', JSON.stringify([]));
-      setLogs([]);
+      try { setLogs(JSON.parse(savedLogs)); } catch (e) {}
     }
 
-    // 5. Recover session if logged in
+    // Recover session if logged in
     const currentSession = sessionStorage.getItem('ge_gh_logged_in');
     if (currentSession) {
       try {
@@ -147,18 +178,14 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
         setActiveSubTab('portal');
       } catch (e) {}
     }
+
+    // Pull from server
+    loadDataFromServer();
   }, [settings]);
 
-  // Handle reload data from local storage
+  // Handle reload data
   const reloadData = () => {
-    const savedParts = localStorage.getItem('ge_gh_participants');
-    if (savedParts) setParticipants(JSON.parse(savedParts));
-    const savedTrees = localStorage.getItem('ge_gh_trees');
-    if (savedTrees) setTrees(JSON.parse(savedTrees));
-    const savedLogs = localStorage.getItem('ge_gh_logs');
-    if (savedLogs) setLogs(JSON.parse(savedLogs));
-    const savedOverview = localStorage.getItem('ge_gh_overview');
-    if (savedOverview) setOverview(JSON.parse(savedOverview));
+    loadDataFromServer();
   };
 
   // --- DYNAMIC COUNTERS & METRICS ---
@@ -322,16 +349,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       return;
     }
 
-    // Save
-    const savedParts = localStorage.getItem('ge_gh_participants');
-    let currentParts = savedParts ? JSON.parse(savedParts) : [];
-    
-    // Generate unique ID Format: GE-AT-000001
-    const nextIdNum = currentParts.length + 1;
-    const formattedId = `GE-AT-${String(nextIdNum).padStart(6, '0')}`;
-
-    const newParticipant = {
-      id: formattedId,
+    const payload = {
       name: regName.trim(),
       type: regInstType,
       institution: regInstName.trim(),
@@ -344,22 +362,37 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       password: regPassword
     };
 
-    currentParts.push(newParticipant);
-    localStorage.setItem('ge_gh_participants', JSON.stringify(currentParts));
-    setParticipants(currentParts);
+    fetch('/api/greenhero/participants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.participant) {
+          // Show success details modal
+          setShowRegSuccess(data.participant);
 
-    // Show success details modal
-    setShowRegSuccess(newParticipant);
+          // Clear form
+          setRegName('');
+          setRegInstName('');
+          setRegMobile('');
+          setRegPassword('');
+          setRegConfirmPassword('');
+          setCustomDistrict('');
+          setCustomUpazila('');
+          setIsOtherDistrict(false);
 
-    // Clear form
-    setRegName('');
-    setRegInstName('');
-    setRegMobile('');
-    setRegPassword('');
-    setRegConfirmPassword('');
-    setCustomDistrict('');
-    setCustomUpazila('');
-    setIsOtherDistrict(false);
+          // Refresh state from server
+          loadDataFromServer();
+        } else {
+          setRegError('Failed to register participant on server (সার্ভারে নিবন্ধন করতে ব্যর্থ হয়েছে)');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setRegError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
+      });
   };
 
   // Participant Login handler
@@ -465,56 +498,48 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     const finalPhoto = treePhotos[0] || treePhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
     const finalPhotos = treePhotos.length > 0 ? treePhotos : [finalPhoto];
 
-    // Save registered trees
-    const savedTrees = localStorage.getItem('ge_gh_trees');
-    let currentTrees = savedTrees ? JSON.parse(savedTrees) : [];
+    const newTreesPayload = treeRows.map((row) => ({
+      participantId: loggedInUser.id,
+      participantName: loggedInUser.name,
+      institutionName: loggedInUser.institution,
+      mobile: loggedInUser.mobile,
+      treeName: row.name.trim() || 'Custom Species (অন্যান্য প্রজাতি)',
+      quantity: Number(row.quantity),
+      treeType: row.type,
+      location: plantingAddress.trim(),
+      plantingDate: plantingDate,
+      photo: row.photo || finalPhoto,
+      photos: finalPhotos,
+      status: 'Approved' // auto-approved for client-demo flow!
+    }));
 
-    let maxIdNum = 0;
-    currentTrees.forEach((t: any) => {
-      if (typeof t.id === 'string') {
-        const match = t.id.match(/^tree-(\d+)$/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxIdNum) {
-            maxIdNum = num;
-          }
+    fetch('/api/greenhero/trees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTreesPayload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Update state to trigger counters instantly
+          setTreeRegSuccess('Trees registered successfully! (গাছগুলো সফলভাবে নিবন্ধিত হয়েছে!)');
+          
+          // Reset repeater
+          setTreeRows([{ id: 1, name: '', quantity: 1, type: 'Fruit Tree (ফলজ বৃক্ষ)', suggestions: [] }]);
+          setPlantingAddress('');
+          setTreePhoto('');
+          setTreePhotos([]);
+          
+          // Refresh parent datasets
+          loadDataFromServer();
+        } else {
+          setTreeRegError('Failed to register trees on server (সার্ভারে গাছ নিবন্ধন করতে ব্যর্থ হয়েছে)');
         }
-      }
-    });
-
-    treeRows.forEach((row, rIdx) => {
-      const nextIdNum = maxIdNum + 1 + rIdx;
-      currentTrees.push({
-        id: `tree-${nextIdNum}`,
-        participantId: loggedInUser.id,
-        participantName: loggedInUser.name,
-        institutionName: loggedInUser.institution,
-        mobile: loggedInUser.mobile,
-        treeName: row.name.trim() || 'Custom Species (অন্যান্য প্রজাতি)',
-        quantity: Number(row.quantity),
-        treeType: row.type,
-        location: plantingAddress.trim(),
-        plantingDate: plantingDate,
-        photo: row.photo || finalPhoto,
-        photos: finalPhotos,
-        status: 'Approved' // auto-approved for client-demo flow!
+      })
+      .catch(err => {
+        console.error(err);
+        setTreeRegError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
       });
-    });
-
-    localStorage.setItem('ge_gh_trees', JSON.stringify(currentTrees));
-    setTrees(currentTrees);
-
-    // Update state to trigger counters instantly
-    setTreeRegSuccess('Trees registered successfully! (গাছগুলো সফলভাবে নিবন্ধিত হয়েছে!)');
-    
-    // Reset repeater
-    setTreeRows([{ id: 1, name: '', quantity: 1, type: 'Fruit Tree (ফলজ বৃক্ষ)', suggestions: [] }]);
-    setPlantingAddress('');
-    setTreePhoto('');
-    setTreePhotos([]);
-    
-    // Refresh parent datasets
-    reloadData();
   };
 
   // Update registered tree details by participant
@@ -527,28 +552,28 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       return;
     }
 
-    const savedTrees = localStorage.getItem('ge_gh_trees');
-    if (savedTrees) {
-      let currentTrees = JSON.parse(savedTrees);
-      currentTrees = currentTrees.map((t: any) => {
-        if (t.id === editTreeParticipant.id) {
-          return {
-            ...t,
-            treeName: editTreeParticipant.treeName.trim() || t.treeName,
-            treeType: editTreeParticipant.treeType || t.treeType,
-            quantity: Number(editTreeParticipant.quantity) || t.quantity,
-            plantingDate: editTreeParticipant.plantingDate || t.plantingDate,
-            location: editTreeParticipant.location.trim() || t.location,
-            photo: editTreeParticipant.photo || t.photo
-          };
+    const payload = {
+      treeName: editTreeParticipant.treeName.trim(),
+      treeType: editTreeParticipant.treeType,
+      quantity: Number(editTreeParticipant.quantity),
+      plantingDate: editTreeParticipant.plantingDate,
+      location: editTreeParticipant.location.trim(),
+      photo: editTreeParticipant.photo
+    };
+
+    fetch(`/api/greenhero/trees/${editTreeParticipant.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setEditTreeParticipant(null);
+          loadDataFromServer();
         }
-        return t;
-      });
-      localStorage.setItem('ge_gh_trees', JSON.stringify(currentTrees));
-      setTrees(currentTrees);
-      setEditTreeParticipant(null);
-      reloadData();
-    }
+      })
+      .catch(err => console.error(err));
   };
 
   // Submit monthly log
@@ -561,17 +586,14 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     const finalLogPhoto = logPhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
 
     // Check if a log is already submitted/approved for this month
-    const savedLogs = localStorage.getItem('ge_gh_logs') ? JSON.parse(localStorage.getItem('ge_gh_logs')!) : [];
-    const existing = savedLogs.find((l: any) => l.participantId === loggedInUser.id && l.month === activeMonthTab);
+    const existing = logs.find((l: any) => l.participantId === loggedInUser.id && l.month === activeMonthTab);
 
     if (existing && (existing.status === 'Approved' || existing.status === 'Pending')) {
       setLogError(`Log for Month ${activeMonthTab} is already ${existing.status} (${activeMonthTab} মাসের লগ ইতোমধ্যে ${existing.status === 'Approved' ? 'অনুমোদিত' : 'পর্যালোচনার অপেক্ষায়'} আছে)`);
       return;
     }
 
-    // Add new log
     const newLog = {
-      id: `log-${Date.now()}`,
       participantId: loggedInUser.id,
       month: activeMonthTab,
       health: logHealth,
@@ -582,19 +604,26 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       date: new Date().toISOString().split('T')[0]
     };
 
-    // Filter out old rejected logs for same month if resubmitting
-    const filteredLogs = savedLogs.filter((l: any) => !(l.participantId === loggedInUser.id && l.month === activeMonthTab));
-    filteredLogs.push(newLog);
-
-    localStorage.setItem('ge_gh_logs', JSON.stringify(filteredLogs));
-    setLogs(filteredLogs);
-
-    setLogSuccess(`Monthly progress log submitted successfully for Month ${activeMonthTab}! It will be reviewed by administrators. (${activeMonthTab} মাসের প্রগতি লগ সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন এটি পর্যালোচনা করবেন।)`);
-    setLogComments('');
-    setLogPhoto('');
-
-    // Sync views
-    reloadData();
+    fetch('/api/greenhero/logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newLog)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setLogSuccess(`Monthly progress log submitted successfully for Month ${activeMonthTab}! It will be reviewed by administrators. (${activeMonthTab} মাসের প্রগতি লগ সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন এটি পর্যালোচনা করবেন।)`);
+          setLogComments('');
+          setLogPhoto('');
+          loadDataFromServer();
+        } else {
+          setLogError('Failed to submit monthly log to server (সার্ভারে লগ জমা করতে ব্যর্থ হয়েছে)');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setLogError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
+      });
   };
 
   // Get current participant's log status for a specific month
