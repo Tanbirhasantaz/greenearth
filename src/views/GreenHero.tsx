@@ -2098,6 +2098,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                     <option value="Medicinal Tree (ঔষধি বৃক্ষ)">Medicinal Tree (ঔষধি বৃক্ষ)</option>
                                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                                     <option value="Flower (ফুল)">Flower (ফুল)</option>
+                                    <option value="Others (অন্যান্য)">Others (অন্যান্য)</option>
                                   </select>
                                 </div>
                               </div>
@@ -2478,6 +2479,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                   <option value="Medicinal Tree (ঔষধি বৃক্ষ)">Medicinal Tree (ঔষধি বৃক্ষ)</option>
                                   <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                                   <option value="Flower (ফুল)">Flower (ফুল)</option>
+                                  <option value="Others (অন্যান্য)">Others (অন্যান্য)</option>
                                 </select>
                               </div>
 

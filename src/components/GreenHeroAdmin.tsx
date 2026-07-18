@@ -617,6 +617,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                     <option value="Flower (ফুল)">Flower (ফুল)</option>
                     <option value="Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)">Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)</option>
+                    <option value="Others (অন্যান্য)">Others (অন্যান্য)</option>
                   </select>
                 </div>
               </div>
