@@ -1287,7 +1287,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
               </div>
 
               {/* Counters Widget Grid - Highly Stylish */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
                   {
                     titleEn: 'Registered Heroes',
@@ -1316,20 +1316,6 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                     value: `${survivalRate}%`,
                     color: 'from-blue-500 to-indigo-600 shadow-blue-100',
                     icon: '📈'
-                  },
-                  {
-                    titleEn: 'Schools Connected',
-                    titleBn: 'সংযুক্ত স্কুল',
-                    value: totalSchools,
-                    color: 'from-amber-500 to-orange-600 shadow-amber-100',
-                    icon: '🏫'
-                  },
-                  {
-                    titleEn: 'Active Districts',
-                    titleBn: 'সক্রিয় জেলা',
-                    value: totalDistricts,
-                    color: 'from-purple-500 to-purple-700 shadow-purple-100',
-                    icon: '📍'
                   }
                 ].map((stat, sIdx) => (
                   <div key={sIdx} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between items-center text-center space-y-2 relative overflow-hidden group hover:scale-[1.03] transition-all border-b-4 border-emerald-600">
@@ -1598,6 +1584,12 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                   Class {grade} (শ্রেণি {grade})
                                 </option>
                               ))}
+                              <option value="University (বিশ্ববিদ্যালয়)">
+                                University (বিশ্ববিদ্যালয়)
+                              </option>
+                              <option value="Others (অন্যান্য)">
+                                Others (অন্যান্য)
+                              </option>
                             </select>
                           </div>
                         )}
