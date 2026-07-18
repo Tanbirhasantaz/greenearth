@@ -335,6 +335,8 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     setSuspendConfirmPart(null);
   };
 
+
+
   // --- CSV EXPORTER ---
   const downloadCSV = (type: 'participants' | 'trees' | 'logs') => {
     let csvContent = '';
@@ -770,11 +772,13 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
               </div>
               <button 
                 onClick={() => setActiveSubTab('logs')}
-                className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-5 rounded-full text-xs font-bold cursor-pointer transition-colors"
+                className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-5 rounded-full text-xs font-bold cursor-pointer transition-colors shrink-0"
               >
                 Go to Logs Review ({pendingLogsCount} Pending)
               </button>
             </div>
+
+
           </div>
         )}
 
@@ -815,57 +819,69 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   {participants.filter(p => 
                     p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
                     p.name.toLowerCase().includes(partSearch.toLowerCase())
-                  ).map((p, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
-                      <td className="py-3.5 px-4 text-gray-900">{p.name}</td>
-                      <td className="py-3.5 px-4 text-gray-500">
-                        {p.institution} <span className="block text-[10px] text-gray-400 font-normal">{p.grade || 'N/A'}</span>
-                      </td>
-                      <td className="py-3.5 px-4 text-gray-500">
-                        {p.upazila}, {p.district}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono">{p.mobile}</td>
-                      <td className="py-3.5 px-4 font-mono">{p.regDate}</td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`py-0.5 px-2 rounded-full font-bold text-[9px] uppercase tracking-wider ${
-                          p.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
-                        <button
-                          onClick={() => setEditPartModal({ ...p })}
-                          className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
-                          title="Edit Participant Details"
-                        >
-                          ✏️ Edit (সম্পাদনা)
-                        </button>
-                        {p.status !== 'Approved' ? (
-                          <button
-                            onClick={() => handleUpdatePartStatus(p.id, 'Approved')}
-                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1 px-2 rounded-md"
-                          >
-                            Approve
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleUpdatePartStatus(p.id, 'Suspended')}
-                            className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded-md"
-                          >
-                            Suspend
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setDeleteConfirmPart(p)}
-                          className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md"
-                        >
-                          ✕ Delete
-                        </button>
+                  ).length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-gray-400 font-bold font-sans">
+                        <Users size={32} className="mx-auto text-gray-300 mb-2" />
+                        No participants registered. (কোনো অংশগ্রহণকারী পাওয়া যায়নি।)
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    participants.filter(p => 
+                      p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
+                      p.name.toLowerCase().includes(partSearch.toLowerCase())
+                    ).map((p, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50">
+                        <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
+                        <td className="py-3.5 px-4 text-gray-900">{p.name}</td>
+                        <td className="py-3.5 px-4 text-gray-500">
+                          {p.institution} <span className="block text-[10px] text-gray-400 font-normal">{p.grade || 'N/A'}</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-gray-500">
+                          {p.upazila}, {p.district}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono">{p.mobile}</td>
+                        <td className="py-3.5 px-4 font-mono">{p.regDate}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`py-0.5 px-2 rounded-full font-bold text-[9px] uppercase tracking-wider ${
+                            p.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {p.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setEditPartModal({ ...p })}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
+                            title="Edit Participant Details"
+                          >
+                            ✏️ Edit (সম্পাদনা)
+                          </button>
+                          {p.status !== 'Approved' ? (
+                            <button
+                              onClick={() => handleUpdatePartStatus(p.id, 'Approved')}
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1 px-2 rounded-md"
+                            >
+                              Approve
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleUpdatePartStatus(p.id, 'Suspended')}
+                              className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded-md"
+                            >
+                              Suspend
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDeleteConfirmPart(p)}
+                            className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md"
+                          >
+                            ✕ Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -911,46 +927,58 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   {trees.filter(t => 
                     t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
                     t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
-                  ).map((t, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="py-3.5 px-4 font-mono font-bold text-gray-500">{t.id}</td>
-                      <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{t.participantId}</td>
-                      <td className="py-3.5 px-4 text-gray-900">{t.participantName}</td>
-                      <td className="py-3.5 px-4 text-[#1F5E2E] font-bold">{t.treeName}</td>
-                      <td className="py-3.5 px-4 text-center font-mono font-bold">{t.quantity}</td>
-                      <td className="py-3.5 px-4 text-gray-500">{t.treeType}</td>
-                      <td className="py-3.5 px-4 font-mono">{t.plantingDate}</td>
-                      <td className="py-3.5 px-4 text-gray-500 max-w-[150px] truncate" title={t.location}>{t.location}</td>
-                      <td className="py-3.5 px-4 text-center">
-                        {t.photo ? (
-                          <button
-                            onClick={() => setZoomImg(t.photo)}
-                            className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-[#1F5E2E] p-1 rounded-lg border border-emerald-200/50"
-                            title="View Tree Photo"
-                          >
-                            <img src={t.photo} alt="sapling" referrerPolicy="no-referrer" className="w-8 h-8 rounded object-cover" />
-                            <Eye size={10} />
-                          </button>
-                        ) : 'No Image'}
-                      </td>
-                      <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
-                        <button
-                          onClick={() => setEditTreeModal({ ...t })}
-                          className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
-                          title="Edit Tree Details"
-                        >
-                          ✏️ Edit (সম্পাদনা)
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmTree(t)}
-                          className="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-1 px-2 rounded-md transition-colors"
-                          title="Delete Tree Details"
-                        >
-                          ✕ Delete (মুছে ফেলুন)
-                        </button>
+                  ).length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-gray-400 font-bold font-sans">
+                        <Trees size={32} className="mx-auto text-gray-300 mb-2" />
+                        No trees registered. (কোনো গাছ রেজিস্ট্রি পাওয়া যায়নি।)
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    trees.filter(t => 
+                      t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
+                      t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
+                    ).map((t, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50">
+                        <td className="py-3.5 px-4 font-mono font-bold text-gray-500">{t.id}</td>
+                        <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{t.participantId}</td>
+                        <td className="py-3.5 px-4 text-gray-900">{t.participantName}</td>
+                        <td className="py-3.5 px-4 text-[#1F5E2E] font-bold">{t.treeName}</td>
+                        <td className="py-3.5 px-4 text-center font-mono font-bold">{t.quantity}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{t.treeType}</td>
+                        <td className="py-3.5 px-4 font-mono">{t.plantingDate}</td>
+                        <td className="py-3.5 px-4 text-gray-500 max-w-[150px] truncate" title={t.location}>{t.location}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          {t.photo ? (
+                            <button
+                              onClick={() => setZoomImg(t.photo)}
+                              className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-[#1F5E2E] p-1 rounded-lg border border-emerald-200/50"
+                              title="View Tree Photo"
+                            >
+                              <img src={t.photo} alt="sapling" referrerPolicy="no-referrer" className="w-8 h-8 rounded object-cover" />
+                              <Eye size={10} />
+                            </button>
+                          ) : 'No Image'}
+                        </td>
+                        <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setEditTreeModal({ ...t })}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
+                            title="Edit Tree Details"
+                          >
+                            ✏️ Edit (সম্পাদনা)
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmTree(t)}
+                            className="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-1 px-2 rounded-md transition-colors"
+                            title="Delete Tree Details"
+                          >
+                            ✕ Delete (মুছে ফেলুন)
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

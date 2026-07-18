@@ -106,138 +106,26 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     // 2. Pre-seed Participant list if empty
     const savedParts = localStorage.getItem('ge_gh_participants');
     let preseedParticipants = [];
+
     if (savedParts) {
       try {
         preseedParticipants = JSON.parse(savedParts);
         setParticipants(preseedParticipants);
       } catch (e) {}
     } else {
-      preseedParticipants = [
-        {
-          id: 'GE-AT-000001',
-          name: 'Sumaiya Akter (সুমাইয়া আক্তার)',
-          type: 'student',
-          institution: 'Bogura Zilla School (বগুড়া জিলা স্কুল)',
-          grade: 'Class 8 (শ্রেণি ৮)',
-          mobile: '01712345678',
-          district: 'Bogura (বগুড়া)',
-          upazila: 'Adamdighi (আদমদীঘি)',
-          regDate: '2026-06-15',
-          status: 'Approved',
-          password: 'password123'
-        },
-        {
-          id: 'GE-AT-000002',
-          name: 'Sajjad Rahman (সাজ্জাদ রহমান)',
-          type: 'student',
-          institution: 'Adamdighi Pilot High School (আদমদীঘি পাইলট উচ্চ বিদ্যালয়)',
-          grade: 'Class 10 (শ্রেণি ১০)',
-          mobile: '01912345678',
-          district: 'Bogura (বগুড়া)',
-          upazila: 'Adamdighi (আদমদীঘি)',
-          regDate: '2026-06-16',
-          status: 'Approved',
-          password: 'password123'
-        },
-        {
-          id: 'GE-AT-000003',
-          name: 'Tasnim Ahmed (তাসনিম আহমেদ)',
-          type: 'volunteer',
-          institution: 'Bogura Govt College (বগুড়া সরকারি কলেজ)',
-          grade: '',
-          mobile: '01812345678',
-          district: 'Bogura (বগুড়া)',
-          upazila: 'Adamdighi (আদমদীঘি)',
-          regDate: '2026-06-17',
-          status: 'Approved',
-          password: 'password123'
-        },
-        {
-          id: 'GE-AT-000004',
-          name: 'Tanvir Islam (তানভীর ইসলাম)',
-          type: 'student',
-          institution: 'Adamdighi Girls High School (আদমদীঘি বালিকা উচ্চ বিদ্যালয়)',
-          grade: 'Class 9 (শ্রেণি ৯)',
-          mobile: '01512345678',
-          district: 'Bogura (বগুড়া)',
-          upazila: 'Adamdighi (আদমদীঘি)',
-          regDate: '2026-06-18',
-          status: 'Approved',
-          password: 'password123'
-        },
-        {
-          id: 'GE-AT-000005',
-          name: 'Farhana Yesmin (ফারহানা ইয়াসমিন)',
-          type: 'volunteer',
-          institution: 'Adamdighi College (আদমদীঘি কলেজ)',
-          grade: '',
-          mobile: '01612345678',
-          district: 'Bogura (বগুড়া)',
-          upazila: 'Adamdighi (আদমদীঘি)',
-          regDate: '2026-06-19',
-          status: 'Approved',
-          password: 'password123'
-        }
-      ];
-      localStorage.setItem('ge_gh_participants', JSON.stringify(preseedParticipants));
-      setParticipants(preseedParticipants);
+      localStorage.setItem('ge_gh_participants', JSON.stringify([]));
+      setParticipants([]);
     }
 
     // 3. Pre-seed Trees list if empty
     const savedTrees = localStorage.getItem('ge_gh_trees');
-    let preseedTrees = [];
     if (savedTrees) {
       try {
-        preseedTrees = JSON.parse(savedTrees);
-        setTrees(preseedTrees);
+        setTrees(JSON.parse(savedTrees));
       } catch (e) {}
     } else {
-      // Preseed 5 trees for each of the 5 preseeded participants
-      const speciesList = [
-        { name: 'Mango (আম)', type: 'Fruit Tree (ফলজ বৃক্ষ)' },
-        { name: 'Guava (পেয়ারা)', type: 'Fruit Tree (ফলজ বৃক্ষ)' },
-        { name: 'Neem (নিম)', type: 'Medicinal Tree (ঔষধি বৃক্ষ)' },
-        { name: 'Amla (আমলকী)', type: 'Medicinal Tree (ঔষধি বৃক্ষ)' },
-        { name: 'Jackfruit (কাঁঠাল)', type: 'Fruit Tree (ফলজ বৃক্ষ)' }
-      ];
-      
-      const locations = [
-        'School Yard (স্কুল মাঠ)',
-        'Home Garden (বাড়ির বাগান)',
-        'Roadside Space (রাস্তার পার্শ্ববর্তী জায়গা)',
-        'Village Yard (গ্রামের উঠান)',
-        'School Yard (স্কুল মাঠ)'
-      ];
-
-      const images = [
-        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400&q=80',
-        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=400&q=80',
-        'https://images.unsplash.com/photo-1525498122383-30000721e1bf?w=400&q=80',
-        'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=400&q=80',
-        'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&q=80'
-      ];
-
-      let treeIdCounter = 1;
-      preseedParticipants.forEach((p, pIdx) => {
-        speciesList.forEach((sp, sIdx) => {
-          preseedTrees.push({
-            id: `tree-${treeIdCounter++}`,
-            participantId: p.id,
-            participantName: p.name,
-            institutionName: p.institution,
-            mobile: p.mobile,
-            treeName: sp.name,
-            quantity: 1,
-            treeType: sp.type,
-            location: locations[(pIdx + sIdx) % locations.length],
-            plantingDate: '2026-06-15',
-            photo: images[sIdx % images.length],
-            status: 'Approved'
-          });
-        });
-      });
-      localStorage.setItem('ge_gh_trees', JSON.stringify(preseedTrees));
-      setTrees(preseedTrees);
+      localStorage.setItem('ge_gh_trees', JSON.stringify([]));
+      setTrees([]);
     }
 
     // 4. Pre-seed Logs if empty
@@ -247,34 +135,8 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
         setLogs(JSON.parse(savedLogs));
       } catch (e) {}
     } else {
-      const preseedLogs: any[] = [];
-      const images = [
-        'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400&q=80',
-        'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=400&q=80',
-        'https://images.unsplash.com/photo-1525498122383-30000721e1bf?w=400&q=80'
-      ];
-
-      // GE-AT-000001: Month 1, Month 2, Month 3 Completed & Approved (Eligible for certificate!)
-      preseedLogs.push(
-        { id: 'log-1', participantId: 'GE-AT-000001', month: 1, health: 'Growing Well (ভালোভাবে বেড়ে উঠছে)', photo: images[0], comments: 'Watered daily. New leaves growing.', status: 'Approved', remarks: 'Good job!', date: '2026-06-30' },
-        { id: 'log-2', participantId: 'GE-AT-000001', month: 2, health: 'Growing Well (ভালোভাবে বেড়ে উঠছে)', photo: images[1], comments: 'Fertilized. Tall stem.', status: 'Approved', remarks: 'Very nice progression.', date: '2026-07-15' },
-        { id: 'log-3', participantId: 'GE-AT-000001', month: 3, health: 'Growing Well (ভালোভাবে বেড়ে উঠছে)', photo: images[2], comments: 'Nurtured beautifully. It is now stable!', status: 'Approved', remarks: 'Outstanding Green Hero!', date: '2026-07-17' }
-      );
-
-      // GE-AT-000002: Month 1 & 2 Approved, Month 3 is Submitted (Pending admin approval!)
-      preseedLogs.push(
-        { id: 'log-4', participantId: 'GE-AT-000002', month: 1, health: 'Growing Well (ভালোভাবে বেড়ে উঠছে)', photo: images[1], comments: 'Watered morning and night.', status: 'Approved', remarks: 'Good.', date: '2026-06-29' },
-        { id: 'log-5', participantId: 'GE-AT-000002', month: 2, health: 'Alive (বেঁচে আছে)', photo: images[2], comments: 'Attacked by bugs, but treated with neem extract.', status: 'Approved', remarks: 'Great care using organic methods!', date: '2026-07-14' },
-        { id: 'log-6', participantId: 'GE-AT-000002', month: 3, health: 'Growing Well (ভালোভাবে বেড়ে উঠছে)', photo: images[0], comments: 'Completely recovered and thriving!', status: 'Pending', remarks: '', date: '2026-07-17' }
-      );
-
-      // GE-AT-000003: Month 1 Approved, Month 2 Due/Pending resubmission
-      preseedLogs.push(
-        { id: 'log-7', participantId: 'GE-AT-000003', month: 1, health: 'Alive (বেঁচে আছে)', photo: images[2], comments: 'Healthy plant.', status: 'Approved', remarks: 'Approved.', date: '2026-07-02' }
-      );
-
-      localStorage.setItem('ge_gh_logs', JSON.stringify(preseedLogs));
-      setLogs(preseedLogs);
+      localStorage.setItem('ge_gh_logs', JSON.stringify([]));
+      setLogs([]);
     }
 
     // 5. Recover session if logged in
