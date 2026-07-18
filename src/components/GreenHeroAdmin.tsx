@@ -71,105 +71,47 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   const [certFontSize, setCertFontSize] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_font_size')) || 36);
   const [certColor, setCertColor] = useState<string>(() => localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20');
 
-  // Load all records from Server
-  const loadAllData = async () => {
-    try {
-      // 1. Fetch Overview Settings
-      const overviewRes = await fetch("/api/greenhero/overview");
-      if (overviewRes.ok) {
-        const overviewData = await overviewRes.json();
-        if (overviewData && typeof overviewData === 'object') {
-          setOverview(overviewData);
-          setTitleEn(overviewData.titleEn || '');
-          setTitleBn(overviewData.titleBn || '');
-          setSubtitleEn(overviewData.subtitleEn || '');
-          setSubtitleBn(overviewData.subtitleBn || '');
-          setDescEn(overviewData.descriptionEn || '');
-          setDescBn(overviewData.descriptionBn || '');
-          localStorage.setItem('ge_gh_overview', JSON.stringify(overviewData));
-        }
-      }
-
-      // 2. Fetch Participants
-      const partsRes = await fetch("/api/greenhero/participants");
-      if (partsRes.ok) {
-        const partsData = await partsRes.json();
-        if (Array.isArray(partsData)) {
-          setParticipants(partsData);
-          localStorage.setItem('ge_gh_participants', JSON.stringify(partsData));
-        } else {
-          setParticipants([]);
-        }
-      }
-
-      // 3. Fetch Trees
-      const treesRes = await fetch("/api/greenhero/trees");
-      if (treesRes.ok) {
-        const treesData = await treesRes.json();
-        if (Array.isArray(treesData)) {
-          setTrees(treesData);
-          localStorage.setItem('ge_gh_trees', JSON.stringify(treesData));
-        } else {
-          setTrees([]);
-        }
-      }
-
-      // 4. Fetch Logs
-      const logsRes = await fetch("/api/greenhero/logs");
-      if (logsRes.ok) {
-        const logsData = await logsRes.json();
-        if (Array.isArray(logsData)) {
-          setLogs(logsData);
-          localStorage.setItem('ge_gh_logs', JSON.stringify(logsData));
-        } else {
-          setLogs([]);
-        }
-      }
-    } catch (err) {
-      console.error("Error loading admin Green Hero data from server:", err);
-      // Fallback
-      const savedParts = localStorage.getItem('ge_gh_participants');
-      if (savedParts) {
-        try {
-          const parsed = JSON.parse(savedParts);
-          setParticipants(Array.isArray(parsed) ? parsed : []);
-        } catch (e) {
-          setParticipants([]);
-        }
-      }
-      const savedTrees = localStorage.getItem('ge_gh_trees');
-      if (savedTrees) {
-        try {
-          const parsed = JSON.parse(savedTrees);
-          setTrees(Array.isArray(parsed) ? parsed : []);
-        } catch (e) {
-          setTrees([]);
-        }
-      }
-      const savedLogs = localStorage.getItem('ge_gh_logs');
-      if (savedLogs) {
-        try {
-          const parsed = JSON.parse(savedLogs);
-          setLogs(Array.isArray(parsed) ? parsed : []);
-        } catch (e) {
-          setLogs([]);
-        }
-      }
-      const savedOverview = localStorage.getItem('ge_gh_overview');
-      if (savedOverview) {
-        try {
-          const parsed = JSON.parse(savedOverview);
-          if (parsed && typeof parsed === 'object') {
-            setOverview(parsed);
-            setTitleEn(parsed.titleEn || '');
-            setTitleBn(parsed.titleBn || '');
-            setSubtitleEn(parsed.subtitleEn || '');
-            setSubtitleBn(parsed.subtitleBn || '');
-            setDescEn(parsed.descriptionEn || '');
-            setDescBn(parsed.descriptionBn || '');
-          }
-        } catch (e) {}
-      }
+  // Load all records
+  const loadAllData = () => {
+    const savedParts = localStorage.getItem('ge_gh_participants');
+    if (savedParts) {
+      try {
+        setParticipants(JSON.parse(savedParts));
+      } catch (e) {}
+    }
+    const savedTrees = localStorage.getItem('ge_gh_trees');
+    if (savedTrees) {
+      try {
+        setTrees(JSON.parse(savedTrees));
+      } catch (e) {}
+    }
+    const savedLogs = localStorage.getItem('ge_gh_logs');
+    if (savedLogs) {
+      try {
+        setLogs(JSON.parse(savedLogs));
+      } catch (e) {}
+    }
+    const savedOverview = localStorage.getItem('ge_gh_overview');
+    if (savedOverview) {
+      try {
+        const parsed = JSON.parse(savedOverview);
+        setOverview(parsed);
+        // Sync editor
+        setTitleEn(parsed.titleEn || '');
+        setTitleBn(parsed.titleBn || '');
+        setSubtitleEn(parsed.subtitleEn || '');
+        setSubtitleBn(parsed.subtitleBn || '');
+        setDescEn(parsed.descriptionEn || '');
+        setDescBn(parsed.descriptionBn || '');
+      } catch (e) {}
+    } else {
+      // Sync defaults
+      setTitleEn(overview.titleEn);
+      setTitleBn(overview.titleBn);
+      setSubtitleEn(overview.subtitleEn);
+      setSubtitleBn(overview.subtitleBn);
+      setDescEn(overview.descriptionEn);
+      setDescBn(overview.descriptionBn);
     }
   };
 
@@ -191,50 +133,35 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       descriptionBn: descBn.trim()
     };
 
-    fetch('/api/greenhero/overview', {
+    localStorage.setItem('ge_gh_overview', JSON.stringify(updated));
+    setOverview(updated);
+
+    // Save as dynamic field in settings.json via API as a fallback
+    fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated)
+      body: JSON.stringify({ greenHeroOverview: updated })
     })
       .then(res => res.json())
-      .then(() => {
-        setOverview(updated);
-        localStorage.setItem('ge_gh_overview', JSON.stringify(updated));
-        
-        // Also keep settings.json in sync for fallback
-        fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ greenHeroOverview: updated })
-        }).catch(err => console.log(err));
+      .then(() => {})
+      .catch(err => console.log('Settings fallback server save:', err));
 
-        setSuccessBanner('Project Overview content updated successfully! (প্রকল্পের ওভারভিউ সফলভাবে আপডেট করা হয়েছে!)');
-        setTimeout(() => setSuccessBanner(''), 4000);
-        loadAllData();
-      })
-      .catch(err => {
-        console.error(err);
-        setSuccessBanner('Failed to update project overview. (প্রকল্পের ওভারভিউ আপডেট করতে ব্যর্থ হয়েছে।)');
-        setTimeout(() => setSuccessBanner(''), 4000);
-      });
+    setSuccessBanner('Project Overview content updated successfully! (প্রকল্পের ওভারভিউ সফলভাবে আপডেট করা হয়েছে!)');
+    setTimeout(() => setSuccessBanner(''), 4000);
   };
 
   // --- PARTICIPANT MANAGEMENT ACTIONS ---
   const handleUpdatePartStatus = (id: string, newStatus: 'Approved' | 'Suspended') => {
-    fetch(`/api/greenhero/participants/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setSuccessBanner(`Participant ${id} status updated to ${newStatus}.`);
-          setTimeout(() => setSuccessBanner(''), 3000);
-          loadAllData();
-        }
-      })
-      .catch(err => console.error(err));
+    const updated = participants.map(p => {
+      if (p.id === id) {
+        return { ...p, status: newStatus };
+      }
+      return p;
+    });
+    localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
+    setParticipants(updated);
+    setSuccessBanner(`Participant ${id} status updated to ${newStatus}.`);
+    setTimeout(() => setSuccessBanner(''), 3000);
   };
 
   // --- CUSTOM CERTIFICATE TEMPLATE HANDLERS ---
@@ -288,77 +215,57 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   const handleDeletePart = (id: string) => {
-    fetch(`/api/greenhero/participants/${id}`, {
-      method: 'DELETE'
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setSuccessBanner(`Participant ${id} has been deleted successfully. (অংশগ্রহণকারী ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
-          setTimeout(() => setSuccessBanner(''), 4000);
-          setDeleteConfirmPart(null);
-          loadAllData();
-        }
-      })
-      .catch(err => console.error(err));
+    const filtered = participants.filter(p => p.id !== id);
+    localStorage.setItem('ge_gh_participants', JSON.stringify(filtered));
+    setParticipants(filtered);
+    setSuccessBanner(`Participant ${id} has been deleted successfully. (অংশগ্রহণকারী ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
+    setTimeout(() => setSuccessBanner(''), 4000);
+    setDeleteConfirmPart(null);
   };
 
   const handleSaveParticipant = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editPartModal) return;
 
-    fetch(`/api/greenhero/participants/${editPartModal.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editPartModal)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setEditPartModal(null);
-          setSuccessBanner('Participant information updated successfully! (অংশগ্রহণকারীর তথ্য সফলভাবে আপডেট করা হয়েছে!)');
-          setTimeout(() => setSuccessBanner(''), 4000);
-          loadAllData();
-        }
-      })
-      .catch(err => console.error(err));
+    const updated = participants.map(p => {
+      if (p.id === editPartModal.id) {
+        return { ...editPartModal };
+      }
+      return p;
+    });
+
+    localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
+    setParticipants(updated);
+    setEditPartModal(null);
+    setSuccessBanner('Participant information updated successfully! (অংশগ্রহণকারীর তথ্য সফলভাবে আপডেট করা হয়েছে!)');
+    setTimeout(() => setSuccessBanner(''), 4000);
   };
 
   const handleSaveTree = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTreeModal) return;
 
-    fetch(`/api/greenhero/trees/${editTreeModal.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editTreeModal)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setEditTreeModal(null);
-          setSuccessBanner('Tree registry information updated successfully! (গাছ তথ্য সফলভাবে আপডেট করা হয়েছে!)');
-          setTimeout(() => setSuccessBanner(''), 4000);
-          loadAllData();
-        }
-      })
-      .catch(err => console.error(err));
+    const updated = trees.map(t => {
+      if (t.id === editTreeModal.id) {
+        return { ...editTreeModal };
+      }
+      return t;
+    });
+
+    localStorage.setItem('ge_gh_trees', JSON.stringify(updated));
+    setTrees(updated);
+    setEditTreeModal(null);
+    setSuccessBanner('Tree registry information updated successfully! (গাছ তথ্য সফলভাবে আপডেট করা হয়েছে!)');
+    setTimeout(() => setSuccessBanner(''), 4000);
   };
 
   const handleDeleteTree = (id: string) => {
-    fetch(`/api/greenhero/trees/${id}`, {
-      method: 'DELETE'
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setSuccessBanner(`Tree record ${id} has been deleted successfully. (গাছ রেকর্ড ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
-          setTimeout(() => setSuccessBanner(''), 4000);
-          setDeleteConfirmTree(null);
-          loadAllData();
-        }
-      })
-      .catch(err => console.error(err));
+    const filtered = trees.filter(t => t.id !== id);
+    localStorage.setItem('ge_gh_trees', JSON.stringify(filtered));
+    setTrees(filtered);
+    setSuccessBanner(`Tree record ${id} has been deleted successfully. (গাছ রেকর্ড ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
+    setTimeout(() => setSuccessBanner(''), 4000);
+    setDeleteConfirmTree(null);
   };
 
   const handleTreePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -381,25 +288,25 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   // --- LOG AUDIT ACTIONS (APPROVE/REJECT) ---
   const handleAuditLog = (logId: string, isApproved: boolean) => {
     const remark = remarksInput[logId] || '';
-    const status = isApproved ? 'Approved' : 'Rejected';
-    const remarks = remark.trim() || (isApproved ? 'Approved by Admin (অ্যাডমিন কর্তৃক অনুমোদিত)' : 'Rejected by Admin (অ্যাডমিন কর্তৃক বাতিল)');
+    const updatedLogs = logs.map(l => {
+      if (l.id === logId) {
+        return { 
+          ...l, 
+          status: isApproved ? 'Approved' : 'Rejected',
+          remarks: remark.trim() || (isApproved ? 'Approved by Admin (অ্যাডমিন কর্তৃক অনুমোদিত)' : 'Rejected by Admin (অ্যাডমিন কর্তৃক বাতিল)')
+        };
+      }
+      return l;
+    });
 
-    fetch(`/api/greenhero/logs/${logId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, remarks })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Clear remarks input
-          setRemarksInput(prev => ({ ...prev, [logId]: '' }));
-          setSuccessBanner(`Log reviewed successfully! (লগ সফলভাবে পর্যালোচনা করা হয়েছে!)`);
-          setTimeout(() => setSuccessBanner(''), 4000);
-          loadAllData();
-        }
-      })
-      .catch(err => console.error(err));
+    localStorage.setItem('ge_gh_logs', JSON.stringify(updatedLogs));
+    setLogs(updatedLogs);
+    
+    // Clear remarks input
+    setRemarksInput(prev => ({ ...prev, [logId]: '' }));
+
+    setSuccessBanner(`Log reviewed successfully! (লগ সফলভাবে পর্যালোচনা করা হয়েছে!)`);
+    setTimeout(() => setSuccessBanner(''), 4000);
   };
 
   const handleDeleteLog = (logId: string) => {
@@ -410,23 +317,16 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   const executeDeleteLog = (logId: string) => {
-    fetch(`/api/greenhero/logs/${logId}`, {
-      method: 'DELETE'
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setDeleteConfirmLog(null);
-          setSuccessBanner('Log deleted successfully. (প্রগতি লগটি সফলভাবে ডিলিট করা হয়েছে।)');
-          setTimeout(() => setSuccessBanner(''), 3000);
-          loadAllData();
-        }
-      })
-      .catch(err => console.error(err));
+    const updatedLogs = logs.filter(l => l.id !== logId);
+    localStorage.setItem('ge_gh_logs', JSON.stringify(updatedLogs));
+    setLogs(updatedLogs);
+    setDeleteConfirmLog(null);
+    setSuccessBanner('Log deleted successfully. (প্রগতি লগটি সফলভাবে ডিলিট করা হয়েছে।)');
+    setTimeout(() => setSuccessBanner(''), 3000);
   };
 
   const handleSuspendParticipantFromLog = (participantId: string) => {
-    const targetPart = safeParticipants.find(p => p && p.id === participantId) || { id: participantId, name: participantId };
+    const targetPart = participants.find(p => p.id === participantId) || { id: participantId, name: participantId };
     setSuspendConfirmPart(targetPart);
   };
 
@@ -437,11 +337,6 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
 
 
-  // --- SAFE BOUNDS FOR ALL DATASETS ---
-  const safeParticipants = Array.isArray(participants) ? participants.filter(Boolean) : [];
-  const safeTrees = Array.isArray(trees) ? trees.filter(Boolean) : [];
-  const safeLogs = Array.isArray(logs) ? logs.filter(Boolean) : [];
-
   // --- CSV EXPORTER ---
   const downloadCSV = (type: 'participants' | 'trees' | 'logs') => {
     let csvContent = '';
@@ -450,20 +345,20 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     if (type === 'participants') {
       fileName = 'green_hero_participants.csv';
       csvContent = 'Participant ID,Name,Type,Institution,Class/Grade,Mobile,District,Upazila,Registered Date,Status\n';
-      safeParticipants.forEach(p => {
-        csvContent += `"${p.id || ''}","${p.name || ''}","${p.type || ''}","${p.institution || ''}","${p.grade || ''}","${p.mobile || ''}","${p.district || ''}","${p.upazila || ''}","${p.regDate || ''}","${p.status || ''}"\n`;
+      participants.forEach(p => {
+        csvContent += `"${p.id}","${p.name}","${p.type}","${p.institution}","${p.grade || ''}","${p.mobile}","${p.district}","${p.upazila}","${p.regDate}","${p.status}"\n`;
       });
     } else if (type === 'trees') {
       fileName = 'green_hero_tree_registry.csv';
       csvContent = 'Tree ID,Participant ID,Participant Name,Tree Name,Quantity,Type,Location,Planting Date,Status\n';
-      safeTrees.forEach(t => {
-        csvContent += `"${t.id || ''}","${t.participantId || ''}","${t.participantName || ''}","${t.treeName || ''}","${Number(t.quantity) || 0}","${t.treeType || ''}","${t.location || ''}","${t.plantingDate || ''}","${t.status || ''}"\n`;
+      trees.forEach(t => {
+        csvContent += `"${t.id}","${t.participantId}","${t.participantName}","${t.treeName}","${t.quantity}","${t.treeType}","${t.location}","${t.plantingDate}","${t.status}"\n`;
       });
     } else if (type === 'logs') {
       fileName = 'green_hero_monitoring_logs.csv';
       csvContent = 'Log ID,Participant ID,Month,Health,Comments,Status,Admin Remarks,Date\n';
-      safeLogs.forEach(l => {
-        csvContent += `"${l.id || ''}","${l.participantId || ''}","${l.month || ''}","${l.health || ''}","${l.comments || ''}","${l.status || ''}","${l.remarks || ''}","${l.date || ''}"\n`;
+      logs.forEach(l => {
+        csvContent += `"${l.id}","${l.participantId}","${l.month}","${l.health}","${l.comments}","${l.status}","${l.remarks || ''}","${l.date}"\n`;
       });
     }
 
@@ -479,27 +374,27 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   // Filter logs for view
-  const filteredLogs = safeLogs.filter(l => {
+  const filteredLogs = logs.filter(l => {
     if (logStatusFilter === 'All') return true;
     return l.status === logStatusFilter;
   });
 
   // Calculate stats
-  const totalPartsCount = safeParticipants.length;
-  const totalTreesCount = safeTrees.reduce((sum, t) => sum + (Number(t.quantity) || 0), 0);
-  const pendingLogsCount = safeLogs.filter(l => l.status === 'Pending').length;
+  const totalPartsCount = participants.length;
+  const totalTreesCount = trees.reduce((sum, t) => sum + t.quantity, 0);
+  const pendingLogsCount = logs.filter(l => l.status === 'Pending').length;
   
   // Surviving count
-  const deadParts = safeLogs.filter(l => l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
-  const totalSurviving = safeTrees.reduce((sum, t) => {
+  const deadParts = logs.filter(l => l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
+  const totalSurviving = trees.reduce((sum, t) => {
     if (deadParts.includes(t.participantId)) return sum;
-    return sum + (Number(t.quantity) || 0);
+    return sum + t.quantity;
   }, 0);
   
   const survivalRate = totalTreesCount > 0 ? Math.round((totalSurviving / totalTreesCount) * 100) : 100;
 
   // Active schools
-  const totalSchools = Array.from(new Set(safeParticipants.filter(p => p.type === 'student').map(p => p.institution || ''))).filter(Boolean).length;
+  const totalSchools = Array.from(new Set(participants.filter(p => p.type === 'student').map(p => p.institution))).length;
 
   return (
     <div className="space-y-8 font-anek text-sm md:text-base" id="green-hero-admin-center">
@@ -722,7 +617,6 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                     <option value="Flower (ফুল)">Flower (ফুল)</option>
                     <option value="Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)">Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)</option>
-                    <option value="Others (অন্যান্য)">Others (অন্যান্য)</option>
                   </select>
                 </div>
               </div>
@@ -922,11 +816,9 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {safeParticipants.filter(p => 
-                    p && (
-                      String(p.id || '').toLowerCase().includes(partSearch.toLowerCase()) ||
-                      String(p.name || '').toLowerCase().includes(partSearch.toLowerCase())
-                    )
+                  {participants.filter(p => 
+                    p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
+                    p.name.toLowerCase().includes(partSearch.toLowerCase())
                   ).length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-12 text-center text-gray-400 font-bold font-sans">
@@ -935,11 +827,9 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                       </td>
                     </tr>
                   ) : (
-                    safeParticipants.filter(p => 
-                      p && (
-                        String(p.id || '').toLowerCase().includes(partSearch.toLowerCase()) ||
-                        String(p.name || '').toLowerCase().includes(partSearch.toLowerCase())
-                      )
+                    participants.filter(p => 
+                      p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
+                      p.name.toLowerCase().includes(partSearch.toLowerCase())
                     ).map((p, idx) => (
                       <tr key={idx} className="hover:bg-gray-50/50">
                         <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
@@ -1034,11 +924,9 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {safeTrees.filter(t => 
-                    t && (
-                      String(t.treeName || '').toLowerCase().includes(treeSearch.toLowerCase()) ||
-                      String(t.participantId || '').toLowerCase().includes(treeSearch.toLowerCase())
-                    )
+                  {trees.filter(t => 
+                    t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
+                    t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
                   ).length === 0 ? (
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-gray-400 font-bold font-sans">
@@ -1047,11 +935,9 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                       </td>
                     </tr>
                   ) : (
-                    safeTrees.filter(t => 
-                      t && (
-                        String(t.treeName || '').toLowerCase().includes(treeSearch.toLowerCase()) ||
-                        String(t.participantId || '').toLowerCase().includes(treeSearch.toLowerCase())
-                      )
+                    trees.filter(t => 
+                      t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
+                      t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
                     ).map((t, idx) => (
                       <tr key={idx} className="hover:bg-gray-50/50">
                         <td className="py-3.5 px-4 font-mono font-bold text-gray-500">{t.id}</td>
@@ -1424,10 +1310,10 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {safeParticipants.map((p, idx) => {
-                    const m1 = safeLogs.find(l => l && l.participantId === p.id && l.month === 1)?.status || 'None';
-                    const m2 = safeLogs.find(l => l && l.participantId === p.id && l.month === 2)?.status || 'None';
-                    const m3 = safeLogs.find(l => l && l.participantId === p.id && l.month === 3)?.status || 'None';
+                  {participants.map((p, idx) => {
+                    const m1 = logs.find(l => l.participantId === p.id && l.month === 1)?.status || 'None';
+                    const m2 = logs.find(l => l.participantId === p.id && l.month === 2)?.status || 'None';
+                    const m3 = logs.find(l => l.participantId === p.id && l.month === 3)?.status || 'None';
                     const isEligible = m3 === 'Approved';
 
                     return (
