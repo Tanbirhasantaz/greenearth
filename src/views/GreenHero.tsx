@@ -2038,7 +2038,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                 </button>
                               )}
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* Tree Name autocomplete */}
                                 <div className="flex flex-col gap-1.5 relative">
                                   <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Name (গাছের নাম)</label>
@@ -2084,9 +2084,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                     ))}
                                   </select>
                                 </div>
-                              </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Tree Type dropdown */}
                                 <div className="flex flex-col gap-1.5">
                                   <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Type (গাছের ধরন)</label>
@@ -2101,50 +2099,6 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                                     <option value="Flower (ফুল)">Flower (ফুল)</option>
                                   </select>
-                                </div>
-
-                                {/* Row-level Tree Photo Upload */}
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Photo (গাছের ছবি আপলোড) - Optional</label>
-                                  <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-2 relative hover:bg-emerald-50/10 transition-colors">
-                                    {row.photo ? (
-                                      <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                                        <img src={row.photo} alt="Row Sapling" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                                        <button
-                                          type="button"
-                                          onClick={() => handleTreeRowChange(row.id, 'photo', '')}
-                                          className="absolute inset-0 bg-black/60 text-white font-bold text-[9px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                                        >
-                                          ✕ Remove
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div className="w-12 h-12 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center border border-dashed border-gray-200 shrink-0">
-                                        <Camera size={18} />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 text-left relative overflow-hidden">
-                                      <span className="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">UPLOAD ROW PHOTO</span>
-                                      <span className="text-[11px] text-[#1B5E20] font-black truncate block font-sans">
-                                        {row.photo ? 'Image Selected' : 'Choose Photo (ছবি আপলোড)'}
-                                      </span>
-                                      <input 
-                                        type="file" 
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => {
-                                              handleTreeRowChange(row.id, 'photo', reader.result as string);
-                                            };
-                                            reader.readAsDataURL(file);
-                                          }
-                                        }}
-                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                      />
-                                    </div>
-                                  </div>
                                 </div>
                               </div>
                             </div>
