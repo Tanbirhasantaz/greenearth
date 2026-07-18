@@ -91,55 +91,86 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
   // Active Logged-In Participant state
   const [loggedInUser, setLoggedInUser] = useState<any | null>(null);
 
+  // Load Green Hero data from server APIs
+  const loadDataFromServer = async () => {
+    try {
+      // 1. Fetch Overview Settings
+      const overviewRes = await fetch("/api/greenhero/overview");
+      if (overviewRes.ok) {
+        const overviewData = await overviewRes.json();
+        setOverview(overviewData);
+        localStorage.setItem('ge_gh_overview', JSON.stringify(overviewData));
+      }
+
+      // 2. Fetch Participants
+      const partsRes = await fetch("/api/greenhero/participants");
+      if (partsRes.ok) {
+        const partsData = await partsRes.json();
+        setParticipants(partsData);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(partsData));
+        
+        // Update loggedInUser session state if logged in to keep participant info fresh
+        const currentSession = sessionStorage.getItem('ge_gh_logged_in');
+        if (currentSession) {
+          const storedUser = JSON.parse(currentSession);
+          const freshUser = partsData.find((p: any) => p.id === storedUser.id);
+          if (freshUser) {
+            setLoggedInUser(freshUser);
+            sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
+          }
+        }
+      }
+
+      // 3. Fetch Trees
+      const treesRes = await fetch("/api/greenhero/trees");
+      if (treesRes.ok) {
+        const treesData = await treesRes.json();
+        setTrees(treesData);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(treesData));
+      }
+
+      // 4. Fetch Logs
+      const logsRes = await fetch("/api/greenhero/logs");
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        setLogs(logsData);
+        localStorage.setItem('ge_gh_logs', JSON.stringify(logsData));
+      }
+    } catch (err) {
+      console.error("Error loading Green Hero data from server:", err);
+      // local fallback
+      const savedParts = localStorage.getItem('ge_gh_participants');
+      if (savedParts) setParticipants(JSON.parse(savedParts));
+      const savedTrees = localStorage.getItem('ge_gh_trees');
+      if (savedTrees) setTrees(JSON.parse(savedTrees));
+      const savedLogs = localStorage.getItem('ge_gh_logs');
+      if (savedLogs) setLogs(JSON.parse(savedLogs));
+      const savedOverview = localStorage.getItem('ge_gh_overview');
+      if (savedOverview) setOverview(JSON.parse(savedOverview));
+    }
+  };
+
   // Core Seed Data helper
   useEffect(() => {
-    // 1. Load Overview Settings
+    // Immediate local storage fallback for performance
     const savedOverview = localStorage.getItem('ge_gh_overview');
     if (savedOverview) {
-      try {
-        setOverview(JSON.parse(savedOverview));
-      } catch (e) {}
-    } else if (settings?.greenHeroOverview) {
-      setOverview(settings.greenHeroOverview);
+      try { setOverview(JSON.parse(savedOverview)); } catch (e) {}
     }
-
-    // 2. Pre-seed Participant list if empty
     const savedParts = localStorage.getItem('ge_gh_participants');
-    let preseedParticipants = [];
-
     if (savedParts) {
-      try {
-        preseedParticipants = JSON.parse(savedParts);
-        setParticipants(preseedParticipants);
-      } catch (e) {}
-    } else {
-      localStorage.setItem('ge_gh_participants', JSON.stringify([]));
-      setParticipants([]);
+      try { setParticipants(JSON.parse(savedParts)); } catch (e) {}
     }
-
-    // 3. Pre-seed Trees list if empty
     const savedTrees = localStorage.getItem('ge_gh_trees');
     if (savedTrees) {
-      try {
-        setTrees(JSON.parse(savedTrees));
-      } catch (e) {}
-    } else {
-      localStorage.setItem('ge_gh_trees', JSON.stringify([]));
-      setTrees([]);
+      try { setTrees(JSON.parse(savedTrees)); } catch (e) {}
     }
-
-    // 4. Pre-seed Logs if empty
     const savedLogs = localStorage.getItem('ge_gh_logs');
     if (savedLogs) {
-      try {
-        setLogs(JSON.parse(savedLogs));
-      } catch (e) {}
-    } else {
-      localStorage.setItem('ge_gh_logs', JSON.stringify([]));
-      setLogs([]);
+      try { setLogs(JSON.parse(savedLogs)); } catch (e) {}
     }
 
-    // 5. Recover session if logged in
+    // Recover session if logged in
     const currentSession = sessionStorage.getItem('ge_gh_logged_in');
     if (currentSession) {
       try {
@@ -147,18 +178,14 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
         setActiveSubTab('portal');
       } catch (e) {}
     }
+
+    // Pull from server
+    loadDataFromServer();
   }, [settings]);
 
-  // Handle reload data from local storage
+  // Handle reload data
   const reloadData = () => {
-    const savedParts = localStorage.getItem('ge_gh_participants');
-    if (savedParts) setParticipants(JSON.parse(savedParts));
-    const savedTrees = localStorage.getItem('ge_gh_trees');
-    if (savedTrees) setTrees(JSON.parse(savedTrees));
-    const savedLogs = localStorage.getItem('ge_gh_logs');
-    if (savedLogs) setLogs(JSON.parse(savedLogs));
-    const savedOverview = localStorage.getItem('ge_gh_overview');
-    if (savedOverview) setOverview(JSON.parse(savedOverview));
+    loadDataFromServer();
   };
 
   // --- DYNAMIC COUNTERS & METRICS ---
@@ -212,6 +239,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
   const [plantingDate, setPlantingDate] = useState('2026-07-17');
   const [plantingAddress, setPlantingAddress] = useState('');
   const [treePhoto, setTreePhoto] = useState('');
+  const [treePhotos, setTreePhotos] = useState<string[]>([]);
   const [treeRegError, setTreeRegError] = useState('');
   const [treeRegSuccess, setTreeRegSuccess] = useState('');
   const [editTreeParticipant, setEditTreeParticipant] = useState<any | null>(null);
@@ -225,6 +253,29 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
         setter(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Helper to handle multiple image uploads up to 5 photos
+  const handleMultipleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const remainingSlots = 5 - treePhotos.length;
+      if (remainingSlots <= 0) return;
+      
+      const filesToProcess = Array.from(files).slice(0, remainingSlots);
+      filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setTreePhotos(prev => {
+            if (prev.length < 5) {
+              return [...prev, reader.result as string];
+            }
+            return prev;
+          });
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
@@ -298,16 +349,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       return;
     }
 
-    // Save
-    const savedParts = localStorage.getItem('ge_gh_participants');
-    let currentParts = savedParts ? JSON.parse(savedParts) : [];
-    
-    // Generate unique ID Format: GE-AT-000001
-    const nextIdNum = currentParts.length + 1;
-    const formattedId = `GE-AT-${String(nextIdNum).padStart(6, '0')}`;
-
-    const newParticipant = {
-      id: formattedId,
+    const payload = {
       name: regName.trim(),
       type: regInstType,
       institution: regInstName.trim(),
@@ -320,22 +362,37 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       password: regPassword
     };
 
-    currentParts.push(newParticipant);
-    localStorage.setItem('ge_gh_participants', JSON.stringify(currentParts));
-    setParticipants(currentParts);
+    fetch('/api/greenhero/participants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.participant) {
+          // Show success details modal
+          setShowRegSuccess(data.participant);
 
-    // Show success details modal
-    setShowRegSuccess(newParticipant);
+          // Clear form
+          setRegName('');
+          setRegInstName('');
+          setRegMobile('');
+          setRegPassword('');
+          setRegConfirmPassword('');
+          setCustomDistrict('');
+          setCustomUpazila('');
+          setIsOtherDistrict(false);
 
-    // Clear form
-    setRegName('');
-    setRegInstName('');
-    setRegMobile('');
-    setRegPassword('');
-    setRegConfirmPassword('');
-    setCustomDistrict('');
-    setCustomUpazila('');
-    setIsOtherDistrict(false);
+          // Refresh state from server
+          loadDataFromServer();
+        } else {
+          setRegError('Failed to register participant on server (সার্ভারে নিবন্ধন করতে ব্যর্থ হয়েছে)');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setRegError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
+      });
   };
 
   // Participant Login handler
@@ -438,56 +495,51 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     }
 
     // Default photo if empty
-    const finalPhoto = treePhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
+    const finalPhoto = treePhotos[0] || treePhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
+    const finalPhotos = treePhotos.length > 0 ? treePhotos : [finalPhoto];
 
-    // Save registered trees
-    const savedTrees = localStorage.getItem('ge_gh_trees');
-    let currentTrees = savedTrees ? JSON.parse(savedTrees) : [];
+    const newTreesPayload = treeRows.map((row) => ({
+      participantId: loggedInUser.id,
+      participantName: loggedInUser.name,
+      institutionName: loggedInUser.institution,
+      mobile: loggedInUser.mobile,
+      treeName: row.name.trim() || 'Custom Species (অন্যান্য প্রজাতি)',
+      quantity: Number(row.quantity),
+      treeType: row.type,
+      location: plantingAddress.trim(),
+      plantingDate: plantingDate,
+      photo: row.photo || finalPhoto,
+      photos: finalPhotos,
+      status: 'Approved' // auto-approved for client-demo flow!
+    }));
 
-    let maxIdNum = 0;
-    currentTrees.forEach((t: any) => {
-      if (typeof t.id === 'string') {
-        const match = t.id.match(/^tree-(\d+)$/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxIdNum) {
-            maxIdNum = num;
-          }
+    fetch('/api/greenhero/trees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTreesPayload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Update state to trigger counters instantly
+          setTreeRegSuccess('Trees registered successfully! (গাছগুলো সফলভাবে নিবন্ধিত হয়েছে!)');
+          
+          // Reset repeater
+          setTreeRows([{ id: 1, name: '', quantity: 1, type: 'Fruit Tree (ফলজ বৃক্ষ)', suggestions: [] }]);
+          setPlantingAddress('');
+          setTreePhoto('');
+          setTreePhotos([]);
+          
+          // Refresh parent datasets
+          loadDataFromServer();
+        } else {
+          setTreeRegError('Failed to register trees on server (সার্ভারে গাছ নিবন্ধন করতে ব্যর্থ হয়েছে)');
         }
-      }
-    });
-
-    treeRows.forEach((row, rIdx) => {
-      const nextIdNum = maxIdNum + 1 + rIdx;
-      currentTrees.push({
-        id: `tree-${nextIdNum}`,
-        participantId: loggedInUser.id,
-        participantName: loggedInUser.name,
-        institutionName: loggedInUser.institution,
-        mobile: loggedInUser.mobile,
-        treeName: row.name.trim() || 'Custom Species (অন্যান্য প্রজাতি)',
-        quantity: Number(row.quantity),
-        treeType: row.type,
-        location: plantingAddress.trim(),
-        plantingDate: plantingDate,
-        photo: row.photo || finalPhoto,
-        status: 'Approved' // auto-approved for client-demo flow!
+      })
+      .catch(err => {
+        console.error(err);
+        setTreeRegError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
       });
-    });
-
-    localStorage.setItem('ge_gh_trees', JSON.stringify(currentTrees));
-    setTrees(currentTrees);
-
-    // Update state to trigger counters instantly
-    setTreeRegSuccess('Trees registered successfully! (গাছগুলো সফলভাবে নিবন্ধিত হয়েছে!)');
-    
-    // Reset repeater
-    setTreeRows([{ id: 1, name: '', quantity: 1, type: 'Fruit Tree (ফলজ বৃক্ষ)', suggestions: [] }]);
-    setPlantingAddress('');
-    setTreePhoto('');
-    
-    // Refresh parent datasets
-    reloadData();
   };
 
   // Update registered tree details by participant
@@ -500,28 +552,28 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       return;
     }
 
-    const savedTrees = localStorage.getItem('ge_gh_trees');
-    if (savedTrees) {
-      let currentTrees = JSON.parse(savedTrees);
-      currentTrees = currentTrees.map((t: any) => {
-        if (t.id === editTreeParticipant.id) {
-          return {
-            ...t,
-            treeName: editTreeParticipant.treeName.trim() || t.treeName,
-            treeType: editTreeParticipant.treeType || t.treeType,
-            quantity: Number(editTreeParticipant.quantity) || t.quantity,
-            plantingDate: editTreeParticipant.plantingDate || t.plantingDate,
-            location: editTreeParticipant.location.trim() || t.location,
-            photo: editTreeParticipant.photo || t.photo
-          };
+    const payload = {
+      treeName: editTreeParticipant.treeName.trim(),
+      treeType: editTreeParticipant.treeType,
+      quantity: Number(editTreeParticipant.quantity),
+      plantingDate: editTreeParticipant.plantingDate,
+      location: editTreeParticipant.location.trim(),
+      photo: editTreeParticipant.photo
+    };
+
+    fetch(`/api/greenhero/trees/${editTreeParticipant.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setEditTreeParticipant(null);
+          loadDataFromServer();
         }
-        return t;
-      });
-      localStorage.setItem('ge_gh_trees', JSON.stringify(currentTrees));
-      setTrees(currentTrees);
-      setEditTreeParticipant(null);
-      reloadData();
-    }
+      })
+      .catch(err => console.error(err));
   };
 
   // Submit monthly log
@@ -534,17 +586,14 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     const finalLogPhoto = logPhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
 
     // Check if a log is already submitted/approved for this month
-    const savedLogs = localStorage.getItem('ge_gh_logs') ? JSON.parse(localStorage.getItem('ge_gh_logs')!) : [];
-    const existing = savedLogs.find((l: any) => l.participantId === loggedInUser.id && l.month === activeMonthTab);
+    const existing = logs.find((l: any) => l.participantId === loggedInUser.id && l.month === activeMonthTab);
 
     if (existing && (existing.status === 'Approved' || existing.status === 'Pending')) {
       setLogError(`Log for Month ${activeMonthTab} is already ${existing.status} (${activeMonthTab} মাসের লগ ইতোমধ্যে ${existing.status === 'Approved' ? 'অনুমোদিত' : 'পর্যালোচনার অপেক্ষায়'} আছে)`);
       return;
     }
 
-    // Add new log
     const newLog = {
-      id: `log-${Date.now()}`,
       participantId: loggedInUser.id,
       month: activeMonthTab,
       health: logHealth,
@@ -555,19 +604,26 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       date: new Date().toISOString().split('T')[0]
     };
 
-    // Filter out old rejected logs for same month if resubmitting
-    const filteredLogs = savedLogs.filter((l: any) => !(l.participantId === loggedInUser.id && l.month === activeMonthTab));
-    filteredLogs.push(newLog);
-
-    localStorage.setItem('ge_gh_logs', JSON.stringify(filteredLogs));
-    setLogs(filteredLogs);
-
-    setLogSuccess(`Monthly progress log submitted successfully for Month ${activeMonthTab}! It will be reviewed by administrators. (${activeMonthTab} মাসের প্রগতি লগ সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন এটি পর্যালোচনা করবেন।)`);
-    setLogComments('');
-    setLogPhoto('');
-
-    // Sync views
-    reloadData();
+    fetch('/api/greenhero/logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newLog)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setLogSuccess(`Monthly progress log submitted successfully for Month ${activeMonthTab}! It will be reviewed by administrators. (${activeMonthTab} মাসের প্রগতি লগ সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন এটি পর্যালোচনা করবেন।)`);
+          setLogComments('');
+          setLogPhoto('');
+          loadDataFromServer();
+        } else {
+          setLogError('Failed to submit monthly log to server (সার্ভারে লগ জমা করতে ব্যর্থ হয়েছে)');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setLogError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
+      });
   };
 
   // Get current participant's log status for a specific month
@@ -1287,7 +1343,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
               </div>
 
               {/* Counters Widget Grid - Highly Stylish */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
                   {
                     titleEn: 'Registered Heroes',
@@ -1316,20 +1372,6 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                     value: `${survivalRate}%`,
                     color: 'from-blue-500 to-indigo-600 shadow-blue-100',
                     icon: '📈'
-                  },
-                  {
-                    titleEn: 'Schools Connected',
-                    titleBn: 'সংযুক্ত স্কুল',
-                    value: totalSchools,
-                    color: 'from-amber-500 to-orange-600 shadow-amber-100',
-                    icon: '🏫'
-                  },
-                  {
-                    titleEn: 'Active Districts',
-                    titleBn: 'সক্রিয় জেলা',
-                    value: totalDistricts,
-                    color: 'from-purple-500 to-purple-700 shadow-purple-100',
-                    icon: '📍'
                   }
                 ].map((stat, sIdx) => (
                   <div key={sIdx} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between items-center text-center space-y-2 relative overflow-hidden group hover:scale-[1.03] transition-all border-b-4 border-emerald-600">
@@ -2052,7 +2094,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                 </button>
                               )}
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* Tree Name autocomplete */}
                                 <div className="flex flex-col gap-1.5 relative">
                                   <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Name (গাছের নাম)</label>
@@ -2098,9 +2140,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                     ))}
                                   </select>
                                 </div>
-                              </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Tree Type dropdown */}
                                 <div className="flex flex-col gap-1.5">
                                   <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Type (গাছের ধরন)</label>
@@ -2114,51 +2154,8 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                     <option value="Medicinal Tree (ঔষধি বৃক্ষ)">Medicinal Tree (ঔষধি বৃক্ষ)</option>
                                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                                     <option value="Flower (ফুল)">Flower (ফুল)</option>
+                                    <option value="Others (অন্যান্য)">Others (অন্যান্য)</option>
                                   </select>
-                                </div>
-
-                                {/* Row-level Tree Photo Upload */}
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Photo (গাছের ছবি আপলোড) - Optional</label>
-                                  <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-2 relative hover:bg-emerald-50/10 transition-colors">
-                                    {row.photo ? (
-                                      <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 shrink-0">
-                                        <img src={row.photo} alt="Row Sapling" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                                        <button
-                                          type="button"
-                                          onClick={() => handleTreeRowChange(row.id, 'photo', '')}
-                                          className="absolute inset-0 bg-black/60 text-white font-bold text-[9px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                                        >
-                                          ✕ Remove
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div className="w-12 h-12 bg-gray-50 text-gray-400 rounded-lg flex items-center justify-center border border-dashed border-gray-200 shrink-0">
-                                        <Camera size={18} />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 text-left relative overflow-hidden">
-                                      <span className="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">UPLOAD ROW PHOTO</span>
-                                      <span className="text-[11px] text-[#1B5E20] font-black truncate block font-sans">
-                                        {row.photo ? 'Image Selected' : 'Choose Photo (ছবি আপলোড)'}
-                                      </span>
-                                      <input 
-                                        type="file" 
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => {
-                                              handleTreeRowChange(row.id, 'photo', reader.result as string);
-                                            };
-                                            reader.readAsDataURL(file);
-                                          }
-                                        }}
-                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                      />
-                                    </div>
-                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -2190,18 +2187,29 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                             </div>
 
                             <div className="flex flex-col gap-1.5">
-                              <label className="font-bold text-gray-500 uppercase tracking-wider">Tree Photo Upload (গাছের ছবি আপলোড)</label>
+                              <label className="font-bold text-gray-500 uppercase tracking-wider">
+                                Tree Photo Upload (গাছের ছবি আপলোড - সর্বোচ্চ ৫টি)
+                              </label>
                               <div className="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-2xl p-4 bg-white hover:bg-emerald-50/20 transition-all relative">
                                 <Camera size={24} className="text-[#1B5E20] mb-1.5" />
-                                <span className="text-xs text-gray-500 font-medium">Click to select or drag photo here</span>
-                                <span className="text-[10px] text-gray-400 mt-0.5">(JPG, PNG max 5MB)</span>
-                                <input 
-                                  type="file" 
-                                  accept="image/*"
-                                  onChange={(e) => handleImageUpload(e, setTreePhoto)}
-                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                  id="tree-photo-file-input"
-                                />
+                                <span className="text-xs text-gray-500 font-medium text-center">
+                                  {treePhotos.length >= 5 
+                                    ? 'Maximum 5 photos reached (৫টি ছবি আপলোড করা হয়েছে)' 
+                                    : 'Click to select or drag photo here (ছবি আপলোড করুন)'}
+                                </span>
+                                <span className="text-[10px] text-gray-400 mt-0.5">
+                                  ({treePhotos.length} of 5 uploaded)
+                                </span>
+                                {treePhotos.length < 5 && (
+                                  <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleMultipleImagesUpload}
+                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                    id="tree-photo-file-input"
+                                  />
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2218,12 +2226,52 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                             />
                           </div>
 
-                          {treePhoto && (
-                            <div className="space-y-1">
-                              <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] block">Photo Preview (গাছের ছবি প্রাকদর্শন)</span>
-                              <div className="w-full h-36 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200">
-                                <img src={treePhoto} alt="Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                          {(treePhotos.length > 0 || treePhoto) && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] block">
+                                  Photo Preview (গাছের ছবি প্রাকদর্শন) - {treePhotos.length || 1} of 5
+                                </span>
+                                {treePhotos.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setTreePhotos([])}
+                                    className="text-red-500 hover:text-red-700 text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                                  >
+                                    Clear All (সব মুছুন)
+                                  </button>
+                                )}
                               </div>
+                              
+                              {treePhotos.length > 0 ? (
+                                <div className="grid grid-cols-5 gap-2 pt-1">
+                                  {treePhotos.map((p, pIdx) => (
+                                    <div key={pIdx} className="relative aspect-square bg-gray-50 border border-gray-200 rounded-xl overflow-hidden shadow-2xs group">
+                                      <img src={p} alt={`Preview ${pIdx}`} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={() => setTreePhotos(prev => prev.filter((_, idx) => idx !== pIdx))}
+                                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-md cursor-pointer transition-all hover:scale-110 font-bold text-[10px]"
+                                        title="Remove photo"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="w-full h-36 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 relative group">
+                                  <img src={treePhoto} alt="Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => setTreePhoto('')}
+                                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md cursor-pointer transition-all hover:scale-110 font-bold"
+                                    title="Remove photo"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -2538,6 +2586,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                   <option value="Medicinal Tree (ঔষধি বৃক্ষ)">Medicinal Tree (ঔষধি বৃক্ষ)</option>
                                   <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                                   <option value="Flower (ফুল)">Flower (ফুল)</option>
+                                  <option value="Others (অন্যান্য)">Others (অন্যান্য)</option>
                                 </select>
                               </div>
 
