@@ -61,25 +61,15 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   // Custom states for deletion confirmation modals (avoiding blocked window.confirm)
   const [deleteConfirmPart, setDeleteConfirmPart] = useState<any | null>(null);
   const [deleteConfirmTree, setDeleteConfirmTree] = useState<any | null>(null);
+  const [deleteConfirmLog, setDeleteConfirmLog] = useState<any | null>(null);
+  const [suspendConfirmPart, setSuspendConfirmPart] = useState<any | null>(null);
 
   // States for custom certificate template
   const [certTemplateImg, setCertTemplateImg] = useState<string | null>(() => localStorage.getItem('ge_gh_custom_cert_image') || null);
+  const [certNameX, setCertNameX] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_name_x')) || 50);
   const [certNameY, setCertNameY] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_name_y')) || 53);
   const [certFontSize, setCertFontSize] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_font_size')) || 36);
   const [certColor, setCertColor] = useState<string>(() => localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20');
-
-  // Sync settings when they change
-  useEffect(() => {
-    localStorage.setItem('ge_gh_custom_cert_name_y', String(certNameY));
-  }, [certNameY]);
-
-  useEffect(() => {
-    localStorage.setItem('ge_gh_custom_cert_font_size', String(certFontSize));
-  }, [certFontSize]);
-
-  useEffect(() => {
-    localStorage.setItem('ge_gh_custom_cert_color', certColor);
-  }, [certColor]);
 
   // Load all records
   const loadAllData = () => {
@@ -188,20 +178,35 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       if (event.target?.result) {
         const base64 = event.target.result as string;
         setCertTemplateImg(base64);
-        localStorage.setItem('ge_gh_custom_cert_image', base64);
-        setSuccessBanner('Custom certificate template uploaded! (কাস্টম সার্টিফিকেট টেমপ্লেট সফলভাবে আপলোড করা হয়েছে!)');
-        setTimeout(() => setSuccessBanner(''), 4000);
+        setSuccessBanner('Custom certificate template selected! Click "Save Certificate" below to persist it. (কাস্টম সার্টিফিকেট টেমপ্লেট নির্বাচন করা হয়েছে! এটি সংরক্ষণ করতে নিচের "সংরক্ষণ করুন" বাটনে ক্লিক করুন।)');
+        setTimeout(() => setSuccessBanner(''), 5000);
       }
     };
     reader.readAsDataURL(file);
   };
 
+  const handleSaveCertConfig = () => {
+    if (certTemplateImg) {
+      localStorage.setItem('ge_gh_custom_cert_image', certTemplateImg);
+    } else {
+      localStorage.removeItem('ge_gh_custom_cert_image');
+    }
+    localStorage.setItem('ge_gh_custom_cert_name_x', String(certNameX));
+    localStorage.setItem('ge_gh_custom_cert_name_y', String(certNameY));
+    localStorage.setItem('ge_gh_custom_cert_font_size', String(certFontSize));
+    localStorage.setItem('ge_gh_custom_cert_color', certColor);
+    setSuccessBanner('Certificate template and configuration saved successfully! (সার্টিফিকেট টেমপ্লেট ও কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে!)');
+    setTimeout(() => setSuccessBanner(''), 4000);
+  };
+
   const handleResetCertTemplate = () => {
     setCertTemplateImg(null);
+    setCertNameX(50);
     setCertNameY(53);
     setCertFontSize(36);
     setCertColor('#1b5e20');
     localStorage.removeItem('ge_gh_custom_cert_image');
+    localStorage.removeItem('ge_gh_custom_cert_name_x');
     localStorage.removeItem('ge_gh_custom_cert_name_y');
     localStorage.removeItem('ge_gh_custom_cert_font_size');
     localStorage.removeItem('ge_gh_custom_cert_color');
@@ -304,6 +309,32 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     setTimeout(() => setSuccessBanner(''), 4000);
   };
 
+  const handleDeleteLog = (logId: string) => {
+    const targetLog = logs.find(l => l.id === logId);
+    if (targetLog) {
+      setDeleteConfirmLog(targetLog);
+    }
+  };
+
+  const executeDeleteLog = (logId: string) => {
+    const updatedLogs = logs.filter(l => l.id !== logId);
+    localStorage.setItem('ge_gh_logs', JSON.stringify(updatedLogs));
+    setLogs(updatedLogs);
+    setDeleteConfirmLog(null);
+    setSuccessBanner('Log deleted successfully. (প্রগতি লগটি সফলভাবে ডিলিট করা হয়েছে।)');
+    setTimeout(() => setSuccessBanner(''), 3000);
+  };
+
+  const handleSuspendParticipantFromLog = (participantId: string) => {
+    const targetPart = participants.find(p => p.id === participantId) || { id: participantId, name: participantId };
+    setSuspendConfirmPart(targetPart);
+  };
+
+  const executeSuspendParticipant = (participantId: string) => {
+    handleUpdatePartStatus(participantId, 'Suspended');
+    setSuspendConfirmPart(null);
+  };
+
   // --- CSV EXPORTER ---
   const downloadCSV = (type: 'participants' | 'trees' | 'logs') => {
     let csvContent = '';
@@ -364,7 +395,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   const totalSchools = Array.from(new Set(participants.filter(p => p.type === 'student').map(p => p.institution))).length;
 
   return (
-    <div className="space-y-8 font-sans" id="green-hero-admin-center">
+    <div className="space-y-8 font-anek text-sm md:text-base" id="green-hero-admin-center">
       {/* Dynamic Success Toast */}
       {successBanner && (
         <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-xl text-emerald-800 text-xs font-semibold shadow flex items-center gap-2" id="admin-success-banner">
@@ -582,6 +613,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                     <option value="Forest Tree (বনজ বৃক্ষ)">Forest Tree (বনজ বৃক্ষ)</option>
                     <option value="Medicinal Tree (ঔষধি বৃক্ষ)">Medicinal Tree (ঔষধি বৃক্ষ)</option>
                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
+                    <option value="Flower (ফুল)">Flower (ফুল)</option>
                     <option value="Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)">Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)</option>
                   </select>
                 </div>
@@ -911,9 +943,10 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                         </button>
                         <button
                           onClick={() => setDeleteConfirmTree(t)}
-                          className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md"
+                          className="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-1 px-2 rounded-md transition-colors"
+                          title="Delete Tree Details"
                         >
-                          ✕ Delete
+                          ✕ Delete (মুছে ফেলুন)
                         </button>
                       </td>
                     </tr>
@@ -1043,6 +1076,25 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                           </div>
                         </div>
                       )}
+
+                      {/* Persistent Quick Admin Actions (Delete Log / Suspend Owner) */}
+                      <div className="pt-3 border-t border-gray-200/60 flex flex-wrap gap-2 items-center justify-between text-[11px] font-bold">
+                        <span className="text-gray-400">Quick Actions (দ্রুত অ্যাকশন):</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSuspendParticipantFromLog(l.participantId)}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-800 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Suspend Participant (সদস্য সাসপেন্ড)
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLog(l.id)}
+                            className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Delete Log (লগ ডিলিট)
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -1064,7 +1116,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
             </div>
 
             {/* Custom Certificate Template Upload Section */}
-            <div className="bg-emerald-50/50 border border-emerald-100/70 rounded-3xl p-6 text-left space-y-6 font-sans">
+            <div className="bg-emerald-50/50 border border-emerald-100/70 rounded-3xl p-6 text-left space-y-6 font-anek">
               <div className="flex items-center gap-2 text-[#1F5E2E]">
                 <Award size={20} className="fill-[#1F5E2E]/20" />
                 <h5 className="font-black text-sm uppercase tracking-wide">
@@ -1074,28 +1126,43 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
               <p className="text-xs text-gray-600 font-semibold leading-relaxed">
                 Upload a blank certificate image (JPG format). Leave the participant's name area blank on the image. The system will automatically overlay the participant's name on top of the image! 
-                <span className="block mt-1 text-[#1F5E2E] font-bold font-anek">
+                <span className="block mt-1 text-[#1F5E2E] font-bold font-anek text-sm">
                   (একটি ফাঁকা সার্টিফিকেট ছবি আপলোড করুন - JPG ফরম্যাটে। নামের জায়গাটি খালি রাখবেন, সেখানে অংশগ্রণকারীর নাম সিস্টেম স্বয়ংক্রিয়ভাবে বসিয়ে দেবে।)
                 </span>
               </p>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* Control Panel */}
-                <div className="space-y-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
+                <div className="space-y-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-xs text-xs font-semibold">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Certificate JPG (জেপিজি ফাইল নির্বাচন করুন)</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider font-anek">Select Certificate JPG (জেপিজি ফাইল নির্বাচন করুন)</label>
                     <input 
                       type="file" 
                       accept="image/jpeg, image/jpg"
                       onChange={handleCertTemplateUpload}
-                      className="bg-gray-50 border border-gray-200 rounded-xl py-1.5 px-3 focus:ring-2 focus:ring-[#1F5E2E] font-sans font-bold text-xs"
+                      className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E] font-sans font-bold text-xs"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                        Vertical Name Y Position (%)
+                      <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-anek">
+                        Horizontal Name X Position (%) (নামের অনুভূমিক অবস্থান)
+                      </label>
+                      <input 
+                        type="range" 
+                        min="10" 
+                        max="90" 
+                        value={certNameX}
+                        onChange={(e) => setCertNameX(Number(e.target.value))}
+                        className="w-full accent-[#1F5E2E]"
+                      />
+                      <span className="font-mono text-xs text-gray-500 font-bold">{certNameX}% from left</span>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-anek">
+                        Vertical Name Y Position (%) (নামের উল্লম্ব অবস্থান)
                       </label>
                       <input 
                         type="range" 
@@ -1105,12 +1172,14 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                         onChange={(e) => setCertNameY(Number(e.target.value))}
                         className="w-full accent-[#1F5E2E]"
                       />
-                      <span className="font-mono text-[10px] text-gray-500 font-bold">{certNameY}% from top</span>
+                      <span className="font-mono text-xs text-gray-500 font-bold">{certNameY}% from top</span>
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                        Font Size (px)
+                      <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-anek">
+                        Font Size (px) (ফন্ট সাইজ)
                       </label>
                       <input 
                         type="range" 
@@ -1120,42 +1189,49 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                         onChange={(e) => setCertFontSize(Number(e.target.value))}
                         className="w-full accent-[#1F5E2E]"
                       />
-                      <span className="font-mono text-[10px] text-gray-500 font-bold">{certFontSize}px</span>
+                      <span className="font-mono text-xs text-gray-500 font-bold">{certFontSize}px</span>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-anek">Name Text Color (লেখার কালার)</label>
+                      <div className="flex gap-2 items-center">
+                        <input 
+                          type="color" 
+                          value={certColor}
+                          onChange={(e) => setCertColor(e.target.value)}
+                          className="w-8 h-8 border border-gray-200 rounded cursor-pointer shrink-0"
+                        />
+                        <input 
+                          type="text" 
+                          value={certColor}
+                          onChange={(e) => setCertColor(e.target.value)}
+                          className="bg-gray-50 border border-gray-200 rounded-xl py-1 px-2.5 font-mono text-[11px] font-bold w-full"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Name Text Color</label>
-                    <div className="flex gap-2 items-center">
-                      <input 
-                        type="color" 
-                        value={certColor}
-                        onChange={(e) => setCertColor(e.target.value)}
-                        className="w-10 h-10 border border-gray-200 rounded cursor-pointer"
-                      />
-                      <input 
-                        type="text" 
-                        value={certColor}
-                        onChange={(e) => setCertColor(e.target.value)}
-                        className="bg-gray-50 border border-gray-200 rounded-xl py-1.5 px-3 font-mono text-xs font-bold w-24"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
+                  <div className="pt-2 flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveCertConfig}
+                      className="flex-1 bg-[#1F5E2E] hover:bg-emerald-800 text-white py-2.5 px-4 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5 font-anek"
+                    >
+                      <span>💾 Save Certificate (সংরক্ষণ করুন)</span>
+                    </button>
                     <button
                       type="button"
                       onClick={handleResetCertTemplate}
-                      className="bg-red-50 hover:bg-red-100 text-red-700 py-2 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-600 py-2.5 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer font-anek"
                     >
-                      Reset to Default Template (রিসেট করুন)
+                      Reset (রিসেট)
                     </button>
                   </div>
                 </div>
 
                 {/* Preview Panel */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Live Template Preview (লাইভ প্রাকদর্শন)</span>
+                <div className="space-y-2 font-anek">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Live Template Preview (লাইভ প্রাকদর্শন)</span>
                   <div className="relative border-4 border-[#1F5E2E] rounded-2xl overflow-hidden shadow-md aspect-[4/3] bg-gray-100 flex items-center justify-center">
                     {certTemplateImg ? (
                       <div className="w-full h-full relative">
@@ -1166,12 +1242,15 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                           referrerPolicy="no-referrer"
                         />
                         <div 
-                          className="absolute left-0 right-0 text-center select-none font-sans font-black tracking-wide font-anek pointer-events-none"
+                          className="absolute text-center select-none font-sans font-black tracking-wide font-anek pointer-events-none"
                           style={{ 
                             top: `${certNameY}%`, 
+                            left: `${certNameX}%`,
+                            transform: 'translateX(-50%)',
                             fontSize: `${certFontSize * 0.5}px`, // scale down font size slightly for responsive admin preview card
                             color: certColor,
-                            textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                            width: '90%'
                           }}
                         >
                           Sample Participant (নমুনা নাম)
@@ -1491,6 +1570,78 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                 className="flex-grow bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-colors cursor-pointer text-center text-xs shadow-md shadow-red-200"
               >
                 Yes, Delete (মুছে ফেলুন)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal: Log Deletion */}
+      {deleteConfirmLog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-sans">
+          <div className="bg-white max-w-md w-full rounded-3xl p-6 shadow-2xl border-2 border-red-200 text-left space-y-6">
+            <div className="flex items-center gap-3 text-red-600">
+              <ShieldAlert size={28} />
+              <h3 className="text-lg font-black font-sans">
+                Confirm Log Deletion (লগ মুছে ফেলার নিশ্চিতকরণ)
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed font-semibold">
+              Are you sure you want to delete this tree growth log <strong className="text-red-700 font-mono">{deleteConfirmLog.id}</strong> (Month {deleteConfirmLog.month})?
+              <span className="block mt-2 text-red-600 font-bold font-anek">
+                (আপনি কি নিশ্চিতভাবে এই প্রগতি লগটি ডিলিট করতে চান?)
+              </span>
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmLog(null)}
+                className="flex-grow bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition-colors cursor-pointer text-center text-xs"
+              >
+                No, Cancel (বাতিল)
+              </button>
+              <button
+                type="button"
+                onClick={() => executeDeleteLog(deleteConfirmLog.id)}
+                className="flex-grow bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-colors cursor-pointer text-center text-xs shadow-md shadow-red-200"
+              >
+                Yes, Delete (মুছে ফেলুন)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal: Participant Suspension */}
+      {suspendConfirmPart && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-sans">
+          <div className="bg-white max-w-md w-full rounded-3xl p-6 shadow-2xl border-2 border-amber-200 text-left space-y-6">
+            <div className="flex items-center gap-3 text-amber-600">
+              <AlertTriangle size={28} />
+              <h3 className="text-lg font-black font-sans">
+                Confirm Suspension (সাময়িক বরখাস্ত নিশ্চিতকরণ)
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed font-semibold">
+              Are you sure you want to suspend participant <strong className="text-amber-700 font-mono">{suspendConfirmPart.id}</strong> ({suspendConfirmPart.name})?
+              <span className="block mt-2 text-amber-600 font-bold font-anek">
+                (আপনি কি নিশ্চিতভাবে এই অংশগ্রহণকারীকে সাময়িক বরখাস্ত করতে চান?)
+              </span>
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setSuspendConfirmPart(null)}
+                className="flex-grow bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition-colors cursor-pointer text-center text-xs"
+              >
+                No, Cancel (বাতিল)
+              </button>
+              <button
+                type="button"
+                onClick={() => executeSuspendParticipant(suspendConfirmPart.id)}
+                className="flex-grow bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl transition-colors cursor-pointer text-center text-xs shadow-md shadow-amber-200"
+              >
+                Yes, Suspend (বরখাস্ত করুন)
               </button>
             </div>
           </div>

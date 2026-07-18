@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Leaf, CheckCircle, AlertTriangle, Plus, Trash2, Camera, User, Lock, 
   Calendar, MapPin, Activity, Award, Search, FileText, Download, LogOut, 
-  Info, Users, Check, X, ChevronRight, HelpCircle
+  Info, Users, Check, X, ChevronRight, HelpCircle, Settings
 } from 'lucide-react';
 
 // Suggested species list
@@ -582,9 +582,23 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     const savedTrees = localStorage.getItem('ge_gh_trees');
     let currentTrees = savedTrees ? JSON.parse(savedTrees) : [];
 
+    let maxIdNum = 0;
+    currentTrees.forEach((t: any) => {
+      if (typeof t.id === 'string') {
+        const match = t.id.match(/^tree-(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxIdNum) {
+            maxIdNum = num;
+          }
+        }
+      }
+    });
+
     treeRows.forEach((row, rIdx) => {
+      const nextIdNum = maxIdNum + 1 + rIdx;
       currentTrees.push({
-        id: `tree-${Date.now()}-${rIdx}`,
+        id: `tree-${nextIdNum}`,
         participantId: loggedInUser.id,
         participantName: loggedInUser.name,
         institutionName: loggedInUser.institution,
@@ -775,12 +789,39 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     localStorage.getItem('ge_gh_custom_cert_image') ? 'custom' : 'classic'
   );
 
-  // Dynamically load the correct default mode if settings changed
+  // Custom certificate placement states for participant
+  const [certX, setCertX] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_name_x')) || 50);
+  const [certY, setCertY] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_name_y')) || 53);
+  const [certFontSize, setCertFontSize] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_font_size')) || 36);
+  const [certColor, setCertColor] = useState<string>(() => localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20');
+
+  // Dynamically load the correct default mode and coordinates if settings changed
   useEffect(() => {
     if (showCertificatePreview) {
       setCertType(localStorage.getItem('ge_gh_custom_cert_image') ? 'custom' : 'classic');
+      setCertX(Number(localStorage.getItem('ge_gh_custom_cert_name_x') || '50'));
+      setCertY(Number(localStorage.getItem('ge_gh_custom_cert_name_y') || '53'));
+      setCertFontSize(Number(localStorage.getItem('ge_gh_custom_cert_font_size') || '36'));
+      setCertColor(localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20');
     }
   }, [showCertificatePreview]);
+
+  const handleCertXChange = (val: number) => {
+    setCertX(val);
+    localStorage.setItem('ge_gh_custom_cert_name_x', String(val));
+  };
+  const handleCertYChange = (val: number) => {
+    setCertY(val);
+    localStorage.setItem('ge_gh_custom_cert_name_y', String(val));
+  };
+  const handleCertFontSizeChange = (val: number) => {
+    setCertFontSize(val);
+    localStorage.setItem('ge_gh_custom_cert_font_size', String(val));
+  };
+  const handleCertColorChange = (val: string) => {
+    setCertColor(val);
+    localStorage.setItem('ge_gh_custom_cert_color', val);
+  };
 
   const downloadCustomCertImage = () => {
     if (!loggedInUser) return;
@@ -799,9 +840,10 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
 
-      const nameYPercent = Number(localStorage.getItem('ge_gh_custom_cert_name_y')) || 53;
-      const customFontSize = Number(localStorage.getItem('ge_gh_custom_cert_font_size')) || 36;
-      const customColor = localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20';
+      const nameXPercent = certX;
+      const nameYPercent = certY;
+      const customFontSize = certFontSize;
+      const customColor = certColor;
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -812,7 +854,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       ctx.font = `bold ${finalFontSize}px "Anek Bangla", "Inter", sans-serif`;
       ctx.fillStyle = customColor;
 
-      const posX = img.width / 2;
+      const posX = (nameXPercent / 100) * img.width;
       const posY = (nameYPercent / 100) * img.height;
 
       ctx.fillText(loggedInUser.name, posX, posY);
@@ -1488,7 +1530,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                             </td>
                             <td className="py-3 px-3 font-bold text-gray-900 text-xs text-left max-w-[180px] truncate">{item.school}</td>
                             <td className="py-3 px-3 text-center text-gray-600">{item.participantsCount}</td>
-                            <td className="py-3 px-3 text-center text-gray-600">{item.treesRegistered}</td>
+                            <td className="py-3 px-3 text-center text-emerald-700 font-bold">{item.treesRegistered}</td>
                             <td className="py-3 px-3 text-center text-emerald-700 font-bold">{item.treesSurviving}</td>
                             <td className="py-3 px-3 text-center">
                               <span className="bg-emerald-50 text-emerald-800 py-1 px-2.5 rounded-full font-bold text-[10px] border border-emerald-100">
@@ -1574,48 +1616,48 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                   {/* Participant Login Form */}
                   <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6">
                     <div className="border-b border-gray-100 pb-3 space-y-1">
-                      <h4 className="text-xl font-black text-gray-900">
+                      <h4 className="text-xl font-black text-gray-900 font-anek text-2xl">
                         Login (লগইন)
                       </h4>
-                      <p className="text-xs text-gray-400 font-semibold">
+                      <p className="text-xs text-gray-400 font-semibold font-anek text-sm">
                         Enter your Participant ID and password to access your tree registry. (আপনার গাছ রেজিস্ট্রি এবং মনিটরিং ডাটা অ্যাক্সেস করতে আইডি এবং পাসওয়ার্ড দিয়ে লগইন করুন।)
                       </p>
                     </div>
 
                     {loginError && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 text-xs py-3 px-4 rounded-xl font-semibold">
+                      <div className="bg-red-50 border border-red-200 text-red-700 text-xs py-3 px-4 rounded-xl font-semibold font-anek text-sm">
                         {loginError}
                       </div>
                     )}
 
                     <form onSubmit={handleLoginParticipant} className="space-y-4 font-sans text-xs">
                       <div className="flex flex-col gap-1.5">
-                        <label className="font-bold text-gray-500 uppercase tracking-wider">Participant ID (অংশগ্রহণকারী আইডি)</label>
+                        <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Participant ID (অংশগ্রহণকারী আইডি)</label>
                         <input 
                           type="text" 
                           placeholder="e.g. GE-AT-000001"
                           value={loginId}
                           onChange={(e) => setLoginId(e.target.value)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                           required
                         />
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="font-bold text-gray-500 uppercase tracking-wider">Password (পাসওয়ার্ড)</label>
+                        <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Password (পাসওয়ার্ড)</label>
                         <input 
                           type="password" 
                           placeholder="••••••••"
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                           required
                         />
                       </div>
 
                       <button
                         type="submit"
-                        className="w-full bg-[#1B5E20] hover:bg-emerald-800 text-white font-black py-3.5 rounded-xl shadow-md cursor-pointer transition-colors text-center text-xs"
+                        className="w-full bg-[#1B5E20] hover:bg-emerald-800 text-white font-black py-3.5 rounded-xl shadow-md cursor-pointer transition-colors text-center text-xs font-anek text-sm"
                       >
                         Login (লগইন করুন)
                       </button>
@@ -1625,16 +1667,16 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                   {/* Participant Registration Form */}
                   <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-6">
                     <div className="border-b border-gray-100 pb-3 space-y-1">
-                      <h4 className="text-xl font-black text-gray-900">
+                      <h4 className="text-xl font-black text-gray-900 font-anek text-2xl">
                         Join Now (এখনই যোগ দিন)
                       </h4>
-                      <p className="text-xs text-gray-400 font-semibold">
+                      <p className="text-xs text-gray-400 font-semibold font-anek text-sm">
                         Become a Green Hero! Complete this form to plant and adapt your trees. (গ্রিন হিরো হয়ে উঠুন! ৫টি গাছ রোপণ ও নিবন্ধন করতে ফরমটি পূরণ করুন।)
                       </p>
                     </div>
 
                     {regError && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 text-xs py-3 px-4 rounded-xl font-semibold">
+                      <div className="bg-red-50 border border-red-200 text-red-700 text-xs py-3 px-4 rounded-xl font-semibold font-anek text-sm">
                         {regError}
                       </div>
                     )}
@@ -1643,23 +1685,23 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-bold text-gray-500 uppercase tracking-wider">Full Name (পূর্ণ নাম)</label>
+                          <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Full Name (পূর্ণ নাম)</label>
                           <input 
                             type="text" 
                             placeholder="e.g. Sumaiya Akter"
                             value={regName}
                             onChange={(e) => setRegName(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20]"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20] text-sm"
                             required
                           />
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-bold text-gray-500 uppercase tracking-wider">Institution Type (প্রতিষ্ঠানের ধরন)</label>
+                          <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Institution Type (প্রতিষ্ঠানের ধরন)</label>
                           <select
                             value={regInstType}
                             onChange={(e) => setRegInstType(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20]"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20] text-sm"
                           >
                             <option value="student">School Student (বিদ্যালয়ের শিক্ষার্থী)</option>
                             <option value="member">Community Member (কমিউনিটি সদস্য)</option>
@@ -1670,24 +1712,24 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-bold text-gray-500 uppercase tracking-wider">Institution Name (প্রতিষ্ঠানের নাম)</label>
+                          <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Institution Name (প্রতিষ্ঠানের নাম)</label>
                           <input 
                             type="text" 
                             placeholder="e.g. Bogura Zilla School"
                             value={regInstName}
                             onChange={(e) => setRegInstName(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20]"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                             required
                           />
                         </div>
 
                         {regInstType === 'student' && (
                           <div className="flex flex-col gap-1.5">
-                            <label className="font-bold text-gray-500 uppercase tracking-wider">Class/Grade (শ্রেণি)</label>
+                            <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Class/Grade (শ্রেণি)</label>
                             <select
                               value={regGrade}
                               onChange={(e) => setRegGrade(e.target.value)}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20]"
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                             >
                               {Array.from({ length: 8 }, (_, i) => i + 5).map(grade => (
                                 <option key={grade} value={`Class ${grade} (শ্রেণি ${grade})`}>
@@ -1700,13 +1742,13 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="font-bold text-gray-500 uppercase tracking-wider">Mobile Number (মোবাইল নম্বর)</label>
+                        <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Mobile Number (মোবাইল নম্বর)</label>
                         <input 
                           type="text" 
                           placeholder="e.g. 01712345678"
                           value={regMobile}
                           onChange={(e) => setRegMobile(e.target.value)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20]"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                           required
                         />
                       </div>
@@ -1721,7 +1763,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                             onChange={(e) => setIsOtherDistrict(e.target.checked)}
                             className="rounded text-[#1B5E20] focus:ring-[#1B5E20] w-4 h-4"
                           />
-                          <label htmlFor="other-dist-check" className="font-bold text-emerald-900 cursor-pointer">
+                          <label htmlFor="other-dist-check" className="font-bold text-emerald-900 cursor-pointer font-anek text-sm">
                             I am participating from another district (আমি অন্য জেলা থেকে অংশগ্রহণ করছি)
                           </label>
                         </div>
@@ -1729,14 +1771,14 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                         {!isOtherDistrict ? (
                           <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1">
-                              <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px]">District (জেলা)</span>
-                              <span className="bg-gray-100 border border-gray-200 text-gray-500 py-2 px-3 rounded-xl font-bold">
+                              <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] font-anek text-[11px]">District (জেলা)</span>
+                              <span className="bg-gray-100 border border-gray-200 text-gray-500 py-2 px-3 rounded-xl font-bold font-anek text-xs">
                                 Bogura (বগুড়া)
                               </span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px]">Upazila (উপজেলা)</span>
-                              <span className="bg-gray-100 border border-gray-200 text-gray-500 py-2 px-3 rounded-xl font-bold">
+                              <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] font-anek text-[11px]">Upazila (উপজেলা)</span>
+                              <span className="bg-gray-100 border border-gray-200 text-gray-500 py-2 px-3 rounded-xl font-bold font-anek text-xs">
                                 Adamdighi (আদমদীঘি)
                               </span>
                             </div>
@@ -1744,24 +1786,24 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                         ) : (
                           <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1">
-                              <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Enter District (জেলা লিখুন)</label>
+                              <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px] font-anek text-[11px]">Enter District (জেলা লিখুন)</label>
                               <input 
                                 type="text" 
                                 placeholder="e.g. Dhaka"
                                 value={customDistrict}
                                 onChange={(e) => setCustomDistrict(e.target.value)}
-                                className="bg-white border border-gray-200 text-gray-800 py-2 px-3 rounded-xl focus:ring-2 focus:ring-[#1B5E20]"
+                                className="bg-white border border-gray-200 text-gray-800 py-2 px-3 rounded-xl focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                                 required
                               />
                             </div>
                             <div className="flex flex-col gap-1">
-                              <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Enter Upazila (উপজেলা লিখুন)</label>
+                              <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px] font-anek text-[11px]">Enter Upazila (উপজেলা লিখুন)</label>
                               <input 
                                 type="text" 
                                 placeholder="e.g. Mirpur"
                                 value={customUpazila}
                                 onChange={(e) => setCustomUpazila(e.target.value)}
-                                className="bg-white border border-gray-200 text-gray-800 py-2 px-3 rounded-xl focus:ring-2 focus:ring-[#1B5E20]"
+                                className="bg-white border border-gray-200 text-gray-800 py-2 px-3 rounded-xl focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                                 required
                               />
                             </div>
@@ -1772,24 +1814,24 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                       {/* Password setup */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-bold text-gray-500 uppercase tracking-wider">Password (পাসওয়ার্ড)</label>
+                          <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Password (পাসওয়ার্ড)</label>
                           <input 
                             type="password" 
                             placeholder="••••••••"
                             value={regPassword}
                             onChange={(e) => setRegPassword(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20]"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                             required
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-bold text-gray-500 uppercase tracking-wider">Confirm Password (পাসওয়ার্ড নিশ্চিত করুন)</label>
+                          <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Confirm Password (পাসওয়ার্ড নিশ্চিত করুন)</label>
                           <input 
                             type="password" 
                             placeholder="••••••••"
                             value={regConfirmPassword}
                             onChange={(e) => setRegConfirmPassword(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20]"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
                             required
                           />
                         </div>
@@ -1797,7 +1839,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
 
                       <button
                         type="submit"
-                        className="w-full bg-emerald-700 hover:bg-[#1B5E20] text-white font-black py-3.5 rounded-xl shadow-md cursor-pointer transition-colors text-center text-xs"
+                        className="w-full bg-[#1B5E20] hover:bg-emerald-800 text-white font-black py-3.5 rounded-xl shadow-md cursor-pointer transition-colors text-center text-xs font-anek text-sm"
                       >
                         Register (নিবন্ধন করুন)
                       </button>
@@ -1812,13 +1854,13 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                   {/* Participant Dashboard Top Panel */}
                   <div className="bg-[#1B5E20] text-white rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-lg border border-[#4CAF50]/20">
                     <div className="space-y-2 text-center md:text-left">
-                      <span className="text-xs font-mono font-bold tracking-widest text-[#4CAF50] uppercase block">
+                      <span className="text-xs font-mono font-bold tracking-widest text-[#4CAF50] uppercase block font-anek text-lg">
                         Official Participant Dashboard (অফিসিয়াল অংশগ্রহণকারী ড্যাশবোর্ড)
                       </span>
                       <h4 className="text-2xl font-black font-sans leading-tight">
                         Welcome, {loggedInUser.name}!
                       </h4>
-                      <div className="flex flex-wrap justify-center md:justify-start gap-4 text-xs font-semibold text-emerald-100">
+                      <div className="flex flex-wrap justify-center md:justify-start gap-4 text-xs font-semibold text-emerald-100 font-anek text-sm">
                         <span className="flex items-center gap-1.5 bg-black/20 py-1 px-2.5 rounded-full">
                           <User size={12} /> ID: {loggedInUser.id}
                         </span>
@@ -1832,27 +1874,28 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                         )}
                       </div>
                     </div>
-
-                    <div className="flex gap-3 shrink-0">
-                      {isEligibleForCertificate && (
+                    <div className="flex flex-wrap justify-center md:justify-end gap-3 shrink-0 font-anek">
+                      {trees.filter(t => t.participantId === loggedInUser.id).length > 0 && (
                         <button
                           onClick={() => setShowCertificatePreview(true)}
-                          className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-5 rounded-full text-xs shadow cursor-pointer transition-colors flex items-center gap-1.5"
+                          className="bg-[#D4AF37] hover:bg-amber-600 text-white font-bold py-2.5 px-5 rounded-full text-xs shadow cursor-pointer transition-colors flex items-center gap-1.5 text-sm"
                         >
                           <Award size={14} />
-                          <span>Get Certificate (সার্টিফিকেট অর্জন করুন)</span>
+                          <span>Get Certificate (সনদপত্র অর্জন করুন)</span>
                         </button>
                       )}
                       
                       <button
                         onClick={handleLogoutParticipant}
-                        className="bg-black/30 hover:bg-red-700/80 text-white font-bold py-2.5 px-5 rounded-full text-xs cursor-pointer transition-colors flex items-center gap-1.5"
+                        className="bg-black/30 hover:bg-red-700/80 text-white font-bold py-2.5 px-5 rounded-full text-xs cursor-pointer transition-colors flex items-center gap-1.5 text-sm"
                       >
                         <LogOut size={14} />
                         <span>Log Out (লগ আউট)</span>
                       </button>
                     </div>
                   </div>
+
+
 
                   {/* Dynamic Certificate Preview Modal */}
                   <AnimatePresence>
@@ -1879,8 +1922,43 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                           </button>
 
                           {/* Certificate Boundary */}
-                          <div className="border-4 border-double border-[#4CAF50] p-8 space-y-6 text-center relative" id="printable-certificate-container">
-                            <div className="absolute top-2 left-2 text-[10px] font-mono text-gray-300 font-bold">GREEN EARTH CERTIFICATION</div>
+                          {(() => {
+                            const customCertImage = localStorage.getItem('ge_gh_custom_cert_image');
+                            const customCertX = certX;
+                            const customCertY = certY;
+                            const customCertFontSize = certFontSize;
+                            const customCertColor = certColor;
+
+                            if (certType === 'custom' && customCertImage) {
+                              return (
+                                <div 
+                                  className="relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-xl border-4 border-[#1B5E20]" 
+                                  id="printable-certificate-container"
+                                  style={{ containerType: 'inline-size' }}
+                                >
+                                  <img src={customCertImage} alt="Custom Certificate Template" referrerPolicy="no-referrer" className="w-full h-auto block" />
+                                  {/* Overlay Name */}
+                                  <div 
+                                    className="absolute text-center select-none font-sans font-black tracking-wide font-anek pointer-events-none"
+                                    style={{
+                                      top: `${customCertY}%`,
+                                      left: `${customCertX}%`,
+                                      transform: 'translate(-50%, -50%)',
+                                      fontSize: `calc((${customCertFontSize} / 800) * 100cqw)`,
+                                      color: customCertColor,
+                                      textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                                      width: '90%',
+                                    }}
+                                  >
+                                    {loggedInUser.name}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="border-4 border-double border-[#4CAF50] p-8 space-y-6 text-center relative bg-white rounded-2xl" id="printable-certificate-container">
+                                <div className="absolute top-2 left-2 text-[10px] font-mono text-gray-300 font-bold">GREEN EARTH CERTIFICATION</div>
                             
                             {/* Logo */}
                             <div className="w-16 h-16 bg-[#1B5E20]/10 text-[#1B5E20] rounded-full flex items-center justify-center mx-auto mb-2 border border-[#4CAF50]/30 shadow-xs">
@@ -1947,15 +2025,104 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                               </div>
                             </div>
                           </div>
+                        );
+                      })()}
 
-                          <div className="flex justify-center gap-3 pt-2">
-                            <button
-                              onClick={() => window.print()}
-                              className="bg-emerald-700 hover:bg-[#1B5E20] text-white font-bold py-2.5 px-6 rounded-full text-xs shadow transition-all cursor-pointer flex items-center gap-1.5"
-                            >
-                              <Download size={14} />
-                              <span>Print / Download PDF (প্রিন্ট / ডাউনলোড পিডিএফ)</span>
-                            </button>
+                      {/* Adjustment Controls for Custom Certificate Name Placement */}
+                      {certType === 'custom' && localStorage.getItem('ge_gh_custom_cert_image') && (
+                        <div className="bg-emerald-50/50 border border-emerald-100 p-5 rounded-2xl space-y-4 text-left max-w-3xl mx-auto">
+                          <h5 className="text-xs font-black text-[#1B5E20] uppercase tracking-wider flex items-center gap-1.5 font-anek">
+                            <Settings size={14} className="animate-spin-slow" />
+                            <span>Adjust Name Position & Size (সনদপত্রে নাম বসানোর পজিশন ও সাইজ নিয়ন্ত্রণ)</span>
+                          </h5>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider font-anek">
+                                Horizontal Name X Position (%) (নামের অনুভূমিক অবস্থান)
+                              </label>
+                              <input 
+                                type="range" 
+                                min="10" 
+                                max="90" 
+                                value={certX}
+                                onChange={(e) => handleCertXChange(Number(e.target.value))}
+                                className="w-full accent-[#1B5E20] cursor-pointer"
+                              />
+                              <span className="font-mono text-[10px] text-gray-500 font-bold">{certX}% from left</span>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider font-anek">
+                                Vertical Name Y Position (%) (নামের উল্লম্ব অবস্থান)
+                              </label>
+                              <input 
+                                type="range" 
+                                min="20" 
+                                max="80" 
+                                value={certY}
+                                onChange={(e) => handleCertYChange(Number(e.target.value))}
+                                className="w-full accent-[#1B5E20] cursor-pointer"
+                              />
+                              <span className="font-mono text-[10px] text-gray-500 font-bold">{certY}% from top</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider font-anek">
+                                Font Size (px) (ফন্ট সাইজ)
+                              </label>
+                              <input 
+                                type="range" 
+                                min="16" 
+                                max="72" 
+                                value={certFontSize}
+                                onChange={(e) => handleCertFontSizeChange(Number(e.target.value))}
+                                className="w-full accent-[#1B5E20] cursor-pointer"
+                              />
+                              <span className="font-mono text-[10px] text-gray-500 font-bold">{certFontSize}px</span>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider font-anek">Name Text Color (লেখার কালার)</label>
+                              <div className="flex gap-2 items-center">
+                                <input 
+                                  type="color" 
+                                  value={certColor}
+                                  onChange={(e) => handleCertColorChange(e.target.value)}
+                                  className="w-8 h-8 border border-gray-200 rounded cursor-pointer shrink-0"
+                                />
+                                <input 
+                                  type="text" 
+                                  value={certColor}
+                                  onChange={(e) => handleCertColorChange(e.target.value)}
+                                  className="bg-white border border-gray-200 rounded-xl py-1 px-2.5 font-mono text-[10px] font-bold w-full"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-center gap-3 pt-2">
+                            {certType === 'custom' && localStorage.getItem('ge_gh_custom_cert_image') ? (
+                              <button
+                                onClick={downloadCustomCertImage}
+                                className="bg-[#1B5E20] hover:bg-emerald-800 text-white font-bold py-2.5 px-6 rounded-full text-xs shadow transition-all cursor-pointer flex items-center gap-1.5"
+                              >
+                                <Download size={14} />
+                                <span>Download JPEG Certificate (সার্টিফিকেট ডাউনলোড করুন)</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => window.print()}
+                                className="bg-emerald-700 hover:bg-[#1B5E20] text-white font-bold py-2.5 px-6 rounded-full text-xs shadow transition-all cursor-pointer flex items-center gap-1.5"
+                              >
+                                <Download size={14} />
+                                <span>Print / Download PDF (প্রিন্ট / ডাউনলোড পিডিএফ)</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => setShowCertificatePreview(false)}
                               className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2.5 px-5 rounded-full text-xs transition-colors"
@@ -2078,6 +2245,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                     <option value="Forest Tree (বনজ বৃক্ষ)">Forest Tree (বনজ বৃক্ষ)</option>
                                     <option value="Medicinal Tree (ঔষধি বৃক্ষ)">Medicinal Tree (ঔষধি বৃক্ষ)</option>
                                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
+                                    <option value="Flower (ফুল)">Flower (ফুল)</option>
                                   </select>
                                 </div>
 
@@ -2501,6 +2669,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                                   <option value="Forest Tree (বনজ বৃক্ষ)">Forest Tree (বনজ বৃক্ষ)</option>
                                   <option value="Medicinal Tree (ঔষধি বৃক্ষ)">Medicinal Tree (ঔষধি বৃক্ষ)</option>
                                   <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
+                                  <option value="Flower (ফুল)">Flower (ফুল)</option>
                                 </select>
                               </div>
 
