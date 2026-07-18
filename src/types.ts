@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type Page = 'home' | 'about' | 'projects' | 'involved' | 'blog' | 'gallery' | 'contact' | 'admin';
+export type Page = 'home' | 'about' | 'projects' | 'involved' | 'blog' | 'gallery' | 'contact' | 'admin' | 'green-hero';
 
 export type Language = 'en' | 'bn';
 

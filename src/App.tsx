@@ -27,6 +27,7 @@ import Blog from './views/Blog';
 import Gallery from './views/Gallery';
 import Contact from './views/Contact';
 import Admin from './views/Admin';
+import GreenHero from './views/GreenHero';
 
 // Types & Data
 import { Page, Project, BlogPost, GalleryItem } from './types';
@@ -35,7 +36,7 @@ export default function App() {
   // Helper to resolve hash router location
   const getPageFromHash = (hash: string): Page => {
     const p = hash.replace(/^#\/?/, '') as Page;
-    const validPages: Page[] = ['home', 'about', 'projects', 'involved', 'blog', 'gallery', 'contact', 'admin'];
+    const validPages: Page[] = ['home', 'about', 'projects', 'involved', 'blog', 'gallery', 'contact', 'admin', 'green-hero'];
     if (validPages.includes(p)) {
       return p;
     }
@@ -94,6 +95,7 @@ export default function App() {
       gallery: 'Gallery',
       contact: 'Contact Us',
       admin: 'Admin Panel',
+      'green-hero': 'Green Hero Initiative',
     };
 
     const pageNamesBn: Record<Page, string> = {
@@ -105,6 +107,7 @@ export default function App() {
       gallery: 'গ্যালারি',
       contact: 'যোগাযোগ',
       admin: 'অ্যাডমিন প্যানেল',
+      'green-hero': 'গ্রিন হিরো ইনিশিয়েটিভ',
     };
 
     const pageTitle = isBangla ? pageNamesBn[currentPage] : pageNamesEn[currentPage];
@@ -121,6 +124,7 @@ export default function App() {
       gallery: 'Browse photos from our field operations, community tree nurseries, solar panel installations, and active river cleanups across Bangladesh.',
       contact: 'Get in touch with Green Earth. Reach out for corporate sponsorship opportunities, partnerships, volunteering queries, or support.',
       admin: 'Green Earth internal administrative panel.',
+      'green-hero': 'Green Hero Initiative – Tree Registration & Monitoring System of Green Earth. Plant, adapt, and monitor your trees to win the official Green Hero badge.',
     };
 
     const pageDescBn: Record<Page, string> = {
@@ -132,6 +136,7 @@ export default function App() {
       gallery: 'আমাদের উপকূলীয় বৃক্ষরোপণ, সৌর প্যানেল ইনস্টলেশন ও বুড়িগঙ্গা নদী পরিচ্ছন্নতা অভিযানসহ মাঠপর্যায়ের কার্যক্রমের ছবি দেখুন।',
       contact: 'আমাদের সাথে যোগাযোগ করুন। কর্পোরেট স্পন্সরশিপ, পরিবেশবান্ধব পার্টনারশিপ বা কোনো জিজ্ঞাসার জন্য মেসেজ পাঠান।',
       admin: 'গ্রিন আর্থ অ্যাডমিন প্যানেল।',
+      'green-hero': 'গ্রিন হিরো ইনিশিয়েটিভ – গ্রিন আর্থের গাছ নিবন্ধন ও মনিটরিং সিস্টেম। গাছ রোপণ করুন, প্রগতি ট্র্যাক করুন এবং অফিশিয়াল গ্রিন হিরো ব্যাজ ও সার্টিফিকেট অর্জন করুন।',
     };
 
     const currentDesc = isBangla ? pageDescBn[currentPage] : pageDescEn[currentPage];
@@ -276,6 +281,8 @@ export default function App() {
         );
       case 'contact':
         return <Contact isBangla={isBangla} onFormSuccess={handleSuccessTrigger} settings={settings} />;
+      case 'green-hero':
+        return <GreenHero isBangla={isBangla} settings={settings} />;
       case 'admin':
         return <Admin isBangla={isBangla} settings={settings} onSettingsSaved={fetchSettings} />;
       default:

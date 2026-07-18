@@ -7,6 +7,7 @@ import {
   Clock, Calendar
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
+import GreenHeroAdmin from '../components/GreenHeroAdmin';
 
 class AdminTabErrorBoundary extends Component<
   { children: React.ReactNode; tabName: string },
@@ -147,7 +148,7 @@ interface OrgSettings {
   aboutTeamTitleBn?: string;
 }
 
-type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones' | 'popup';
+type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones' | 'popup' | 'green-hero';
 
 interface AdminProps {
   isBangla?: boolean;
@@ -1649,6 +1650,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               { tab: 'subscribers', label: 'Subscribers', icon: <Mail size={18} />, count: subscribers.length },
               { tab: 'contacts', label: 'Contact Inquiries', icon: <FileText size={18} />, count: contacts.length },
               { tab: 'popup', label: 'Announcement Popup', icon: <Megaphone size={18} /> },
+              { tab: 'green-hero', label: 'Green Hero Initiative', icon: <Award size={18} /> },
               { tab: 'settings', label: 'System Settings', icon: <Settings size={18} /> }
             ].map((item) => (
               <button
@@ -1723,6 +1725,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               <option value="subscribers">Subscribers</option>
               <option value="contacts">Contact submissions</option>
               <option value="popup">Announcement Popup</option>
+              <option value="green-hero">Green Hero Initiative</option>
               <option value="settings">Settings</option>
             </select>
 
@@ -4970,6 +4973,13 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </button>
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* --- GREEN HERO MANAGEMENT TAB --- */}
+            {activeTab === 'green-hero' && (
+              <div id="green-hero-tab">
+                <GreenHeroAdmin isBangla={isBangla} />
               </div>
             )}
             </AdminTabErrorBoundary>

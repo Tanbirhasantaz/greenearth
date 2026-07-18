@@ -47,6 +47,7 @@ export default function Header({
     { id: 'home', label: 'Home', labelBn: 'হোম' },
     { id: 'about', label: 'About Us', labelBn: 'আমাদের সম্পর্কে' },
     { id: 'projects', label: 'Projects', labelBn: 'প্রকল্পসমূহ' },
+    { id: 'green-hero', label: 'Green Hero (গ্রিন হিরো)', labelBn: 'গ্রিন হিরো (Green Hero)' },
     { id: 'involved', label: 'Get Involved', labelBn: 'অংশ নিন' },
     { id: 'blog', label: 'Blog & News', labelBn: 'ব্লগ ও খবর' },
     { id: 'gallery', label: 'Gallery', labelBn: 'গ্যালারি' },
@@ -85,26 +86,39 @@ export default function Header({
 
         {/* Desktop Nav links */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2" id="desktop-nav">
-          {navLinks.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => handleNavClick(link.id as Page)}
-              className={`px-3 py-2 rounded-full text-sm font-sans font-semibold tracking-wide transition-all cursor-pointer relative ${
-                currentPage === link.id
-                  ? 'text-[#1F5E2E]'
-                  : 'text-gray-600 hover:text-[#1F5E2E] hover:bg-[#6BBF3A]/5'
-              }`}
-            >
-              <span>{isBangla ? link.labelBn : link.label}</span>
-              {currentPage === link.id && (
-                <motion.span
-                  layoutId="activeNavIndicator"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 rounded-full bg-[#6BBF3A]"
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-              )}
-            </button>
-          ))}
+          {navLinks.map((link) => {
+            const isGreenHero = link.id === 'green-hero';
+            return (
+              <button
+                key={link.id}
+                onClick={() => handleNavClick(link.id as Page)}
+                className={`px-3 py-1.5 rounded-full text-sm font-sans font-semibold tracking-wide transition-all cursor-pointer relative flex items-center gap-1.5 ${
+                  currentPage === link.id
+                    ? isGreenHero
+                      ? 'bg-emerald-600 text-white border-2 border-emerald-400 shadow-lg shadow-emerald-200/50 font-black animate-pulse'
+                      : 'text-[#1F5E2E] font-bold'
+                    : isGreenHero
+                      ? 'bg-emerald-50 border-2 border-emerald-400 text-emerald-900 font-black shadow-md shadow-emerald-100 animate-pulse hover:bg-emerald-100'
+                      : 'text-gray-600 hover:text-[#1F5E2E] hover:bg-[#6BBF3A]/5'
+                }`}
+              >
+                {isGreenHero && (
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-100"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+                  </span>
+                )}
+                <span>{isBangla ? link.labelBn : link.label}</span>
+                {currentPage === link.id && !isGreenHero && (
+                  <motion.span
+                    layoutId="activeNavIndicator"
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 rounded-full bg-[#6BBF3A]"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Translation Toggle & Donate Button (Desktop) */}
@@ -191,19 +205,32 @@ export default function Header({
  
               {/* Links */}
               <div className="flex flex-col gap-2 flex-1">
-                {navLinks.map((link) => (
-                  <button
-                    key={link.id}
-                    onClick={() => handleNavClick(link.id as Page)}
-                    className={`w-full text-left py-3 px-4 rounded-xl font-sans font-bold text-base transition-all cursor-pointer ${
-                      currentPage === link.id
-                        ? 'bg-[#1F5E2E] text-white'
-                        : 'text-gray-700 hover:bg-[#6BBF3A]/10 hover:text-[#1F5E2E]'
-                    }`}
-                  >
-                    {isBangla ? link.labelBn : link.label}
-                  </button>
-                ))}
+                {navLinks.map((link) => {
+                  const isGreenHero = link.id === 'green-hero';
+                  return (
+                    <button
+                      key={link.id}
+                      onClick={() => handleNavClick(link.id as Page)}
+                      className={`w-full text-left py-3 px-4 rounded-xl font-sans font-bold text-base transition-all cursor-pointer flex items-center justify-between ${
+                        currentPage === link.id
+                          ? isGreenHero
+                            ? 'bg-emerald-600 border-2 border-emerald-400 text-white font-black animate-pulse'
+                            : 'bg-[#1F5E2E] text-white'
+                          : isGreenHero
+                            ? 'bg-emerald-50 border-2 border-emerald-400 text-emerald-900 font-black animate-pulse'
+                            : 'text-gray-700 hover:bg-[#6BBF3A]/10 hover:text-[#1F5E2E]'
+                      }`}
+                    >
+                      <span>{isBangla ? link.labelBn : link.label}</span>
+                      {isGreenHero && (
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-100"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
  
               {/* Footer inside mobile menu */}
