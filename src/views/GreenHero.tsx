@@ -1287,7 +1287,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
               </div>
 
               {/* Counters Widget Grid - Highly Stylish */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
                 {[
                   {
                     titleEn: 'Registered Heroes',
@@ -1316,6 +1316,13 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                     value: `${survivalRate}%`,
                     color: 'from-blue-500 to-indigo-600 shadow-blue-100',
                     icon: '📈'
+                  },
+                  {
+                    titleEn: 'Active Districts',
+                    titleBn: 'সক্রিয় জেলা',
+                    value: totalDistricts,
+                    color: 'from-purple-500 to-purple-700 shadow-purple-100',
+                    icon: '📍'
                   }
                 ].map((stat, sIdx) => (
                   <div key={sIdx} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between items-center text-center space-y-2 relative overflow-hidden group hover:scale-[1.03] transition-all border-b-4 border-emerald-600">
