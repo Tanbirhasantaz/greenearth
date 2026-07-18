@@ -78,7 +78,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       const overviewRes = await fetch("/api/greenhero/overview");
       if (overviewRes.ok) {
         const overviewData = await overviewRes.json();
-        if (overviewData) {
+        if (overviewData && typeof overviewData === 'object') {
           setOverview(overviewData);
           setTitleEn(overviewData.titleEn || '');
           setTitleBn(overviewData.titleBn || '');
@@ -94,45 +94,80 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       const partsRes = await fetch("/api/greenhero/participants");
       if (partsRes.ok) {
         const partsData = await partsRes.json();
-        setParticipants(partsData);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(partsData));
+        if (Array.isArray(partsData)) {
+          setParticipants(partsData);
+          localStorage.setItem('ge_gh_participants', JSON.stringify(partsData));
+        } else {
+          setParticipants([]);
+        }
       }
 
       // 3. Fetch Trees
       const treesRes = await fetch("/api/greenhero/trees");
       if (treesRes.ok) {
         const treesData = await treesRes.json();
-        setTrees(treesData);
-        localStorage.setItem('ge_gh_trees', JSON.stringify(treesData));
+        if (Array.isArray(treesData)) {
+          setTrees(treesData);
+          localStorage.setItem('ge_gh_trees', JSON.stringify(treesData));
+        } else {
+          setTrees([]);
+        }
       }
 
       // 4. Fetch Logs
       const logsRes = await fetch("/api/greenhero/logs");
       if (logsRes.ok) {
         const logsData = await logsRes.json();
-        setLogs(logsData);
-        localStorage.setItem('ge_gh_logs', JSON.stringify(logsData));
+        if (Array.isArray(logsData)) {
+          setLogs(logsData);
+          localStorage.setItem('ge_gh_logs', JSON.stringify(logsData));
+        } else {
+          setLogs([]);
+        }
       }
     } catch (err) {
       console.error("Error loading admin Green Hero data from server:", err);
       // Fallback
       const savedParts = localStorage.getItem('ge_gh_participants');
-      if (savedParts) setParticipants(JSON.parse(savedParts));
+      if (savedParts) {
+        try {
+          const parsed = JSON.parse(savedParts);
+          setParticipants(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setParticipants([]);
+        }
+      }
       const savedTrees = localStorage.getItem('ge_gh_trees');
-      if (savedTrees) setTrees(JSON.parse(savedTrees));
+      if (savedTrees) {
+        try {
+          const parsed = JSON.parse(savedTrees);
+          setTrees(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setTrees([]);
+        }
+      }
       const savedLogs = localStorage.getItem('ge_gh_logs');
-      if (savedLogs) setLogs(JSON.parse(savedLogs));
+      if (savedLogs) {
+        try {
+          const parsed = JSON.parse(savedLogs);
+          setLogs(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setLogs([]);
+        }
+      }
       const savedOverview = localStorage.getItem('ge_gh_overview');
       if (savedOverview) {
         try {
           const parsed = JSON.parse(savedOverview);
-          setOverview(parsed);
-          setTitleEn(parsed.titleEn || '');
-          setTitleBn(parsed.titleBn || '');
-          setSubtitleEn(parsed.subtitleEn || '');
-          setSubtitleBn(parsed.subtitleBn || '');
-          setDescEn(parsed.descriptionEn || '');
-          setDescBn(parsed.descriptionBn || '');
+          if (parsed && typeof parsed === 'object') {
+            setOverview(parsed);
+            setTitleEn(parsed.titleEn || '');
+            setTitleBn(parsed.titleBn || '');
+            setSubtitleEn(parsed.subtitleEn || '');
+            setSubtitleBn(parsed.subtitleBn || '');
+            setDescEn(parsed.descriptionEn || '');
+            setDescBn(parsed.descriptionBn || '');
+          }
         } catch (e) {}
       }
     }
@@ -391,7 +426,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   const handleSuspendParticipantFromLog = (participantId: string) => {
-    const targetPart = participants.find(p => p.id === participantId) || { id: participantId, name: participantId };
+    const targetPart = safeParticipants.find(p => p && p.id === participantId) || { id: participantId, name: participantId };
     setSuspendConfirmPart(targetPart);
   };
 
@@ -402,6 +437,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
 
 
+  // --- SAFE BOUNDS FOR ALL DATASETS ---
+  const safeParticipants = Array.isArray(participants) ? participants.filter(Boolean) : [];
+  const safeTrees = Array.isArray(trees) ? trees.filter(Boolean) : [];
+  const safeLogs = Array.isArray(logs) ? logs.filter(Boolean) : [];
+
   // --- CSV EXPORTER ---
   const downloadCSV = (type: 'participants' | 'trees' | 'logs') => {
     let csvContent = '';
@@ -410,20 +450,20 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     if (type === 'participants') {
       fileName = 'green_hero_participants.csv';
       csvContent = 'Participant ID,Name,Type,Institution,Class/Grade,Mobile,District,Upazila,Registered Date,Status\n';
-      participants.forEach(p => {
-        csvContent += `"${p.id}","${p.name}","${p.type}","${p.institution}","${p.grade || ''}","${p.mobile}","${p.district}","${p.upazila}","${p.regDate}","${p.status}"\n`;
+      safeParticipants.forEach(p => {
+        csvContent += `"${p.id || ''}","${p.name || ''}","${p.type || ''}","${p.institution || ''}","${p.grade || ''}","${p.mobile || ''}","${p.district || ''}","${p.upazila || ''}","${p.regDate || ''}","${p.status || ''}"\n`;
       });
     } else if (type === 'trees') {
       fileName = 'green_hero_tree_registry.csv';
       csvContent = 'Tree ID,Participant ID,Participant Name,Tree Name,Quantity,Type,Location,Planting Date,Status\n';
-      trees.forEach(t => {
-        csvContent += `"${t.id}","${t.participantId}","${t.participantName}","${t.treeName}","${t.quantity}","${t.treeType}","${t.location}","${t.plantingDate}","${t.status}"\n`;
+      safeTrees.forEach(t => {
+        csvContent += `"${t.id || ''}","${t.participantId || ''}","${t.participantName || ''}","${t.treeName || ''}","${Number(t.quantity) || 0}","${t.treeType || ''}","${t.location || ''}","${t.plantingDate || ''}","${t.status || ''}"\n`;
       });
     } else if (type === 'logs') {
       fileName = 'green_hero_monitoring_logs.csv';
       csvContent = 'Log ID,Participant ID,Month,Health,Comments,Status,Admin Remarks,Date\n';
-      logs.forEach(l => {
-        csvContent += `"${l.id}","${l.participantId}","${l.month}","${l.health}","${l.comments}","${l.status}","${l.remarks || ''}","${l.date}"\n`;
+      safeLogs.forEach(l => {
+        csvContent += `"${l.id || ''}","${l.participantId || ''}","${l.month || ''}","${l.health || ''}","${l.comments || ''}","${l.status || ''}","${l.remarks || ''}","${l.date || ''}"\n`;
       });
     }
 
@@ -439,27 +479,27 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   // Filter logs for view
-  const filteredLogs = logs.filter(l => {
+  const filteredLogs = safeLogs.filter(l => {
     if (logStatusFilter === 'All') return true;
     return l.status === logStatusFilter;
   });
 
   // Calculate stats
-  const totalPartsCount = participants.length;
-  const totalTreesCount = trees.reduce((sum, t) => sum + t.quantity, 0);
-  const pendingLogsCount = logs.filter(l => l.status === 'Pending').length;
+  const totalPartsCount = safeParticipants.length;
+  const totalTreesCount = safeTrees.reduce((sum, t) => sum + (Number(t.quantity) || 0), 0);
+  const pendingLogsCount = safeLogs.filter(l => l.status === 'Pending').length;
   
   // Surviving count
-  const deadParts = logs.filter(l => l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
-  const totalSurviving = trees.reduce((sum, t) => {
+  const deadParts = safeLogs.filter(l => l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
+  const totalSurviving = safeTrees.reduce((sum, t) => {
     if (deadParts.includes(t.participantId)) return sum;
-    return sum + t.quantity;
+    return sum + (Number(t.quantity) || 0);
   }, 0);
   
   const survivalRate = totalTreesCount > 0 ? Math.round((totalSurviving / totalTreesCount) * 100) : 100;
 
   // Active schools
-  const totalSchools = Array.from(new Set(participants.filter(p => p.type === 'student').map(p => p.institution))).length;
+  const totalSchools = Array.from(new Set(safeParticipants.filter(p => p.type === 'student').map(p => p.institution || ''))).filter(Boolean).length;
 
   return (
     <div className="space-y-8 font-anek text-sm md:text-base" id="green-hero-admin-center">
@@ -882,9 +922,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {participants.filter(p => 
-                    p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
-                    p.name.toLowerCase().includes(partSearch.toLowerCase())
+                  {safeParticipants.filter(p => 
+                    p && (
+                      String(p.id || '').toLowerCase().includes(partSearch.toLowerCase()) ||
+                      String(p.name || '').toLowerCase().includes(partSearch.toLowerCase())
+                    )
                   ).length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-12 text-center text-gray-400 font-bold font-sans">
@@ -893,9 +935,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                       </td>
                     </tr>
                   ) : (
-                    participants.filter(p => 
-                      p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
-                      p.name.toLowerCase().includes(partSearch.toLowerCase())
+                    safeParticipants.filter(p => 
+                      p && (
+                        String(p.id || '').toLowerCase().includes(partSearch.toLowerCase()) ||
+                        String(p.name || '').toLowerCase().includes(partSearch.toLowerCase())
+                      )
                     ).map((p, idx) => (
                       <tr key={idx} className="hover:bg-gray-50/50">
                         <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
@@ -990,9 +1034,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {trees.filter(t => 
-                    t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
-                    t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
+                  {safeTrees.filter(t => 
+                    t && (
+                      String(t.treeName || '').toLowerCase().includes(treeSearch.toLowerCase()) ||
+                      String(t.participantId || '').toLowerCase().includes(treeSearch.toLowerCase())
+                    )
                   ).length === 0 ? (
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-gray-400 font-bold font-sans">
@@ -1001,9 +1047,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                       </td>
                     </tr>
                   ) : (
-                    trees.filter(t => 
-                      t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
-                      t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
+                    safeTrees.filter(t => 
+                      t && (
+                        String(t.treeName || '').toLowerCase().includes(treeSearch.toLowerCase()) ||
+                        String(t.participantId || '').toLowerCase().includes(treeSearch.toLowerCase())
+                      )
                     ).map((t, idx) => (
                       <tr key={idx} className="hover:bg-gray-50/50">
                         <td className="py-3.5 px-4 font-mono font-bold text-gray-500">{t.id}</td>
@@ -1376,10 +1424,10 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {participants.map((p, idx) => {
-                    const m1 = logs.find(l => l.participantId === p.id && l.month === 1)?.status || 'None';
-                    const m2 = logs.find(l => l.participantId === p.id && l.month === 2)?.status || 'None';
-                    const m3 = logs.find(l => l.participantId === p.id && l.month === 3)?.status || 'None';
+                  {safeParticipants.map((p, idx) => {
+                    const m1 = safeLogs.find(l => l && l.participantId === p.id && l.month === 1)?.status || 'None';
+                    const m2 = safeLogs.find(l => l && l.participantId === p.id && l.month === 2)?.status || 'None';
+                    const m3 = safeLogs.find(l => l && l.participantId === p.id && l.month === 3)?.status || 'None';
                     const isEligible = m3 === 'Approved';
 
                     return (
