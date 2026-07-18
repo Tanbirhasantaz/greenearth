@@ -1287,7 +1287,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
               </div>
 
               {/* Counters Widget Grid - Highly Stylish */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
                 {[
                   {
                     titleEn: 'Registered Heroes',
@@ -1316,6 +1316,13 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                     value: `${survivalRate}%`,
                     color: 'from-blue-500 to-indigo-600 shadow-blue-100',
                     icon: '📈'
+                  },
+                  {
+                    titleEn: 'Schools Connected',
+                    titleBn: 'সংযুক্ত স্কুল',
+                    value: totalSchools,
+                    color: 'from-amber-500 to-orange-600 shadow-amber-100',
+                    icon: '🏫'
                   },
                   {
                     titleEn: 'Active Districts',
