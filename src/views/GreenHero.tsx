@@ -465,38 +465,82 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const [treeRegSuccess, setTreeRegSuccess] = useState('');
   const [editTreeParticipant, setEditTreeParticipant] = useState<any | null>(null);
 
-  // Helper for actual local image uploads to convert file to base64 Data URL
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingLogImage, setIsUploadingLogImage] = useState(false);
+  const [isUploadingEditImage, setIsUploadingEditImage] = useState(false);
+
+  // Reusable core upload function
+  const uploadImageToServer = async (file: File, filenamePrefix: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image: base64Data,
+              filename: `${filenamePrefix}_${file.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`
+            })
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.success && data.url) {
+              resolve(data.url);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("uploadImageToServer failed, falling back to base64 Data URL:", err);
+        }
+        // Fallback: use raw base64 if upload fails or is offline
+        resolve(reader.result as string);
+      };
+      reader.onerror = () => {
+        resolve('');
+      };
+    });
+  };
+
+  // Helper for actual local image uploads to convert file to base64 Data URL and upload to server
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setter(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsUploadingLogImage(true);
+      try {
+        const url = await uploadImageToServer(file, 'log_progress');
+        setter(url);
+      } catch (err) {
+        console.error("Log photo upload failed:", err);
+      } finally {
+        setIsUploadingLogImage(false);
+      }
     }
   };
 
   // Helper to handle multiple image uploads up to 5 photos
-  const handleMultipleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultipleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       const remainingSlots = 5 - treePhotos.length;
       if (remainingSlots <= 0) return;
       
+      setIsUploadingImage(true);
       const filesToProcess = Array.from(files).slice(0, remainingSlots);
-      filesToProcess.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setTreePhotos(prev => {
-            if (prev.length < 5) {
-              return [...prev, reader.result as string];
-            }
-            return prev;
-          });
-        };
-        reader.readAsDataURL(file);
-      });
+      try {
+        const uploadPromises = filesToProcess.map(file => uploadImageToServer(file, 'tree_reg'));
+        const urls = await Promise.all(uploadPromises);
+        setTreePhotos(prev => {
+          const updated = [...prev, ...urls];
+          return updated.slice(0, 5);
+        });
+      } catch (err) {
+        console.error("Multiple images upload failed:", err);
+      } finally {
+        setIsUploadingImage(false);
+      }
     }
   };
 
@@ -2960,18 +3004,25 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="flex flex-col gap-1.5">
-                                <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Update Tree Photo (ছবি আপলোড)</label>
+                                <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                                  {isUploadingEditImage ? "Uploading... (আপলোড হচ্ছে...)" : "Update Tree Photo (ছবি আপলোড)"}
+                                </label>
                                 <input 
                                   type="file" 
                                   accept="image/*"
-                                  onChange={(e) => {
+                                  disabled={isUploadingEditImage}
+                                  onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      const reader = new FileReader();
-                                      reader.onloadend = () => {
-                                        setEditTreeParticipant({ ...editTreeParticipant, photo: reader.result as string });
-                                      };
-                                      reader.readAsDataURL(file);
+                                      setIsUploadingEditImage(true);
+                                      try {
+                                        const url = await uploadImageToServer(file, 'tree_edit');
+                                        setEditTreeParticipant({ ...editTreeParticipant, photo: url });
+                                      } catch (err) {
+                                        console.error("Edit tree image upload failed:", err);
+                                      } finally {
+                                        setIsUploadingEditImage(false);
+                                      }
                                     }
                                   }}
                                   className="bg-gray-50 border border-gray-200 rounded-xl py-1.5 px-3 focus:ring-2 focus:ring-[#1B5E20] text-[10px] font-bold"
