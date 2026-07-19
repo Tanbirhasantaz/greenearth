@@ -413,15 +413,152 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         fetch('/api/focusareas').then((r) => r.json()).catch(() => [])
       ]);
 
+      // Try to silently sync local data to server first
+      try {
+        // 1. Sync Volunteers
+        const savedVols = localStorage.getItem('volunteers');
+        const currentVols = savedVols ? JSON.parse(savedVols) : [];
+        if (Array.isArray(currentVols)) {
+          const localOnly = currentVols.filter(v => v && String(v.id).startsWith('VOL-LOCAL-'));
+          for (const vol of localOnly) {
+            const { id, ...cleanVol } = vol;
+            await fetch('/api/volunteers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cleanVol)
+            });
+          }
+        }
+      } catch (e) {}
+
+      try {
+        // 2. Sync Donations
+        const savedDons = localStorage.getItem('donations');
+        const currentDons = savedDons ? JSON.parse(savedDons) : [];
+        if (Array.isArray(currentDons)) {
+          const localOnly = currentDons.filter(d => d && String(d.id).startsWith('DON-LOCAL-'));
+          for (const don of localOnly) {
+            const { id, ...cleanDon } = don;
+            await fetch('/api/donations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cleanDon)
+            });
+          }
+        }
+      } catch (e) {}
+
+      try {
+        // 3. Sync Contacts
+        const savedContacts = localStorage.getItem('contacts');
+        const currentContacts = savedContacts ? JSON.parse(savedContacts) : [];
+        if (Array.isArray(currentContacts)) {
+          const localOnly = currentContacts.filter(c => c && String(c.id).startsWith('CON-LOCAL-'));
+          for (const contact of localOnly) {
+            const { id, ...cleanContact } = contact;
+            await fetch('/api/contacts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cleanContact)
+            });
+          }
+        }
+      } catch (e) {}
+
+      try {
+        // 4. Sync Subscribers
+        const savedSubs = localStorage.getItem('subscribers');
+        const currentSubs = savedSubs ? JSON.parse(savedSubs) : [];
+        if (Array.isArray(currentSubs)) {
+          for (const email of currentSubs) {
+            await fetch('/api/subscribers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email })
+            });
+          }
+        }
+      } catch (e) {}
+
       setProjects(resProj);
       setBlogs(resBlogs);
       setTeam(resTeam);
       setGallery(resGallery);
       setTestimonials(resTests);
-      setVolunteers(resVols);
-      setDonations(resDons);
-      setSubscribers(resSubs);
-      setContacts(resContacts);
+
+      // Merge Volunteers
+      const localVolsRaw = localStorage.getItem('volunteers');
+      let localVols: any[] = [];
+      try {
+        localVols = localVolsRaw ? JSON.parse(localVolsRaw) : [];
+        if (!Array.isArray(localVols)) localVols = [];
+      } catch {}
+      const mergedVolsMap = new Map();
+      localVols.forEach(v => {
+        if (v && (v.email || v.phone)) mergedVolsMap.set(v.email || v.phone, v);
+      });
+      const validVols = Array.isArray(resVols) ? resVols : [];
+      validVols.forEach(v => {
+        if (v && (v.email || v.phone)) mergedVolsMap.set(v.email || v.phone, v);
+      });
+      const finalVols = Array.from(mergedVolsMap.values());
+      setVolunteers(finalVols);
+      localStorage.setItem('volunteers', JSON.stringify(finalVols));
+
+      // Merge Donations
+      const localDonsRaw = localStorage.getItem('donations');
+      let localDons: any[] = [];
+      try {
+        localDons = localDonsRaw ? JSON.parse(localDonsRaw) : [];
+        if (!Array.isArray(localDons)) localDons = [];
+      } catch {}
+      const mergedDonsMap = new Map();
+      localDons.forEach((d, idx) => {
+        const key = d.id || d.transactionId || `local-don-${idx}`;
+        mergedDonsMap.set(key, d);
+      });
+      const validDons = Array.isArray(resDons) ? resDons : [];
+      validDons.forEach((d, idx) => {
+        const key = d.id || d.transactionId || `server-don-${idx}`;
+        mergedDonsMap.set(key, d);
+      });
+      const finalDons = Array.from(mergedDonsMap.values());
+      setDonations(finalDons);
+      localStorage.setItem('donations', JSON.stringify(finalDons));
+
+      // Merge Subscribers
+      const localSubsRaw = localStorage.getItem('subscribers');
+      let localSubs: any[] = [];
+      try {
+        localSubs = localSubsRaw ? JSON.parse(localSubsRaw) : [];
+        if (!Array.isArray(localSubs)) localSubs = [];
+      } catch {}
+      const mergedSubsSet = new Set([...localSubs, ...(Array.isArray(resSubs) ? resSubs : [])]);
+      const finalSubs = Array.from(mergedSubsSet);
+      setSubscribers(finalSubs);
+      localStorage.setItem('subscribers', JSON.stringify(finalSubs));
+
+      // Merge Contacts
+      const localContactsRaw = localStorage.getItem('contacts');
+      let localContacts: any[] = [];
+      try {
+        localContacts = localContactsRaw ? JSON.parse(localContactsRaw) : [];
+        if (!Array.isArray(localContacts)) localContacts = [];
+      } catch {}
+      const mergedContactsMap = new Map();
+      localContacts.forEach((c, idx) => {
+        const key = c.id || `local-con-${idx}`;
+        mergedContactsMap.set(key, c);
+      });
+      const validContacts = Array.isArray(resContacts) ? resContacts : [];
+      validContacts.forEach((c, idx) => {
+        const key = c.id || `server-con-${idx}`;
+        mergedContactsMap.set(key, c);
+      });
+      const finalContacts = Array.from(mergedContactsMap.values());
+      setContacts(finalContacts);
+      localStorage.setItem('contacts', JSON.stringify(finalContacts));
+
       setSettings(resSettings);
       setMilestonesList(Array.isArray(resMilestones) ? resMilestones : []);
       setCoreValuesList(Array.isArray(resCoreValues) ? resCoreValues : []);

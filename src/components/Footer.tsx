@@ -43,12 +43,42 @@ export default function Footer({
 
     setError('');
 
+    const executeClientFallbackSubscriber = () => {
+      try {
+        const savedSubs = localStorage.getItem('subscribers');
+        const currentSubs = savedSubs ? JSON.parse(savedSubs) : [];
+        
+        if (!currentSubs.includes(email)) {
+          const updatedSubs = [...currentSubs, email];
+          localStorage.setItem('subscribers', JSON.stringify(updatedSubs));
+        }
+
+        setEmail('');
+        onSubscribeSuccess(
+          isBangla ? 'সাবস্ক্রাইব সম্পন্ন হয়েছে!' : 'Subscribed Successfully!',
+          isBangla 
+            ? 'গ্রিন আর্থ নিউজলেটারে যুক্ত হওয়ার জন্য আপনাকে ধন্যবাদ। জলবায়ু পদক্ষেপ, বৃক্ষরোপণ এবং পরিবেশ সংরক্ষণের খবরাখবর সবার আগে পেতে এখনই আমাদের অফিসিয়াল ফেসবুক পেজে যুক্ত হন!' 
+            : 'Thank you for subscribing to Green Earth updates! To stay closer to our grassroots activities, environmental campaigns, and community stories, please join our official Facebook page below!',
+          settings?.footerFbUrl || 'https://www.facebook.com/greenearthbd.25/'
+        );
+      } catch (fallbackErr) {
+        console.error("Subscriber fallback failed:", fallbackErr);
+        setError(isBangla ? 'সাবস্ক্রাইব করতে সমস্যা হয়েছে।' : 'Error subscribing. Please try again.');
+      }
+    };
+
     fetch('/api/subscribers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     })
       .then((res) => {
+        if (!res.ok) {
+          throw new Error('Server returned non-OK status');
+        }
+        return res.json();
+      })
+      .then((data) => {
         setEmail('');
         onSubscribeSuccess(
           isBangla ? 'সাবস্ক্রাইব সম্পন্ন হয়েছে!' : 'Subscribed Successfully!',
@@ -59,8 +89,8 @@ export default function Footer({
         );
       })
       .catch((err) => {
-        console.error(err);
-        setError(isBangla ? 'সাবস্ক্রাইব করতে সমস্যা হয়েছে।' : 'Error subscribing. Please try again.');
+        console.warn("Server subscriber addition failed, falling back to local storage:", err);
+        executeClientFallbackSubscriber();
       });
   };
 

@@ -71,47 +71,184 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   const [certFontSize, setCertFontSize] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_font_size')) || 36);
   const [certColor, setCertColor] = useState<string>(() => localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20');
 
-  // Load all records
-  const loadAllData = () => {
-    const savedParts = localStorage.getItem('ge_gh_participants');
-    if (savedParts) {
-      try {
-        setParticipants(JSON.parse(savedParts));
-      } catch (e) {}
-    }
-    const savedTrees = localStorage.getItem('ge_gh_trees');
-    if (savedTrees) {
-      try {
-        setTrees(JSON.parse(savedTrees));
-      } catch (e) {}
-    }
-    const savedLogs = localStorage.getItem('ge_gh_logs');
-    if (savedLogs) {
-      try {
-        setLogs(JSON.parse(savedLogs));
-      } catch (e) {}
-    }
-    const savedOverview = localStorage.getItem('ge_gh_overview');
-    if (savedOverview) {
-      try {
-        const parsed = JSON.parse(savedOverview);
-        setOverview(parsed);
-        // Sync editor
-        setTitleEn(parsed.titleEn || '');
-        setTitleBn(parsed.titleBn || '');
-        setSubtitleEn(parsed.subtitleEn || '');
-        setSubtitleBn(parsed.subtitleBn || '');
-        setDescEn(parsed.descriptionEn || '');
-        setDescBn(parsed.descriptionBn || '');
-      } catch (e) {}
-    } else {
-      // Sync defaults
-      setTitleEn(overview.titleEn);
-      setTitleBn(overview.titleBn);
-      setSubtitleEn(overview.subtitleEn);
-      setSubtitleBn(overview.subtitleBn);
-      setDescEn(overview.descriptionEn);
-      setDescBn(overview.descriptionBn);
+  // Load all records from Server
+  const loadAllData = async () => {
+    try {
+      // 1. Fetch Overview Settings
+      const overviewRes = await fetch("/api/greenhero/overview");
+      if (overviewRes.ok) {
+        const overviewData = await overviewRes.json();
+        if (overviewData && typeof overviewData === 'object' && !Array.isArray(overviewData)) {
+          setOverview(overviewData);
+          setTitleEn(overviewData.titleEn || '');
+          setTitleBn(overviewData.titleBn || '');
+          setSubtitleEn(overviewData.subtitleEn || '');
+          setSubtitleBn(overviewData.subtitleBn || '');
+          setDescEn(overviewData.descriptionEn || '');
+          setDescBn(overviewData.descriptionBn || '');
+          localStorage.setItem('ge_gh_overview', JSON.stringify(overviewData));
+        }
+      }
+
+      // 2. Fetch Participants
+      const partsRes = await fetch("/api/greenhero/participants");
+      if (partsRes.ok) {
+        const partsData = await partsRes.json();
+        const validParts = Array.isArray(partsData) ? partsData : [];
+        
+        const localPartsRaw = localStorage.getItem('ge_gh_participants');
+        let localParts: any[] = [];
+        try {
+          localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
+          if (!Array.isArray(localParts)) localParts = [];
+        } catch {}
+
+        const mergedPartsMap = new Map();
+        localParts.forEach(p => {
+          if (p && p.id) mergedPartsMap.set(p.id, p);
+        });
+        validParts.forEach(p => {
+          if (p && p.id) mergedPartsMap.set(p.id, p);
+        });
+        const finalParts = Array.from(mergedPartsMap.values());
+
+        setParticipants(finalParts);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
+      } else {
+        const savedParts = localStorage.getItem('ge_gh_participants');
+        try {
+          const parsed = savedParts ? JSON.parse(savedParts) : [];
+          setParticipants(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setParticipants([]);
+        }
+      }
+
+      // 3. Fetch Trees
+      const treesRes = await fetch("/api/greenhero/trees");
+      if (treesRes.ok) {
+        const treesData = await treesRes.json();
+        const validTrees = Array.isArray(treesData) ? treesData : [];
+        
+        const localTreesRaw = localStorage.getItem('ge_gh_trees');
+        let localTrees: any[] = [];
+        try {
+          localTrees = localTreesRaw ? JSON.parse(localTreesRaw) : [];
+          if (!Array.isArray(localTrees)) localTrees = [];
+        } catch {}
+
+        const mergedTreesMap = new Map();
+        localTrees.forEach((t, idx) => {
+          const key = t.id || `local-tr-${t.participantId}-${t.treeName}-${idx}`;
+          mergedTreesMap.set(key, t);
+        });
+        validTrees.forEach((t, idx) => {
+          const key = t.id || `server-tr-${t.participantId}-${t.treeName}-${idx}`;
+          mergedTreesMap.set(key, t);
+        });
+        const finalTrees = Array.from(mergedTreesMap.values());
+
+        setTrees(finalTrees);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(finalTrees));
+      } else {
+        const savedTrees = localStorage.getItem('ge_gh_trees');
+        try {
+          const parsed = savedTrees ? JSON.parse(savedTrees) : [];
+          setTrees(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setTrees([]);
+        }
+      }
+
+      // 4. Fetch Logs
+      const logsRes = await fetch("/api/greenhero/logs");
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        const validLogs = Array.isArray(logsData) ? logsData : [];
+        
+        const localLogsRaw = localStorage.getItem('ge_gh_logs');
+        let localLogs: any[] = [];
+        try {
+          localLogs = localLogsRaw ? JSON.parse(localLogsRaw) : [];
+          if (!Array.isArray(localLogs)) localLogs = [];
+        } catch {}
+
+        const mergedLogsMap = new Map();
+        localLogs.forEach((l, idx) => {
+          const key = l.id || `local-lg-${l.participantId}-${l.month}-${idx}`;
+          mergedLogsMap.set(key, l);
+        });
+        validLogs.forEach((l, idx) => {
+          const key = l.id || `server-lg-${l.participantId}-${l.month}-${idx}`;
+          mergedLogsMap.set(key, l);
+        });
+        const finalLogs = Array.from(mergedLogsMap.values());
+
+        setLogs(finalLogs);
+        localStorage.setItem('ge_gh_logs', JSON.stringify(finalLogs));
+      } else {
+        const savedLogs = localStorage.getItem('ge_gh_logs');
+        try {
+          const parsed = savedLogs ? JSON.parse(savedLogs) : [];
+          setLogs(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setLogs([]);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading admin Green Hero data from server:", err);
+      // Fallback
+      const savedParts = localStorage.getItem('ge_gh_participants');
+      if (savedParts) {
+        try {
+          const parsed = JSON.parse(savedParts);
+          setParticipants(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setParticipants([]);
+        }
+      } else {
+        setParticipants([]);
+      }
+
+      const savedTrees = localStorage.getItem('ge_gh_trees');
+      if (savedTrees) {
+        try {
+          const parsed = JSON.parse(savedTrees);
+          setTrees(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setTrees([]);
+        }
+      } else {
+        setTrees([]);
+      }
+
+      const savedLogs = localStorage.getItem('ge_gh_logs');
+      if (savedLogs) {
+        try {
+          const parsed = JSON.parse(savedLogs);
+          setLogs(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setLogs([]);
+        }
+      } else {
+        setLogs([]);
+      }
+
+      const savedOverview = localStorage.getItem('ge_gh_overview');
+      if (savedOverview) {
+        try {
+          const parsed = JSON.parse(savedOverview);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            setOverview(parsed);
+            setTitleEn(parsed.titleEn || '');
+            setTitleBn(parsed.titleBn || '');
+            setSubtitleEn(parsed.subtitleEn || '');
+            setSubtitleBn(parsed.subtitleBn || '');
+            setDescEn(parsed.descriptionEn || '');
+            setDescBn(parsed.descriptionBn || '');
+          }
+        } catch (e) {}
+      }
     }
   };
 
@@ -133,35 +270,50 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       descriptionBn: descBn.trim()
     };
 
-    localStorage.setItem('ge_gh_overview', JSON.stringify(updated));
-    setOverview(updated);
-
-    // Save as dynamic field in settings.json via API as a fallback
-    fetch('/api/settings', {
+    fetch('/api/greenhero/overview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ greenHeroOverview: updated })
+      body: JSON.stringify(updated)
     })
       .then(res => res.json())
-      .then(() => {})
-      .catch(err => console.log('Settings fallback server save:', err));
+      .then(() => {
+        setOverview(updated);
+        localStorage.setItem('ge_gh_overview', JSON.stringify(updated));
+        
+        // Also keep settings.json in sync for fallback
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ greenHeroOverview: updated })
+        }).catch(err => console.log(err));
 
-    setSuccessBanner('Project Overview content updated successfully! (প্রকল্পের ওভারভিউ সফলভাবে আপডেট করা হয়েছে!)');
-    setTimeout(() => setSuccessBanner(''), 4000);
+        setSuccessBanner('Project Overview content updated successfully! (প্রকল্পের ওভারভিউ সফলভাবে আপডেট করা হয়েছে!)');
+        setTimeout(() => setSuccessBanner(''), 4000);
+        loadAllData();
+      })
+      .catch(err => {
+        console.error(err);
+        setSuccessBanner('Failed to update project overview. (প্রকল্পের ওভারভিউ আপডেট করতে ব্যর্থ হয়েছে।)');
+        setTimeout(() => setSuccessBanner(''), 4000);
+      });
   };
 
   // --- PARTICIPANT MANAGEMENT ACTIONS ---
   const handleUpdatePartStatus = (id: string, newStatus: 'Approved' | 'Suspended') => {
-    const updated = participants.map(p => {
-      if (p.id === id) {
-        return { ...p, status: newStatus };
-      }
-      return p;
-    });
-    localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
-    setParticipants(updated);
-    setSuccessBanner(`Participant ${id} status updated to ${newStatus}.`);
-    setTimeout(() => setSuccessBanner(''), 3000);
+    fetch(`/api/greenhero/participants/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSuccessBanner(`Participant ${id} status updated to ${newStatus}.`);
+          setTimeout(() => setSuccessBanner(''), 3000);
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
   };
 
   // --- CUSTOM CERTIFICATE TEMPLATE HANDLERS ---
@@ -215,57 +367,77 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   const handleDeletePart = (id: string) => {
-    const filtered = participants.filter(p => p.id !== id);
-    localStorage.setItem('ge_gh_participants', JSON.stringify(filtered));
-    setParticipants(filtered);
-    setSuccessBanner(`Participant ${id} has been deleted successfully. (অংশগ্রহণকারী ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
-    setTimeout(() => setSuccessBanner(''), 4000);
-    setDeleteConfirmPart(null);
+    fetch(`/api/greenhero/participants/${id}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSuccessBanner(`Participant ${id} has been deleted successfully. (অংশগ্রহণকারী ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
+          setTimeout(() => setSuccessBanner(''), 4000);
+          setDeleteConfirmPart(null);
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
   };
 
   const handleSaveParticipant = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editPartModal) return;
 
-    const updated = participants.map(p => {
-      if (p.id === editPartModal.id) {
-        return { ...editPartModal };
-      }
-      return p;
-    });
-
-    localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
-    setParticipants(updated);
-    setEditPartModal(null);
-    setSuccessBanner('Participant information updated successfully! (অংশগ্রহণকারীর তথ্য সফলভাবে আপডেট করা হয়েছে!)');
-    setTimeout(() => setSuccessBanner(''), 4000);
+    fetch(`/api/greenhero/participants/${editPartModal.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editPartModal)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setEditPartModal(null);
+          setSuccessBanner('Participant information updated successfully! (অংশগ্রহণকারীর তথ্য সফলভাবে আপডেট করা হয়েছে!)');
+          setTimeout(() => setSuccessBanner(''), 4000);
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
   };
 
   const handleSaveTree = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTreeModal) return;
 
-    const updated = trees.map(t => {
-      if (t.id === editTreeModal.id) {
-        return { ...editTreeModal };
-      }
-      return t;
-    });
-
-    localStorage.setItem('ge_gh_trees', JSON.stringify(updated));
-    setTrees(updated);
-    setEditTreeModal(null);
-    setSuccessBanner('Tree registry information updated successfully! (গাছ তথ্য সফলভাবে আপডেট করা হয়েছে!)');
-    setTimeout(() => setSuccessBanner(''), 4000);
+    fetch(`/api/greenhero/trees/${editTreeModal.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editTreeModal)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setEditTreeModal(null);
+          setSuccessBanner('Tree registry information updated successfully! (গাছ তথ্য সফলভাবে আপডেট করা হয়েছে!)');
+          setTimeout(() => setSuccessBanner(''), 4000);
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
   };
 
   const handleDeleteTree = (id: string) => {
-    const filtered = trees.filter(t => t.id !== id);
-    localStorage.setItem('ge_gh_trees', JSON.stringify(filtered));
-    setTrees(filtered);
-    setSuccessBanner(`Tree record ${id} has been deleted successfully. (গাছ রেকর্ড ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
-    setTimeout(() => setSuccessBanner(''), 4000);
-    setDeleteConfirmTree(null);
+    fetch(`/api/greenhero/trees/${id}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSuccessBanner(`Tree record ${id} has been deleted successfully. (গাছ রেকর্ড ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
+          setTimeout(() => setSuccessBanner(''), 4000);
+          setDeleteConfirmTree(null);
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
   };
 
   const handleTreePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,25 +460,25 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   // --- LOG AUDIT ACTIONS (APPROVE/REJECT) ---
   const handleAuditLog = (logId: string, isApproved: boolean) => {
     const remark = remarksInput[logId] || '';
-    const updatedLogs = logs.map(l => {
-      if (l.id === logId) {
-        return { 
-          ...l, 
-          status: isApproved ? 'Approved' : 'Rejected',
-          remarks: remark.trim() || (isApproved ? 'Approved by Admin (অ্যাডমিন কর্তৃক অনুমোদিত)' : 'Rejected by Admin (অ্যাডমিন কর্তৃক বাতিল)')
-        };
-      }
-      return l;
-    });
+    const status = isApproved ? 'Approved' : 'Rejected';
+    const remarks = remark.trim() || (isApproved ? 'Approved by Admin (অ্যাডমিন কর্তৃক অনুমোদিত)' : 'Rejected by Admin (অ্যাডমিন কর্তৃক বাতিল)');
 
-    localStorage.setItem('ge_gh_logs', JSON.stringify(updatedLogs));
-    setLogs(updatedLogs);
-    
-    // Clear remarks input
-    setRemarksInput(prev => ({ ...prev, [logId]: '' }));
-
-    setSuccessBanner(`Log reviewed successfully! (লগ সফলভাবে পর্যালোচনা করা হয়েছে!)`);
-    setTimeout(() => setSuccessBanner(''), 4000);
+    fetch(`/api/greenhero/logs/${logId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, remarks })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Clear remarks input
+          setRemarksInput(prev => ({ ...prev, [logId]: '' }));
+          setSuccessBanner(`Log reviewed successfully! (লগ সফলভাবে পর্যালোচনা করা হয়েছে!)`);
+          setTimeout(() => setSuccessBanner(''), 4000);
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
   };
 
   const handleDeleteLog = (logId: string) => {
@@ -317,16 +489,23 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   const executeDeleteLog = (logId: string) => {
-    const updatedLogs = logs.filter(l => l.id !== logId);
-    localStorage.setItem('ge_gh_logs', JSON.stringify(updatedLogs));
-    setLogs(updatedLogs);
-    setDeleteConfirmLog(null);
-    setSuccessBanner('Log deleted successfully. (প্রগতি লগটি সফলভাবে ডিলিট করা হয়েছে।)');
-    setTimeout(() => setSuccessBanner(''), 3000);
+    fetch(`/api/greenhero/logs/${logId}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setDeleteConfirmLog(null);
+          setSuccessBanner('Log deleted successfully. (প্রগতি লগটি সফলভাবে ডিলিট করা হয়েছে।)');
+          setTimeout(() => setSuccessBanner(''), 3000);
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
   };
 
   const handleSuspendParticipantFromLog = (participantId: string) => {
-    const targetPart = participants.find(p => p.id === participantId) || { id: participantId, name: participantId };
+    const targetPart = safeParticipants.find(p => p && p.id === participantId) || { id: participantId, name: participantId };
     setSuspendConfirmPart(targetPart);
   };
 
@@ -334,6 +513,8 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     handleUpdatePartStatus(participantId, 'Suspended');
     setSuspendConfirmPart(null);
   };
+
+
 
   // --- CSV EXPORTER ---
   const downloadCSV = (type: 'participants' | 'trees' | 'logs') => {
@@ -343,20 +524,26 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     if (type === 'participants') {
       fileName = 'green_hero_participants.csv';
       csvContent = 'Participant ID,Name,Type,Institution,Class/Grade,Mobile,District,Upazila,Registered Date,Status\n';
-      participants.forEach(p => {
-        csvContent += `"${p.id}","${p.name}","${p.type}","${p.institution}","${p.grade || ''}","${p.mobile}","${p.district}","${p.upazila}","${p.regDate}","${p.status}"\n`;
+      safeParticipants.forEach(p => {
+        if (p) {
+          csvContent += `"${p.id || ''}","${p.name || ''}","${p.type || ''}","${p.institution || ''}","${p.grade || ''}","${p.mobile || ''}","${p.district || ''}","${p.upazila || ''}","${p.regDate || ''}","${p.status || ''}"\n`;
+        }
       });
     } else if (type === 'trees') {
       fileName = 'green_hero_tree_registry.csv';
       csvContent = 'Tree ID,Participant ID,Participant Name,Tree Name,Quantity,Type,Location,Planting Date,Status\n';
-      trees.forEach(t => {
-        csvContent += `"${t.id}","${t.participantId}","${t.participantName}","${t.treeName}","${t.quantity}","${t.treeType}","${t.location}","${t.plantingDate}","${t.status}"\n`;
+      safeTrees.forEach(t => {
+        if (t) {
+          csvContent += `"${t.id || ''}","${t.participantId || ''}","${t.participantName || ''}","${t.treeName || ''}","${t.quantity || ''}","${t.treeType || ''}","${t.location || ''}","${t.plantingDate || ''}","${t.status || ''}"\n`;
+        }
       });
     } else if (type === 'logs') {
       fileName = 'green_hero_monitoring_logs.csv';
       csvContent = 'Log ID,Participant ID,Month,Health,Comments,Status,Admin Remarks,Date\n';
-      logs.forEach(l => {
-        csvContent += `"${l.id}","${l.participantId}","${l.month}","${l.health}","${l.comments}","${l.status}","${l.remarks || ''}","${l.date}"\n`;
+      safeLogs.forEach(l => {
+        if (l) {
+          csvContent += `"${l.id || ''}","${l.participantId || ''}","${l.month || ''}","${l.health || ''}","${l.comments || ''}","${l.status || ''}","${l.remarks || ''}","${l.date || ''}"\n`;
+        }
       });
     }
 
@@ -372,27 +559,32 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   // Filter logs for view
-  const filteredLogs = logs.filter(l => {
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  const safeParticipants = Array.isArray(participants) ? participants : [];
+  const safeTrees = Array.isArray(trees) ? trees : [];
+
+  const filteredLogs = safeLogs.filter(l => {
+    if (!l) return false;
     if (logStatusFilter === 'All') return true;
     return l.status === logStatusFilter;
   });
 
   // Calculate stats
-  const totalPartsCount = participants.length;
-  const totalTreesCount = trees.reduce((sum, t) => sum + t.quantity, 0);
-  const pendingLogsCount = logs.filter(l => l.status === 'Pending').length;
+  const totalPartsCount = safeParticipants.length;
+  const totalTreesCount = safeTrees.reduce((sum, t) => sum + (Number(t?.quantity) || 0), 0);
+  const pendingLogsCount = safeLogs.filter(l => l && l.status === 'Pending').length;
   
   // Surviving count
-  const deadParts = logs.filter(l => l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
-  const totalSurviving = trees.reduce((sum, t) => {
-    if (deadParts.includes(t.participantId)) return sum;
-    return sum + t.quantity;
+  const deadParts = safeLogs.filter(l => l && l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
+  const totalSurviving = safeTrees.reduce((sum, t) => {
+    if (t && deadParts.includes(t.participantId)) return sum;
+    return sum + (t ? (Number(t.quantity) || 0) : 0);
   }, 0);
   
   const survivalRate = totalTreesCount > 0 ? Math.round((totalSurviving / totalTreesCount) * 100) : 100;
 
   // Active schools
-  const totalSchools = Array.from(new Set(participants.filter(p => p.type === 'student').map(p => p.institution))).length;
+  const totalSchools = Array.from(new Set(safeParticipants.filter(p => p && p.type === 'student').map(p => p.institution))).length;
 
   return (
     <div className="space-y-8 font-anek text-sm md:text-base" id="green-hero-admin-center">
@@ -615,6 +807,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                     <option value="Indoor Plant (ইনডোর প্ল্যান্ট)">Indoor Plant (ইনডোর প্ল্যান্ট)</option>
                     <option value="Flower (ফুল)">Flower (ফুল)</option>
                     <option value="Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)">Flower Plant / Ornamental (ফুল বা শোভাবর্ধক গাছ)</option>
+                    <option value="Others (অন্যান্য)">Others (অন্যান্য)</option>
                   </select>
                 </div>
               </div>
@@ -770,11 +963,13 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
               </div>
               <button 
                 onClick={() => setActiveSubTab('logs')}
-                className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-5 rounded-full text-xs font-bold cursor-pointer transition-colors"
+                className="bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-5 rounded-full text-xs font-bold cursor-pointer transition-colors shrink-0"
               >
                 Go to Logs Review ({pendingLogsCount} Pending)
               </button>
             </div>
+
+
           </div>
         )}
 
@@ -812,60 +1007,76 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {participants.filter(p => 
-                    p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
-                    p.name.toLowerCase().includes(partSearch.toLowerCase())
-                  ).map((p, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
-                      <td className="py-3.5 px-4 text-gray-900">{p.name}</td>
-                      <td className="py-3.5 px-4 text-gray-500">
-                        {p.institution} <span className="block text-[10px] text-gray-400 font-normal">{p.grade || 'N/A'}</span>
-                      </td>
-                      <td className="py-3.5 px-4 text-gray-500">
-                        {p.upazila}, {p.district}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono">{p.mobile}</td>
-                      <td className="py-3.5 px-4 font-mono">{p.regDate}</td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`py-0.5 px-2 rounded-full font-bold text-[9px] uppercase tracking-wider ${
-                          p.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
-                        <button
-                          onClick={() => setEditPartModal({ ...p })}
-                          className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
-                          title="Edit Participant Details"
-                        >
-                          ✏️ Edit (সম্পাদনা)
-                        </button>
-                        {p.status !== 'Approved' ? (
-                          <button
-                            onClick={() => handleUpdatePartStatus(p.id, 'Approved')}
-                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1 px-2 rounded-md"
-                          >
-                            Approve
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleUpdatePartStatus(p.id, 'Suspended')}
-                            className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded-md"
-                          >
-                            Suspend
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setDeleteConfirmPart(p)}
-                          className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md"
-                        >
-                          ✕ Delete
-                        </button>
+                  {safeParticipants.filter(p => 
+                    p && p.id && p.name && (
+                      p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
+                      p.name.toLowerCase().includes(partSearch.toLowerCase())
+                    )
+                  ).length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-gray-400 font-bold font-sans">
+                        <Users size={32} className="mx-auto text-gray-300 mb-2" />
+                        No participants registered. (কোনো অংশগ্রহণকারী পাওয়া যায়নি।)
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    safeParticipants.filter(p => 
+                      p && p.id && p.name && (
+                        p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
+                        p.name.toLowerCase().includes(partSearch.toLowerCase())
+                      )
+                    ).map((p, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50">
+                        <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
+                        <td className="py-3.5 px-4 text-gray-900">{p.name}</td>
+                        <td className="py-3.5 px-4 text-gray-500">
+                          {p.institution} <span className="block text-[10px] text-gray-400 font-normal">{p.grade || 'N/A'}</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-gray-500">
+                          {p.upazila}, {p.district}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono">{p.mobile}</td>
+                        <td className="py-3.5 px-4 font-mono">{p.regDate}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`py-0.5 px-2 rounded-full font-bold text-[9px] uppercase tracking-wider ${
+                            p.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {p.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setEditPartModal({ ...p })}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
+                            title="Edit Participant Details"
+                          >
+                            ✏️ Edit (সম্পাদনা)
+                          </button>
+                          {p.status !== 'Approved' ? (
+                            <button
+                              onClick={() => handleUpdatePartStatus(p.id, 'Approved')}
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1 px-2 rounded-md"
+                            >
+                              Approve
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleUpdatePartStatus(p.id, 'Suspended')}
+                              className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded-md"
+                            >
+                              Suspend
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDeleteConfirmPart(p)}
+                            className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md"
+                          >
+                            ✕ Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -908,48 +1119,65 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {trees.filter(t => 
-                    t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
-                    t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
-                  ).map((t, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="py-3.5 px-4 font-mono font-bold text-gray-500">{t.id}</td>
-                      <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{t.participantId}</td>
-                      <td className="py-3.5 px-4 text-gray-900">{t.participantName}</td>
-                      <td className="py-3.5 px-4 text-[#1F5E2E] font-bold">{t.treeName}</td>
-                      <td className="py-3.5 px-4 text-center font-mono font-bold">{t.quantity}</td>
-                      <td className="py-3.5 px-4 text-gray-500">{t.treeType}</td>
-                      <td className="py-3.5 px-4 font-mono">{t.plantingDate}</td>
-                      <td className="py-3.5 px-4 text-gray-500 max-w-[150px] truncate" title={t.location}>{t.location}</td>
-                      <td className="py-3.5 px-4 text-center">
-                        {t.photo ? (
-                          <button
-                            onClick={() => setZoomImg(t.photo)}
-                            className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-[#1F5E2E] p-1 rounded-lg border border-emerald-200/50"
-                            title="View Tree Photo"
-                          >
-                            <img src={t.photo} alt="sapling" referrerPolicy="no-referrer" className="w-8 h-8 rounded object-cover" />
-                            <Eye size={10} />
-                          </button>
-                        ) : 'No Image'}
-                      </td>
-                      <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
-                        <button
-                          onClick={() => setEditTreeModal({ ...t })}
-                          className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
-                          title="Edit Tree Details"
-                        >
-                          ✏️ Edit (সম্পাদনা)
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmTree(t)}
-                          className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md"
-                        >
-                          ✕ Delete
-                        </button>
+                  {safeTrees.filter(t => 
+                    t && t.treeName && t.participantId && (
+                      t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
+                      t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
+                    )
+                  ).length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-gray-400 font-bold font-sans">
+                        <Trees size={32} className="mx-auto text-gray-300 mb-2" />
+                        No trees registered. (কোনো গাছ রেজিস্ট্রি পাওয়া যায়নি।)
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    safeTrees.filter(t => 
+                      t && t.treeName && t.participantId && (
+                        t.treeName.toLowerCase().includes(treeSearch.toLowerCase()) ||
+                        t.participantId.toLowerCase().includes(treeSearch.toLowerCase())
+                      )
+                    ).map((t, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50">
+                        <td className="py-3.5 px-4 font-mono font-bold text-gray-500">{t.id}</td>
+                        <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{t.participantId}</td>
+                        <td className="py-3.5 px-4 text-gray-900">{t.participantName}</td>
+                        <td className="py-3.5 px-4 text-[#1F5E2E] font-bold">{t.treeName}</td>
+                        <td className="py-3.5 px-4 text-center font-mono font-bold">{t.quantity}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{t.treeType}</td>
+                        <td className="py-3.5 px-4 font-mono">{t.plantingDate}</td>
+                        <td className="py-3.5 px-4 text-gray-500 max-w-[150px] truncate" title={t.location}>{t.location}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          {t.photo ? (
+                            <button
+                              onClick={() => setZoomImg(t.photo)}
+                              className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-[#1F5E2E] p-1 rounded-lg border border-emerald-200/50"
+                              title="View Tree Photo"
+                            >
+                              <img src={t.photo} alt="sapling" referrerPolicy="no-referrer" className="w-8 h-8 rounded object-cover" />
+                              <Eye size={10} />
+                            </button>
+                          ) : 'No Image'}
+                        </td>
+                        <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setEditTreeModal({ ...t })}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
+                            title="Edit Tree Details"
+                          >
+                            ✏️ Edit (সম্পাদনা)
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmTree(t)}
+                            className="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-1 px-2 rounded-md transition-colors"
+                            title="Delete Tree Details"
+                          >
+                            ✕ Delete (মুছে ফেলুন)
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1281,10 +1509,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {participants.map((p, idx) => {
-                    const m1 = logs.find(l => l.participantId === p.id && l.month === 1)?.status || 'None';
-                    const m2 = logs.find(l => l.participantId === p.id && l.month === 2)?.status || 'None';
-                    const m3 = logs.find(l => l.participantId === p.id && l.month === 3)?.status || 'None';
+                  {safeParticipants.map((p, idx) => {
+                    if (!p) return null;
+                    const m1 = safeLogs.find(l => l && l.participantId === p.id && l.month === 1)?.status || 'None';
+                    const m2 = safeLogs.find(l => l && l.participantId === p.id && l.month === 2)?.status || 'None';
+                    const m3 = safeLogs.find(l => l && l.participantId === p.id && l.month === 3)?.status || 'None';
                     const isEligible = m3 === 'Approved';
 
                     return (

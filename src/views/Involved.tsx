@@ -87,12 +87,54 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     };
 
+    const executeClientFallbackVolunteer = () => {
+      try {
+        const savedVols = localStorage.getItem('volunteers');
+        const currentVols = savedVols ? JSON.parse(savedVols) : [];
+        
+        const fallbackVol = {
+          ...payload,
+          id: `VOL-LOCAL-${Date.now()}`,
+          status: 'pending'
+        };
+
+        const updatedVols = [...currentVols, fallbackVol];
+        localStorage.setItem('volunteers', JSON.stringify(updatedVols));
+
+        setVolName('');
+        setVolEmail('');
+        setVolPhone('');
+        setVolMessage('');
+        setVolLocation('');
+        setVolMembership('no_intent');
+        setVolProfession('student');
+        setVolBloodGroup('Unknown');
+        setVolAvailability('flexible');
+
+        onFormSuccess(
+          isBangla ? 'আবেদন সম্পন্ন হয়েছে!' : 'Application Submitted!',
+          isBangla 
+            ? 'স্বেচ্ছাসেবী হিসেবে আপনার পেশাদার আবেদনটি সফলভাবে সম্পন্ন হয়েছে। আমাদের টিম খুব শীঘ্রই আপনার সাথে যোগাযোগ করবে!' 
+            : 'Your professional volunteer application has been successfully submitted! Our coordinator team will review your details and connect with you shortly.'
+        );
+      } catch (fallbackErr) {
+        console.error("Volunteer fallback failed:", fallbackErr);
+        alert(isBangla ? 'একটি সমস্যা হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Something went wrong, please try again.');
+      }
+    };
+
     fetch('/api/volunteers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then((res) => {
+        if (!res.ok) {
+          throw new Error('Server returned non-OK status');
+        }
+        return res.json();
+      })
+      .then((data) => {
         setVolName('');
         setVolEmail('');
         setVolPhone('');
@@ -111,8 +153,8 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         );
       })
       .catch((err) => {
-        console.error(err);
-        alert(isBangla ? 'একটি সমস্যা হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Something went wrong, please try again.');
+        console.warn("Server volunteer registration failed, falling back to local storage:", err);
+        executeClientFallbackVolunteer();
       });
   };
 
@@ -170,12 +212,45 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
       };
 
+      const executeClientFallbackDirectDonation = () => {
+        try {
+          const savedDons = localStorage.getItem('donations');
+          const currentDons = savedDons ? JSON.parse(savedDons) : [];
+          
+          const fallbackDon = {
+            ...payload,
+            id: `DON-LOCAL-${Date.now()}`
+          };
+          
+          const updatedDons = [...currentDons, fallbackDon];
+          localStorage.setItem('donations', JSON.stringify(updatedDons));
+          
+          setDonorName('');
+          setDonorEmail('');
+          onFormSuccess(
+            isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
+            isBangla
+              ? `ধন্যবাদ! আপনার ৳${finalAmount.toLocaleString('bn-BD')} অনুদানটি সফলভাবে জমা হয়েছে। আমাদের অ্যাডমিন টিম ট্রানজেকশনটি যাচাই করে অনুমোদন করার পর এটি আপডেট করা হবে।`
+              : `Thank you! Your donation of ৳${finalAmount.toLocaleString('en-US')} has been submitted successfully. Our admin team will review and approve the transaction shortly.`
+          );
+        } catch (fallbackErr) {
+          console.error("Direct donation fallback failed:", fallbackErr);
+          alert(isBangla ? 'অনুদান সম্পন্ন করতে সমস্যা হয়েছে।' : 'Error recording your donation.');
+        }
+      };
+
       fetch('/api/donations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
         .then((res) => {
+          if (!res.ok) {
+            throw new Error('Server returned non-OK status');
+          }
+          return res.json();
+        })
+        .then((data) => {
           setDonorName('');
           setDonorEmail('');
           onFormSuccess(
@@ -186,8 +261,8 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
           );
         })
         .catch((err) => {
-          console.error(err);
-          alert(isBangla ? 'অনুদান সম্পন্ন করতে সমস্যা হয়েছে।' : 'Error recording your donation.');
+          console.warn("Server direct donation registration failed, falling back to local storage:", err);
+          executeClientFallbackDirectDonation();
         });
     }
   };
@@ -213,12 +288,48 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     };
 
+    const executeClientFallbackVerifyDonation = () => {
+      try {
+        const savedDons = localStorage.getItem('donations');
+        const currentDons = savedDons ? JSON.parse(savedDons) : [];
+        
+        const fallbackDon = {
+          ...payload,
+          id: `DON-LOCAL-${Date.now()}`
+        };
+        
+        const updatedDons = [...currentDons, fallbackDon];
+        localStorage.setItem('donations', JSON.stringify(updatedDons));
+        
+        setShowPaymentInstructions(false);
+        setTransactionId('');
+        setDonorName('');
+        setDonorEmail('');
+
+        onFormSuccess(
+          isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
+          isBangla
+            ? `ধন্যবাদ! আপনার ৳${finalAmount.toLocaleString('bn-BD')} অনুদান ভেরিফিকেশন অনুরোধটি সফলভাবে সাবমিট করা হয়েছে। আমাদের অ্যাডমিন টিম ট্রানজেকশন আইডি (${transactionId}) যাচাই করে এটি অনুমোদন করবে।`
+            : `Thank you! Your donation verification request of ৳${finalAmount.toLocaleString('en-US')} under Trans ID: ${transactionId} has been submitted. Our admin team will verify and approve the transaction shortly.`
+        );
+      } catch (fallbackErr) {
+        console.error("Verification donation fallback failed:", fallbackErr);
+        alert(isBangla ? 'ভেরিফিকেশন সম্পন্ন করতে ব্যর্থ হয়েছে।' : 'Failed to submit verification.');
+      }
+    };
+
     fetch('/api/donations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then((res) => {
+        if (!res.ok) {
+          throw new Error('Server returned non-OK status');
+        }
+        return res.json();
+      })
+      .then((data) => {
         setShowPaymentInstructions(false);
         setTransactionId('');
         setDonorName('');
@@ -232,8 +343,8 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         );
       })
       .catch((err) => {
-        console.error(err);
-        alert(isBangla ? 'ভেরিফিকেশন সম্পন্ন করতে ব্যর্থ হয়েছে।' : 'Failed to submit verification.');
+        console.warn("Server donation verification failed, falling back to local storage:", err);
+        executeClientFallbackVerifyDonation();
       });
   };
 

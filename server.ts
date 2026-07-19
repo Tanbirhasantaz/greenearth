@@ -27,7 +27,11 @@ function initializeDataFiles() {
     testimonials: path.join(DATA_DIR, "testimonials.json"),
     milestones: path.join(DATA_DIR, "milestones.json"),
     corevalues: path.join(DATA_DIR, "corevalues.json"),
-    focusareas: path.join(DATA_DIR, "focusareas.json")
+    focusareas: path.join(DATA_DIR, "focusareas.json"),
+    ge_gh_participants: path.join(DATA_DIR, "ge_gh_participants.json"),
+    ge_gh_trees: path.join(DATA_DIR, "ge_gh_trees.json"),
+    ge_gh_logs: path.join(DATA_DIR, "ge_gh_logs.json"),
+    ge_gh_overview: path.join(DATA_DIR, "ge_gh_overview.json")
   };
 
   // 1. Initial Projects
@@ -595,6 +599,28 @@ function initializeDataFiles() {
     ];
     fs.writeFileSync(filePaths.focusareas, JSON.stringify(initialFocusAreas, null, 2));
   }
+
+  // 14. Initial Green Hero Files
+  if (!fs.existsSync(filePaths.ge_gh_participants)) {
+    fs.writeFileSync(filePaths.ge_gh_participants, JSON.stringify([], null, 2));
+  }
+  if (!fs.existsSync(filePaths.ge_gh_trees)) {
+    fs.writeFileSync(filePaths.ge_gh_trees, JSON.stringify([], null, 2));
+  }
+  if (!fs.existsSync(filePaths.ge_gh_logs)) {
+    fs.writeFileSync(filePaths.ge_gh_logs, JSON.stringify([], null, 2));
+  }
+  if (!fs.existsSync(filePaths.ge_gh_overview)) {
+    const defaultOverview = {
+      titleEn: "Green Hero Initiative (Adapt a Tree)",
+      titleBn: "গ্রিন হিরো ইনিশিয়েティブ - একটি গাছ দত্তক নিন",
+      subtitleEn: "Plant Trees Today, Protect Tomorrow",
+      subtitleBn: "আজই বৃক্ষরোপণ করুন, আগামীকে সুরক্ষিত রাখুন",
+      descriptionEn: "Become a proud 'Green Hero' by planting and nurturing trees in your local community. Join our collective movement to combat rising heatwaves, increase urban green canopy, and foster climate resilience across Bangladesh. Register your trees, upload monthly growth logs, and earn your official certificate and badge.",
+      descriptionBn: "নিজের এলাকায় গাছ রোপণ ও পরিচর্যা করে একজন গর্বিত 'গ্রিন হিরো' হয়ে উঠুন। ক্রমবর্ধমান দাবদাহ মোকাবিলা, শহরের সবুজ আচ্ছাদন বৃদ্ধি এবং জলবায়ু সহনশীল বাংলাদেশ গড়তে আমাদের সম্মিলিত আন্দোলনে যোগ দিন। আপনার রোপণ করা গাছের নিবন্ধন করুন, প্রতিমাসে বৃদ্ধির ছবি আপলোড করুন এবং অর্জন করুন অফিশিয়াল সার্টিফিকেট ও ব্যাজ।"
+    };
+    fs.writeFileSync(filePaths.ge_gh_overview, JSON.stringify(defaultOverview, null, 2));
+  }
 }
 
 // Ensure database files are set up properly
@@ -637,21 +663,24 @@ async function startServer() {
   const readData = async <T>(filename: string): Promise<T> => {
     if (supabase && isSupabaseDbAvailable) {
       try {
-        const { data, error } = await supabase
+        const promise = supabase
           .from("key_value_store")
           .select("value")
           .eq("key", filename)
           .maybeSingle();
+
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase read timeout")), 2500)
+        );
+
+        const { data, error } = await Promise.race([promise, timeout]) as any;
         if (!error) {
           if (data && data.value) {
             return data.value as T;
           }
         } else {
           console.warn(`Supabase read error for ${filename}:`, error.message || error);
-          if (error.code === "42P01" || error.code === "PGRST116" || error.message?.includes("relation")) {
-            console.warn("Disabling Supabase database sync because 'key_value_store' table does not exist.");
-            isSupabaseDbAvailable = false;
-          }
+          isSupabaseDbAvailable = false;
         }
       } catch (err) {
         console.error(`Error reading ${filename} from Supabase:`, err);
@@ -663,30 +692,33 @@ async function startServer() {
   };
 
   const writeData = async <T>(filename: string, data: T): Promise<void> => {
+    // Always write to local filesystem first to guarantee persistence
+    try {
+      fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
+    } catch (e) {
+      console.error(`Local write error for ${filename}:`, e);
+    }
+
     if (supabase && isSupabaseDbAvailable) {
       try {
-        const { error } = await supabase
+        const promise = supabase
           .from("key_value_store")
           .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
+
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase write timeout")), 2500)
+        );
+
+        const { error } = await Promise.race([promise, timeout]) as any;
         if (error) {
           console.error(`Error writing ${filename} to Supabase:`, error.message || error);
-          if (error.code === "42P01" || error.message?.includes("relation")) {
-            console.warn("Disabling Supabase database sync because 'key_value_store' table does not exist.");
-            isSupabaseDbAvailable = false;
-          }
-        } else {
-          // Keep local filesystem in sync as fallback
-          try {
-            fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
-          } catch {}
-          return;
+          isSupabaseDbAvailable = false;
         }
       } catch (err) {
         console.error(`Error writing ${filename} to Supabase:`, err);
         isSupabaseDbAvailable = false;
       }
     }
-    fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
   };
 
   /* ==============================================
@@ -1003,6 +1035,226 @@ async function startServer() {
       res.json({ success: true, volunteer: volunteers[index] });
     } else {
       res.status(404).json({ error: "Volunteer not found" });
+    }
+  });
+
+  // --- GREEN HERO ENDPOINTS ---
+
+  // 1. Participants
+  app.get("/api/greenhero/participants", async (req, res) => {
+    try {
+      const data = await readData<any[]>("ge_gh_participants.json");
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/greenhero/participants", async (req, res) => {
+    try {
+      const participants = await readData<any[]>("ge_gh_participants.json");
+      const newParticipant = req.body;
+
+      // Ensure unique ID generation on the server side
+      const lastIdNum = participants.reduce((max, p) => {
+        const match = p.id?.match(/GE-AT-(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          return num > max ? num : max;
+        }
+        return max;
+      }, 0);
+      const nextIdNum = lastIdNum + 1;
+      const formattedId = `GE-AT-${String(nextIdNum).padStart(6, '0')}`;
+
+      newParticipant.id = formattedId;
+      newParticipant.regDate = newParticipant.regDate || new Date().toISOString().split('T')[0];
+      newParticipant.status = newParticipant.status || 'Approved';
+
+      participants.push(newParticipant);
+      await writeData("ge_gh_participants.json", participants);
+      res.json({ success: true, participant: newParticipant });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.patch("/api/greenhero/participants/:id", async (req, res) => {
+    try {
+      const participants = await readData<any[]>("ge_gh_participants.json");
+      const index = participants.findIndex(p => p.id === req.params.id);
+      if (index !== -1) {
+        participants[index] = { ...participants[index], ...req.body };
+        await writeData("ge_gh_participants.json", participants);
+        res.json({ success: true, participant: participants[index] });
+      } else {
+        res.status(404).json({ error: "Participant not found" });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/greenhero/participants/:id", async (req, res) => {
+    try {
+      const participants = await readData<any[]>("ge_gh_participants.json");
+      const filtered = participants.filter(p => p.id !== req.params.id);
+      await writeData("ge_gh_participants.json", filtered);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 2. Trees
+  app.get("/api/greenhero/trees", async (req, res) => {
+    try {
+      const data = await readData<any[]>("ge_gh_trees.json");
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/greenhero/trees", async (req, res) => {
+    try {
+      const trees = await readData<any[]>("ge_gh_trees.json");
+      const payload = req.body; // Can be a single tree object or an array of trees
+
+      if (Array.isArray(payload)) {
+        const addedTrees: any[] = [];
+        let currentMaxId = trees.length > 0 ? Math.max(...trees.map(t => typeof t.id === 'number' ? t.id : parseInt(t.id, 10) || 0)) : 0;
+        
+        payload.forEach(t => {
+          currentMaxId += 1;
+          const newTree = {
+            ...t,
+            id: currentMaxId,
+            status: t.status || 'Approved'
+          };
+          trees.push(newTree);
+          addedTrees.push(newTree);
+        });
+        await writeData("ge_gh_trees.json", trees);
+        res.json({ success: true, trees: addedTrees });
+      } else {
+        const nextId = trees.length > 0 ? Math.max(...trees.map(t => typeof t.id === 'number' ? t.id : parseInt(t.id, 10) || 0)) + 1 : 1;
+        const newTree = {
+          ...payload,
+          id: nextId,
+          status: payload.status || 'Approved'
+        };
+        trees.push(newTree);
+        await writeData("ge_gh_trees.json", trees);
+        res.json({ success: true, tree: newTree });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.patch("/api/greenhero/trees/:id", async (req, res) => {
+    try {
+      const trees = await readData<any[]>("ge_gh_trees.json");
+      const targetId = parseInt(req.params.id, 10);
+      const index = trees.findIndex(t => t.id === targetId || String(t.id) === req.params.id);
+      if (index !== -1) {
+        trees[index] = { ...trees[index], ...req.body };
+        await writeData("ge_gh_trees.json", trees);
+        res.json({ success: true, tree: trees[index] });
+      } else {
+        res.status(404).json({ error: "Tree not found" });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/greenhero/trees/:id", async (req, res) => {
+    try {
+      const trees = await readData<any[]>("ge_gh_trees.json");
+      const targetId = parseInt(req.params.id, 10);
+      const filtered = trees.filter(t => t.id !== targetId && String(t.id) !== req.params.id);
+      await writeData("ge_gh_trees.json", filtered);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 3. Logs
+  app.get("/api/greenhero/logs", async (req, res) => {
+    try {
+      const data = await readData<any[]>("ge_gh_logs.json");
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/greenhero/logs", async (req, res) => {
+    try {
+      const logs = await readData<any[]>("ge_gh_logs.json");
+      const newLog = req.body;
+      const nextId = logs.length > 0 ? Math.max(...logs.map(l => typeof l.id === 'number' ? l.id : parseInt(l.id, 10) || 0)) + 1 : 1;
+      
+      newLog.id = nextId;
+      newLog.status = newLog.status || 'Pending';
+      newLog.date = newLog.date || new Date().toISOString().split('T')[0];
+
+      logs.unshift(newLog); // Newest first
+      await writeData("ge_gh_logs.json", logs);
+      res.json({ success: true, log: newLog });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.patch("/api/greenhero/logs/:id", async (req, res) => {
+    try {
+      const logs = await readData<any[]>("ge_gh_logs.json");
+      const targetId = parseInt(req.params.id, 10);
+      const index = logs.findIndex(l => l.id === targetId || String(l.id) === req.params.id);
+      if (index !== -1) {
+        logs[index] = { ...logs[index], ...req.body };
+        await writeData("ge_gh_logs.json", logs);
+        res.json({ success: true, log: logs[index] });
+      } else {
+        res.status(404).json({ error: "Log not found" });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/greenhero/logs/:id", async (req, res) => {
+    try {
+      const logs = await readData<any[]>("ge_gh_logs.json");
+      const targetId = parseInt(req.params.id, 10);
+      const filtered = logs.filter(l => l.id !== targetId && String(l.id) !== req.params.id);
+      await writeData("ge_gh_logs.json", filtered);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 4. Overview
+  app.get("/api/greenhero/overview", async (req, res) => {
+    try {
+      const data = await readData<any>("ge_gh_overview.json");
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/greenhero/overview", async (req, res) => {
+    try {
+      await writeData("ge_gh_overview.json", req.body);
+      res.json({ success: true, overview: req.body });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
