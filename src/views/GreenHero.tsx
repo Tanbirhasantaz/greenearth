@@ -70,7 +70,68 @@ interface GreenHeroProps {
   settings?: any;
 }
 
-export default function GreenHero({ isBangla = false, settings }: GreenHeroProps) {
+class GreenHeroErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("GreenHeroErrorBoundary caught an error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-4xl mx-auto my-12 p-8 bg-red-50 border border-red-200 rounded-3xl text-center space-y-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+            <AlertTriangle size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900">Something went wrong</h2>
+          <p className="text-gray-600 max-w-md mx-auto text-sm">
+            We encountered an unexpected error rendering the Green Hero Initiative page.
+            Please try resetting the application state or refreshing.
+          </p>
+          <div className="pt-2 flex justify-center gap-4">
+            <button
+              onClick={() => {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.reload();
+              }}
+              className="px-5 py-2.5 rounded-full bg-red-600 text-white font-bold text-sm shadow-md hover:bg-red-700 transition"
+            >
+              Reset Application State
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-5 py-2.5 rounded-full bg-gray-200 text-gray-800 font-bold text-sm hover:bg-gray-300 transition"
+            >
+              Refresh Page
+            </button>
+          </div>
+          {this.state.error && (
+            <pre className="mt-4 p-4 bg-gray-100 rounded-2xl text-left text-xs text-gray-700 overflow-x-auto max-h-40">
+              {String(this.state.error.stack || this.state.error)}
+            </pre>
+          )}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function GreenHero(props: GreenHeroProps) {
+  return (
+    <GreenHeroErrorBoundary>
+      <GreenHeroInner {...props} />
+    </GreenHeroErrorBoundary>
+  );
+}
+
+function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   // Inner Active Section tab
   // Options: 'home', 'rules', 'species', 'impact', 'portal'
   const [activeSubTab, setActiveSubTab] = useState<'home' | 'rules' | 'species' | 'impact' | 'portal'>('home');
@@ -88,6 +149,15 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     descriptionBn: "নিজের এলাকায় গাছ রোপণ ও পরিচর্যা করে একজন গর্বিত 'গ্রিন হিরো' হয়ে উঠুন। ক্রমবর্ধমান দাবদাহ মোকাবিলা, শহরের সবুজ আচ্ছাদন বৃদ্ধি এবং জলবায়ু সহনশীল বাংলাদেশ গড়তে আমাদের সম্মিলিত আন্দোলনে যোগ দিন। আপনার রোপণ করা গাছের নিবন্ধন করুন, প্রতিমাসে বৃদ্ধির ছবি আপলোড করুন এবং অর্জন করুন অফিশিয়াল সার্টিফিকেট ও ব্যাজ।"
   });
 
+  const safeOverview = overview || {
+    titleEn: "Green Hero Initiative (Adapt a Tree)",
+    titleBn: "গ্রিন হিরো ইনিশিয়েティブ - একটি গাছ দত্তক নিন",
+    subtitleEn: "Plant Trees Today, Protect Tomorrow",
+    subtitleBn: "আজই বৃক্ষরোপণ করুন, আগামীকে সুরক্ষিত রাখুন",
+    descriptionEn: "Become a proud 'Green Hero' by planting and nurturing trees in your local community. Join our collective movement to combat rising heatwaves, increase urban green canopy, and foster climate resilience across Bangladesh. Register your trees, upload monthly growth logs, and earn your official certificate and badge.",
+    descriptionBn: "নিজের এলাকায় গাছ রোপণ ও পরিচর্যা করে একজন গর্বিত 'গ্রিন হিরো' হয়ে উঠুন। ক্রমবর্ধমান দাবদাহ মোকাবিলা, শহরের সবুজ আচ্ছাদন বৃদ্ধি এবং জলবায়ু সহনশীল বাংলাদেশ গড়তে আমাদের সম্মিলিত আন্দোলনে যোগ দিন। আপনার রোপণ করা গাছের নিবন্ধন করুন, প্রতিমাসে বৃদ্ধির ছবি আপলোড করুন এবং অর্জন করুন অফিশিয়াল সার্টিফিকেট ও ব্যাজ।"
+  };
+
   // Active Logged-In Participant state
   const [loggedInUser, setLoggedInUser] = useState<any | null>(null);
 
@@ -98,8 +168,10 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       const overviewRes = await fetch("/api/greenhero/overview");
       if (overviewRes.ok) {
         const overviewData = await overviewRes.json();
-        setOverview(overviewData);
-        localStorage.setItem('ge_gh_overview', JSON.stringify(overviewData));
+        if (overviewData && typeof overviewData === 'object' && !Array.isArray(overviewData)) {
+          setOverview(overviewData);
+          localStorage.setItem('ge_gh_overview', JSON.stringify(overviewData));
+        }
       }
 
       // 2. Fetch Participants
@@ -186,7 +258,12 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
 
       const savedOverview = localStorage.getItem('ge_gh_overview');
       if (savedOverview) {
-        try { setOverview(JSON.parse(savedOverview)); } catch (e) {}
+        try {
+          const parsed = JSON.parse(savedOverview);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            setOverview(parsed);
+          }
+        } catch (e) {}
       }
     }
   };
@@ -196,7 +273,12 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     // Immediate local storage fallback for performance
     const savedOverview = localStorage.getItem('ge_gh_overview');
     if (savedOverview) {
-      try { setOverview(JSON.parse(savedOverview)); } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedOverview);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          setOverview(parsed);
+        }
+      } catch (e) {}
     }
     const savedParts = localStorage.getItem('ge_gh_participants');
     if (savedParts) {
@@ -895,15 +977,15 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
             <span>Green Earth Campaign (গ্রিন আর্থ সচেতনতা অভিযান)</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight font-sans">
-            {overview.titleEn || 'Green Hero Initiative (Adapt a Tree)'}
+            {safeOverview.titleEn || 'Green Hero Initiative (Adapt a Tree)'}
             <span className="block text-emerald-700 text-2xl md:text-3xl mt-1.5 font-bold font-sans">
-              ({overview.titleBn || 'গ্রিন হিরো ইনিশিয়েティブ - একটি গাছ দত্তক নিন'})
+              ({safeOverview.titleBn || 'গ্রিন হিরো ইনিশিয়েティブ - একটি গাছ দত্তক নিন'})
             </span>
           </h1>
           <p className="text-sm md:text-base text-gray-600 font-medium max-w-2xl mx-auto leading-relaxed">
-            {overview.subtitleEn || 'Plant Trees Today, Protect Tomorrow'} —{' '}
+            {safeOverview.subtitleEn || 'Plant Trees Today, Protect Tomorrow'} —{' '}
             <span className="text-emerald-800">
-              {overview.subtitleBn || 'আজই বৃক্ষরোপণ করুন, আগামীকে সুরক্ষিত রাখুন'}
+              {safeOverview.subtitleBn || 'আজই বৃক্ষরোপণ করুন, আগামীকে সুরক্ষিত রাখুন'}
             </span>
           </p>
         </div>
@@ -978,11 +1060,11 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                       The Mission <span className="text-emerald-200 font-anek font-normal">(আমাদের লক্ষ্য)</span>
                     </h3>
                     <p className="text-xs md:text-sm font-medium leading-relaxed text-emerald-50">
-                      {overview.descriptionEn}
+                      {safeOverview.descriptionEn}
                     </p>
                     <div className="border-t border-emerald-700/60 pt-4 mt-2">
                       <p className="text-xs md:text-sm font-medium leading-relaxed font-anek text-emerald-100">
-                        {overview.descriptionBn}
+                        {safeOverview.descriptionBn}
                       </p>
                     </div>
                   </div>
@@ -1067,7 +1149,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
                   <div className="border-b border-gray-100 pb-3">
                     <span className="text-[10px] font-mono tracking-widest uppercase font-bold text-emerald-600">Dynamic Campaign System</span>
                     <h4 className="font-black text-gray-900 text-sm">
-                      How It Works <span className="font-anek text-emerald-700 font-bold">({overview.titleBn ? 'যেভাবে কাজ করে' : 'যেভাবে কাজ করে'})</span>
+                      How It Works <span className="font-anek text-emerald-700 font-bold">({safeOverview.titleBn ? 'যেভাবে কাজ করে' : 'যেভাবে কাজ করে'})</span>
                     </h4>
                   </div>
 
