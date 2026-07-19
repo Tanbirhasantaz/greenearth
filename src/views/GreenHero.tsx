@@ -106,47 +106,88 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       const partsRes = await fetch("/api/greenhero/participants");
       if (partsRes.ok) {
         const partsData = await partsRes.json();
-        setParticipants(partsData);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(partsData));
+        const validParts = Array.isArray(partsData) ? partsData : [];
+        setParticipants(validParts);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(validParts));
         
         // Update loggedInUser session state if logged in to keep participant info fresh
         const currentSession = sessionStorage.getItem('ge_gh_logged_in');
         if (currentSession) {
           const storedUser = JSON.parse(currentSession);
-          const freshUser = partsData.find((p: any) => p.id === storedUser.id);
+          const freshUser = validParts.find((p: any) => p.id === storedUser.id);
           if (freshUser) {
             setLoggedInUser(freshUser);
             sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
           }
         }
+      } else {
+        setParticipants([]);
       }
 
       // 3. Fetch Trees
       const treesRes = await fetch("/api/greenhero/trees");
       if (treesRes.ok) {
         const treesData = await treesRes.json();
-        setTrees(treesData);
-        localStorage.setItem('ge_gh_trees', JSON.stringify(treesData));
+        const validTrees = Array.isArray(treesData) ? treesData : [];
+        setTrees(validTrees);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(validTrees));
+      } else {
+        setTrees([]);
       }
 
       // 4. Fetch Logs
       const logsRes = await fetch("/api/greenhero/logs");
       if (logsRes.ok) {
         const logsData = await logsRes.json();
-        setLogs(logsData);
-        localStorage.setItem('ge_gh_logs', JSON.stringify(logsData));
+        const validLogs = Array.isArray(logsData) ? logsData : [];
+        setLogs(validLogs);
+        localStorage.setItem('ge_gh_logs', JSON.stringify(validLogs));
+      } else {
+        setLogs([]);
       }
     } catch (err) {
       console.error("Error loading Green Hero data from server:", err);
       // local fallback
       const savedParts = localStorage.getItem('ge_gh_participants');
-      if (savedParts) setParticipants(JSON.parse(savedParts));
+      if (savedParts) {
+        try {
+          const parsed = JSON.parse(savedParts);
+          setParticipants(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setParticipants([]);
+        }
+      } else {
+        setParticipants([]);
+      }
+
       const savedTrees = localStorage.getItem('ge_gh_trees');
-      if (savedTrees) setTrees(JSON.parse(savedTrees));
+      if (savedTrees) {
+        try {
+          const parsed = JSON.parse(savedTrees);
+          setTrees(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setTrees([]);
+        }
+      } else {
+        setTrees([]);
+      }
+
       const savedLogs = localStorage.getItem('ge_gh_logs');
-      if (savedLogs) setLogs(JSON.parse(savedLogs));
+      if (savedLogs) {
+        try {
+          const parsed = JSON.parse(savedLogs);
+          setLogs(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setLogs([]);
+        }
+      } else {
+        setLogs([]);
+      }
+
       const savedOverview = localStorage.getItem('ge_gh_overview');
-      if (savedOverview) setOverview(JSON.parse(savedOverview));
+      if (savedOverview) {
+        try { setOverview(JSON.parse(savedOverview)); } catch (e) {}
+      }
     }
   };
 
@@ -159,15 +200,36 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
     }
     const savedParts = localStorage.getItem('ge_gh_participants');
     if (savedParts) {
-      try { setParticipants(JSON.parse(savedParts)); } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedParts);
+        setParticipants(Array.isArray(parsed) ? parsed : []);
+      } catch (e) {
+        setParticipants([]);
+      }
+    } else {
+      setParticipants([]);
     }
     const savedTrees = localStorage.getItem('ge_gh_trees');
     if (savedTrees) {
-      try { setTrees(JSON.parse(savedTrees)); } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedTrees);
+        setTrees(Array.isArray(parsed) ? parsed : []);
+      } catch (e) {
+        setTrees([]);
+      }
+    } else {
+      setTrees([]);
     }
     const savedLogs = localStorage.getItem('ge_gh_logs');
     if (savedLogs) {
-      try { setLogs(JSON.parse(savedLogs)); } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedLogs);
+        setLogs(Array.isArray(parsed) ? parsed : []);
+      } catch (e) {
+        setLogs([]);
+      }
+    } else {
+      setLogs([]);
     }
 
     // Recover session if logged in
@@ -189,28 +251,32 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
   };
 
   // --- DYNAMIC COUNTERS & METRICS ---
-  const totalParticipants = participants.length;
+  const safeParticipants = Array.isArray(participants) ? participants : [];
+  const safeTrees = Array.isArray(trees) ? trees : [];
+  const safeLogs = Array.isArray(logs) ? logs : [];
+
+  const totalParticipants = safeParticipants.length;
   // Count total registered trees
-  const totalTreesPlanted = trees.reduce((sum, t) => sum + t.quantity, 0);
+  const totalTreesPlanted = safeTrees.reduce((sum, t) => sum + (t ? (Number(t.quantity) || 0) : 0), 0);
   
   // Calculate verified surviving trees (Verified trees - dead ones, or we can look at latest logs)
   // Let's count all trees as surviving unless their latest log says they are 'Dead (নষ্ট হয়ে গেছে)' or rejected
-  const deadTreeParticipants = logs.filter(l => l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
-  const totalSurvivingTrees = trees.reduce((sum, t) => {
-    if (deadTreeParticipants.includes(t.participantId)) {
+  const deadTreeParticipants = safeLogs.filter(l => l && l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
+  const totalSurvivingTrees = safeTrees.reduce((sum, t) => {
+    if (t && deadTreeParticipants.includes(t.participantId)) {
       return sum; // Skip if participant reported a dead tree
     }
-    return sum + t.quantity;
+    return sum + (t ? (Number(t.quantity) || 0) : 0);
   }, 0);
 
   const survivalRate = totalTreesPlanted > 0 ? Math.round((totalSurvivingTrees / totalTreesPlanted) * 100) : 100;
 
   // Registered Schools
-  const distinctSchools = Array.from(new Set(participants.filter(p => p.type === 'student').map(p => p.institution)));
+  const distinctSchools = Array.from(new Set(safeParticipants.filter(p => p && p.type === 'student').map(p => p.institution)));
   const totalSchools = distinctSchools.length || 3; // Fallback to 3 preseeded schools if none
 
   // Covered Districts
-  const distinctDistricts = Array.from(new Set(participants.map(p => p.district)));
+  const distinctDistricts = Array.from(new Set(safeParticipants.map(p => p && p.district).filter(Boolean)));
   const totalDistricts = distinctDistricts.length || 1;
 
   // --- PARTICIPANT REGISTER & LOGIN FORM STATES ---
@@ -628,22 +694,22 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
 
   // Get current participant's log status for a specific month
   const getMonthLogStatus = (partId: string, month: number): 'Locked' | 'Due' | 'Pending' | 'Approved' | 'Rejected' => {
-    const savedLogs = logs.filter(l => l.participantId === partId);
+    const savedLogs = safeLogs.filter(l => l && l.participantId === partId);
     
     // Month 1 rules: always available unless approved
     // Month 2 rules: requires Month 1 Approved
     // Month 3 rules: requires Month 2 Approved
     
     if (month === 2) {
-      const month1Approved = savedLogs.some(l => l.month === 1 && l.status === 'Approved');
+      const month1Approved = savedLogs.some(l => l && l.month === 1 && l.status === 'Approved');
       if (!month1Approved) return 'Locked';
     }
     if (month === 3) {
-      const month2Approved = savedLogs.some(l => l.month === 2 && l.status === 'Approved');
+      const month2Approved = savedLogs.some(l => l && l.month === 2 && l.status === 'Approved');
       if (!month2Approved) return 'Locked';
     }
 
-    const log = savedLogs.find(l => l.month === month);
+    const log = savedLogs.find(l => l && l.month === month);
     if (!log) return 'Due';
     if (log.status === 'Pending') return 'Pending';
     if (log.status === 'Approved') return 'Approved';
@@ -653,16 +719,16 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
   // Calculate high school and student leaderboards from storage
   // 1. School Leaderboard
   const schoolStats = distinctSchools.map(school => {
-    const schoolParts = participants.filter(p => p.type === 'student' && p.institution === school);
+    const schoolParts = safeParticipants.filter(p => p && p.type === 'student' && p.institution === school);
     const partIds = schoolParts.map(p => p.id);
-    const schoolTrees = trees.filter(t => partIds.includes(t.participantId));
-    const totalReg = schoolTrees.reduce((sum, t) => sum + t.quantity, 0);
+    const schoolTrees = safeTrees.filter(t => t && partIds.includes(t.participantId));
+    const totalReg = schoolTrees.reduce((sum, t) => sum + (t ? (Number(t.quantity) || 0) : 0), 0);
     
     // Surviving calculations
-    const deadPartIds = logs.filter(l => partIds.includes(l.participantId) && l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
+    const deadPartIds = safeLogs.filter(l => l && partIds.includes(l.participantId) && l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
     const totalSurv = schoolTrees.reduce((sum, t) => {
-      if (deadPartIds.includes(t.participantId)) return sum;
-      return sum + t.quantity;
+      if (t && deadPartIds.includes(t.participantId)) return sum;
+      return sum + (t ? (Number(t.quantity) || 0) : 0);
     }, 0);
 
     const sRate = totalReg > 0 ? Math.round((totalSurv / totalReg) * 100) : 100;
@@ -677,11 +743,12 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
   }).sort((a, b) => b.treesSurviving - a.treesSurviving || b.rate - a.rate);
 
   // 2. Student Leaderboard
-  const studentStats = participants.map(p => {
-    const pTrees = trees.filter(t => t.participantId === p.id);
-    const totalReg = pTrees.reduce((sum, t) => sum + t.quantity, 0);
+  const studentStats = safeParticipants.map(p => {
+    if (!p) return null;
+    const pTrees = safeTrees.filter(t => t && t.participantId === p.id);
+    const totalReg = pTrees.reduce((sum, t) => sum + (t ? (Number(t.quantity) || 0) : 0), 0);
 
-    const isDead = logs.some(l => l.participantId === p.id && l.health?.startsWith('Dead') && l.status === 'Approved');
+    const isDead = safeLogs.some(l => l && l.participantId === p.id && l.health?.startsWith('Dead') && l.status === 'Approved');
     const totalSurv = isDead ? 0 : totalReg;
     const sRate = totalReg > 0 ? Math.round((totalSurv / totalReg) * 100) : 100;
 
@@ -693,7 +760,7 @@ export default function GreenHero({ isBangla = false, settings }: GreenHeroProps
       treesSurviving: totalSurv || 5,
       rate: sRate
     };
-  }).sort((a, b) => b.treesSurviving - a.treesSurviving || b.rate - a.rate);
+  }).filter(Boolean).sort((a, b) => (b?.treesSurviving || 0) - (a?.treesSurviving || 0) || (b?.rate || 0) - (a?.rate || 0));
 
   // Is logged in participant eligible for certificate?
   // Eligible if Month 3 status is 'Approved'

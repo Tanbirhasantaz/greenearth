@@ -94,34 +94,73 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       const partsRes = await fetch("/api/greenhero/participants");
       if (partsRes.ok) {
         const partsData = await partsRes.json();
-        setParticipants(partsData);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(partsData));
+        const validParts = Array.isArray(partsData) ? partsData : [];
+        setParticipants(validParts);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(validParts));
+      } else {
+        setParticipants([]);
       }
 
       // 3. Fetch Trees
       const treesRes = await fetch("/api/greenhero/trees");
       if (treesRes.ok) {
         const treesData = await treesRes.json();
-        setTrees(treesData);
-        localStorage.setItem('ge_gh_trees', JSON.stringify(treesData));
+        const validTrees = Array.isArray(treesData) ? treesData : [];
+        setTrees(validTrees);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(validTrees));
+      } else {
+        setTrees([]);
       }
 
       // 4. Fetch Logs
       const logsRes = await fetch("/api/greenhero/logs");
       if (logsRes.ok) {
         const logsData = await logsRes.json();
-        setLogs(logsData);
-        localStorage.setItem('ge_gh_logs', JSON.stringify(logsData));
+        const validLogs = Array.isArray(logsData) ? logsData : [];
+        setLogs(validLogs);
+        localStorage.setItem('ge_gh_logs', JSON.stringify(validLogs));
+      } else {
+        setLogs([]);
       }
     } catch (err) {
       console.error("Error loading admin Green Hero data from server:", err);
       // Fallback
       const savedParts = localStorage.getItem('ge_gh_participants');
-      if (savedParts) setParticipants(JSON.parse(savedParts));
+      if (savedParts) {
+        try {
+          const parsed = JSON.parse(savedParts);
+          setParticipants(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setParticipants([]);
+        }
+      } else {
+        setParticipants([]);
+      }
+
       const savedTrees = localStorage.getItem('ge_gh_trees');
-      if (savedTrees) setTrees(JSON.parse(savedTrees));
+      if (savedTrees) {
+        try {
+          const parsed = JSON.parse(savedTrees);
+          setTrees(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setTrees([]);
+        }
+      } else {
+        setTrees([]);
+      }
+
       const savedLogs = localStorage.getItem('ge_gh_logs');
-      if (savedLogs) setLogs(JSON.parse(savedLogs));
+      if (savedLogs) {
+        try {
+          const parsed = JSON.parse(savedLogs);
+          setLogs(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          setLogs([]);
+        }
+      } else {
+        setLogs([]);
+      }
+
       const savedOverview = localStorage.getItem('ge_gh_overview');
       if (savedOverview) {
         try {
@@ -439,27 +478,32 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   // Filter logs for view
-  const filteredLogs = logs.filter(l => {
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  const safeParticipants = Array.isArray(participants) ? participants : [];
+  const safeTrees = Array.isArray(trees) ? trees : [];
+
+  const filteredLogs = safeLogs.filter(l => {
+    if (!l) return false;
     if (logStatusFilter === 'All') return true;
     return l.status === logStatusFilter;
   });
 
   // Calculate stats
-  const totalPartsCount = participants.length;
-  const totalTreesCount = trees.reduce((sum, t) => sum + t.quantity, 0);
-  const pendingLogsCount = logs.filter(l => l.status === 'Pending').length;
+  const totalPartsCount = safeParticipants.length;
+  const totalTreesCount = safeTrees.reduce((sum, t) => sum + (Number(t?.quantity) || 0), 0);
+  const pendingLogsCount = safeLogs.filter(l => l && l.status === 'Pending').length;
   
   // Surviving count
-  const deadParts = logs.filter(l => l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
-  const totalSurviving = trees.reduce((sum, t) => {
-    if (deadParts.includes(t.participantId)) return sum;
-    return sum + t.quantity;
+  const deadParts = safeLogs.filter(l => l && l.health?.startsWith('Dead') && l.status === 'Approved').map(l => l.participantId);
+  const totalSurviving = safeTrees.reduce((sum, t) => {
+    if (t && deadParts.includes(t.participantId)) return sum;
+    return sum + (t ? (Number(t.quantity) || 0) : 0);
   }, 0);
   
   const survivalRate = totalTreesCount > 0 ? Math.round((totalSurviving / totalTreesCount) * 100) : 100;
 
   // Active schools
-  const totalSchools = Array.from(new Set(participants.filter(p => p.type === 'student').map(p => p.institution))).length;
+  const totalSchools = Array.from(new Set(safeParticipants.filter(p => p && p.type === 'student').map(p => p.institution))).length;
 
   return (
     <div className="space-y-8 font-anek text-sm md:text-base" id="green-hero-admin-center">
