@@ -663,21 +663,24 @@ async function startServer() {
   const readData = async <T>(filename: string): Promise<T> => {
     if (supabase && isSupabaseDbAvailable) {
       try {
-        const { data, error } = await supabase
+        const promise = supabase
           .from("key_value_store")
           .select("value")
           .eq("key", filename)
           .maybeSingle();
+
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase read timeout")), 2500)
+        );
+
+        const { data, error } = await Promise.race([promise, timeout]) as any;
         if (!error) {
           if (data && data.value) {
             return data.value as T;
           }
         } else {
           console.warn(`Supabase read error for ${filename}:`, error.message || error);
-          if (error.code === "42P01" || error.code === "PGRST116" || error.message?.includes("relation")) {
-            console.warn("Disabling Supabase database sync because 'key_value_store' table does not exist.");
-            isSupabaseDbAvailable = false;
-          }
+          isSupabaseDbAvailable = false;
         }
       } catch (err) {
         console.error(`Error reading ${filename} from Supabase:`, err);
@@ -689,30 +692,33 @@ async function startServer() {
   };
 
   const writeData = async <T>(filename: string, data: T): Promise<void> => {
+    // Always write to local filesystem first to guarantee persistence
+    try {
+      fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
+    } catch (e) {
+      console.error(`Local write error for ${filename}:`, e);
+    }
+
     if (supabase && isSupabaseDbAvailable) {
       try {
-        const { error } = await supabase
+        const promise = supabase
           .from("key_value_store")
           .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
+
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase write timeout")), 2500)
+        );
+
+        const { error } = await Promise.race([promise, timeout]) as any;
         if (error) {
           console.error(`Error writing ${filename} to Supabase:`, error.message || error);
-          if (error.code === "42P01" || error.message?.includes("relation")) {
-            console.warn("Disabling Supabase database sync because 'key_value_store' table does not exist.");
-            isSupabaseDbAvailable = false;
-          }
-        } else {
-          // Keep local filesystem in sync as fallback
-          try {
-            fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
-          } catch {}
-          return;
+          isSupabaseDbAvailable = false;
         }
       } catch (err) {
         console.error(`Error writing ${filename} to Supabase:`, err);
         isSupabaseDbAvailable = false;
       }
     }
-    fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
   };
 
   /* ==============================================
