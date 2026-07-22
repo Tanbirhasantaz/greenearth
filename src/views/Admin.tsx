@@ -9,6 +9,31 @@ import {
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
 import GreenHeroAdmin from '../components/GreenHeroAdmin';
 
+export function extractSubscriberInfo(sub: any): { email: string; date: string } {
+  let email = '';
+  let date = '';
+
+  let curr = sub;
+  while (curr && typeof curr === 'object') {
+    if (curr.date && (typeof curr.date === 'string' || typeof curr.date === 'number')) {
+      date = String(curr.date);
+    }
+    if (curr.email) {
+      curr = curr.email;
+    } else {
+      break;
+    }
+  }
+
+  if (typeof curr === 'string') {
+    email = curr.trim();
+  } else if (typeof sub === 'string') {
+    email = sub.trim();
+  }
+
+  return { email, date };
+}
+
 class AdminTabErrorBoundary extends Component<
   { children: React.ReactNode; tabName: string },
   { hasError: boolean; error: Error | null }
@@ -470,12 +495,15 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         const savedSubs = localStorage.getItem('subscribers');
         const currentSubs = savedSubs ? JSON.parse(savedSubs) : [];
         if (Array.isArray(currentSubs)) {
-          for (const email of currentSubs) {
-            await fetch('/api/subscribers', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email })
-            });
+          for (const subItem of currentSubs) {
+            const { email } = extractSubscriberInfo(subItem);
+            if (email && email.includes('@')) {
+              await fetch('/api/subscribers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+              });
+            }
           }
         }
       } catch (e) {}
@@ -533,8 +561,25 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         localSubs = localSubsRaw ? JSON.parse(localSubsRaw) : [];
         if (!Array.isArray(localSubs)) localSubs = [];
       } catch {}
-      const mergedSubsSet = new Set([...localSubs, ...(Array.isArray(resSubs) ? resSubs : [])]);
-      const finalSubs = Array.from(mergedSubsSet);
+
+      const subsMap = new Map<string, { email: string; date: string }>();
+      const addSubToMap = (item: any) => {
+        const info = extractSubscriberInfo(item);
+        if (info.email && info.email.includes('@')) {
+          const key = info.email.toLowerCase();
+          const existing = subsMap.get(key);
+          if (!existing) {
+            subsMap.set(key, info);
+          } else if (!existing.date && info.date) {
+            subsMap.set(key, { email: existing.email, date: info.date });
+          }
+        }
+      };
+
+      localSubs.forEach(addSubToMap);
+      if (Array.isArray(resSubs)) resSubs.forEach(addSubToMap);
+
+      const finalSubs = Array.from(subsMap.values());
       setSubscribers(finalSubs);
       localStorage.setItem('subscribers', JSON.stringify(finalSubs));
 
@@ -1408,18 +1453,21 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     }
   };
 
-  const handleSubscriberDelete = (email: string) => {
+  const handleSubscriberDelete = (itemToDelete: any) => {
+    const { email: emailToDelete } = extractSubscriberInfo(itemToDelete);
+    if (!emailToDelete) return;
+
     setConfirmModal({
       title: isBangla ? 'নিউজলেটার সাবস্ক্রিপশন বাতিল নিশ্চিত করুন' : 'Confirm Unsubscribe',
       message: isBangla 
-        ? `আপনি কি নিশ্চিতভাবে ${email} ইমেইলের সাবস্ক্রিপশন বাতিল করতে চান?` 
-        : `Are you sure you want to unsubscribe email: ${email}?`,
+        ? `আপনি কি নিশ্চিতভাবে ${emailToDelete} ইমেইলের সাবস্ক্রিপশন বাতিল করতে চান?` 
+        : `Are you sure you want to unsubscribe email: ${emailToDelete}?`,
       onConfirm: async () => {
         try {
           const res = await fetch('/api/subscribers', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email: emailToDelete })
           });
           if (res.ok) fetchAllData();
         } catch (err) {
@@ -3393,7 +3441,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                   <h3 className="text-lg font-black text-[#1F5E2E]">Eco-Newsletter Subscribers</h3>
                   <button
                     onClick={() => {
-                      const emails = subscribers.map(s => typeof s === 'string' ? s : (s?.email || ''));
+                      const emails = subscribers.map(s => extractSubscriberInfo(s).email).filter(Boolean);
                       const csvContent = "data:text/csv;charset=utf-8,Email\n" + emails.join("\n");
                       const encodedUri = encodeURI(csvContent);
                       const link = document.createElement("a");
@@ -3412,15 +3460,15 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
                 <div className="max-w-md mx-auto space-y-2">
                   {subscribers.map((sub, idx) => {
-                    const email = typeof sub === 'string' ? sub : (sub?.email || '');
-                    const date = typeof sub === 'string' ? '' : (sub?.date || '');
+                    const { email, date } = extractSubscriberInfo(sub);
+                    if (!email) return null;
                     return (
-                      <div key={email || idx} className="flex justify-between items-center bg-gray-50 border border-gray-200/50 p-4 rounded-2xl text-left">
+                      <div key={`sub-${email.toLowerCase()}-${idx}`} className="flex justify-between items-center bg-gray-50 border border-gray-200/50 p-4 rounded-2xl text-left">
                         <div className="flex items-center gap-3">
                           <Mail size={16} className="text-[#6BBF3A]" />
                           <div>
                             <span className="font-bold text-gray-800 text-sm block">{email}</span>
-                            {date && <span className="text-[10px] text-gray-400 font-mono">Date: {date}</span>}
+                            {date && typeof date === 'string' && <span className="text-[10px] text-gray-400 font-mono">Date: {date}</span>}
                           </div>
                         </div>
                         <button

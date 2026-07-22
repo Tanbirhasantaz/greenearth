@@ -359,22 +359,51 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
   
   // 9. Subscribers fallback
   else if (path === '/api/subscribers') {
-    const subscribers = await cloudRead<any[]>('subscribers.json', 'ge_db_subscribers', []);
-    
+    const rawSubs = await cloudRead<any[]>('subscribers.json', 'ge_db_subscribers', []);
+    const extractEmailStr = (item: any): string => {
+      if (!item) return '';
+      let curr = item;
+      while (curr && typeof curr === 'object') {
+        if (curr.email) curr = curr.email;
+        else break;
+      }
+      return typeof curr === 'string' ? curr.trim() : '';
+    };
+
     if (method === 'GET') {
-      responseData = subscribers;
+      const cleanMap = new Map<string, { email: string; date: string }>();
+      for (const s of (Array.isArray(rawSubs) ? rawSubs : [])) {
+        const email = extractEmailStr(s);
+        if (email && email.includes('@')) {
+          const key = email.toLowerCase();
+          if (!cleanMap.has(key)) {
+            let date = '';
+            let curr = s;
+            while (curr && typeof curr === 'object') {
+              if (curr.date && (typeof curr.date === 'string' || typeof curr.date === 'number')) {
+                date = String(curr.date);
+              }
+              curr = curr.email;
+            }
+            cleanMap.set(key, { email, date: date || new Date().toISOString().split('T')[0] });
+          }
+        }
+      }
+      responseData = Array.from(cleanMap.values());
     } else if (method === 'POST') {
-      const newSub = {
-        email: body?.email,
-        date: new Date().toISOString().split('T')[0]
-      };
-      if (body?.email && !subscribers.some((s: any) => s.email === body.email)) {
-        subscribers.unshift(newSub);
-        await cloudWrite('subscribers.json', 'ge_db_subscribers', subscribers);
+      const targetEmail = extractEmailStr(body?.email || body);
+      if (targetEmail && targetEmail.includes('@')) {
+        const list = Array.isArray(rawSubs) ? rawSubs : [];
+        if (!list.some((s: any) => extractEmailStr(s).toLowerCase() === targetEmail.toLowerCase())) {
+          list.unshift({ email: targetEmail, date: new Date().toISOString().split('T')[0] });
+          await cloudWrite('subscribers.json', 'ge_db_subscribers', list);
+        }
       }
       responseData = { success: true };
     } else if (method === 'DELETE') {
-      const updated = subscribers.filter((s: any) => s.email !== body?.email);
+      const targetEmail = extractEmailStr(body?.email || body);
+      const list = Array.isArray(rawSubs) ? rawSubs : [];
+      const updated = list.filter((s: any) => extractEmailStr(s).toLowerCase() !== targetEmail.toLowerCase());
       await cloudWrite('subscribers.json', 'ge_db_subscribers', updated);
       responseData = { success: true };
     }

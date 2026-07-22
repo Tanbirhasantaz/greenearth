@@ -10,6 +10,7 @@ import {
   Calendar, MapPin, Activity, Award, Search, FileText, Download, LogOut, 
   Info, Users, Check, X, ChevronRight, HelpCircle, Settings
 } from 'lucide-react';
+import { compressImage } from '../utils/imageCompressor';
 
 // Suggested species list
 export const SUGGESTED_SPECIES = {
@@ -469,39 +470,34 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const [isUploadingLogImage, setIsUploadingLogImage] = useState(false);
   const [isUploadingEditImage, setIsUploadingEditImage] = useState(false);
 
-  // Reusable core upload function
+  // Reusable core upload function with automatic client-side image compression
   const uploadImageToServer = async (file: File, filenamePrefix: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result as string;
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image: base64Data,
-              filename: `${filenamePrefix}_${file.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`
-            })
-          });
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.success && data.url) {
-              resolve(data.url);
-              return;
-            }
-          }
-        } catch (err) {
-          console.error("uploadImageToServer failed, falling back to base64 Data URL:", err);
+    try {
+      // Compress image client-side to max 1200x1200, 75% JPEG quality (~200KB instead of 8MB)
+      const compressedBase64 = await compressImage(file, 1200, 1200, 0.75);
+      if (!compressedBase64) return '';
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: compressedBase64,
+          filename: `${filenamePrefix}_${file.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.success && data.url) {
+          return data.url;
         }
-        // Fallback: use raw base64 if upload fails or is offline
-        resolve(reader.result as string);
-      };
-      reader.onerror = () => {
-        resolve('');
-      };
-    });
+      }
+      // Fallback: return lightweight compressed base64 Data URL if server upload endpoint fails or is offline
+      return compressedBase64;
+    } catch (err) {
+      console.error("uploadImageToServer failed, using compressed fallback:", err);
+      return await compressImage(file, 1000, 1000, 0.7);
+    }
   };
 
   // Helper for actual local image uploads to convert file to base64 Data URL and upload to server

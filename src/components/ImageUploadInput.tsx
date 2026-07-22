@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { compressImage } from '../utils/imageCompressor';
 
 // Initialize Supabase Client if env vars are present (cast to any for Vite meta types compatibility)
 const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
@@ -91,58 +92,48 @@ export default function ImageUploadInput({
     setIsUploading(true);
     setError(null);
 
-    // Convert file to base64
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      try {
-        const base64Data = reader.result as string;
+    try {
+      const compressedBase64 = await compressImage(file, 1200, 1200, 0.75);
 
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            image: base64Data,
-            filename: `${filenamePrefix}_${file.name.split('.')[0]}`
-          }),
-        });
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: compressedBase64,
+          filename: `${filenamePrefix}_${file.name.split('.')[0]}`
+        }),
+      });
 
-        if (!response.ok) {
-          const errText = await response.text();
-          let parsedError = 'Upload failed';
-          try {
-            const errData = JSON.parse(errText);
-            parsedError = errData.error || parsedError;
-          } catch {
-            parsedError = `HTTP ${response.status}: Server did not return JSON. Please configure Supabase on Vercel.`;
-          }
-          throw new Error(parsedError);
+      if (!response.ok) {
+        const errText = await response.text();
+        let parsedError = 'Upload failed';
+        try {
+          const errData = JSON.parse(errText);
+          parsedError = errData.error || parsedError;
+        } catch {
+          parsedError = `HTTP ${response.status}: Server error`;
         }
-
-        const data = await response.json();
-        if (data && data.success && data.url) {
-          onChange(data.url);
-        } else {
-          throw new Error('No URL returned from server or response was null.');
-        }
-      } catch (err: any) {
-        console.error('Local upload API error:', err);
-        setError(
-          isBangla
-            ? 'ছবি আপলোড করতে সমস্যা হয়েছে। লাইভ সাইটে আপলোড করার জন্য সুপাবেস (Supabase) কনফিগার করুন।'
-            : `Failed to upload image: ${err.message || 'Server error'}. If you are on Vercel, please configure Supabase.`
-        );
-      } finally {
-        setIsUploading(false);
+        throw new Error(parsedError);
       }
-    };
 
-    reader.onerror = () => {
-      setError(isBangla ? 'ফাইল পড়তে সমস্যা হয়েছে।' : 'Error reading file.');
+      const data = await response.json();
+      if (data && data.success && data.url) {
+        onChange(data.url);
+      } else {
+        throw new Error('No URL returned from server or response was null.');
+      }
+    } catch (err: any) {
+      console.error('Local upload API error:', err);
+      setError(
+        isBangla
+          ? 'ছবি আপলোড করতে সমস্যা হয়েছে।'
+          : `Failed to upload image: ${err.message || 'Server error'}.`
+      );
+    } finally {
       setIsUploading(false);
-    };
+    }
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

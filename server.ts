@@ -631,7 +631,8 @@ async function startServer() {
   const PORT = 3000;
 
   // Middleware
-  app.use(express.json({ limit: "15mb" }));
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   // Set up uploads directory
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
@@ -661,63 +662,86 @@ async function startServer() {
 
   // Helper read/write methods
   const readData = async <T>(filename: string): Promise<T> => {
-    if (supabase && isSupabaseDbAvailable) {
-      try {
-        const promise = supabase
-          .from("key_value_store")
-          .select("value")
-          .eq("key", filename)
-          .maybeSingle();
+    // 1. Read from local filesystem instantly (<1ms)
+    try {
+      const raw = fs.readFileSync(getFilePath(filename), "utf-8");
+      const localData = JSON.parse(raw) as T;
 
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Supabase read timeout")), 2500)
-        );
+      // Asynchronously trigger background Supabase read/sync if available
+      if (supabase && isSupabaseDbAvailable) {
+        (async () => {
+          try {
+            const { data, error } = await supabase
+              .from("key_value_store")
+              .select("value")
+              .eq("key", filename)
+              .maybeSingle();
 
-        const { data, error } = await Promise.race([promise, timeout]) as any;
-        if (!error) {
-          if (data && data.value) {
+            if (!error && data && data.value) {
+              try {
+                fs.writeFileSync(getFilePath(filename), JSON.stringify(data.value, null, 2), "utf-8");
+              } catch (e) {}
+            } else if (error) {
+              isSupabaseDbAvailable = false;
+            }
+          } catch (e) {
+            isSupabaseDbAvailable = false;
+          }
+        })();
+      }
+
+      return localData;
+    } catch (localErr) {
+      // 2. Fallback if local file read fails
+      if (supabase && isSupabaseDbAvailable) {
+        try {
+          const promise = supabase
+            .from("key_value_store")
+            .select("value")
+            .eq("key", filename)
+            .maybeSingle();
+
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Supabase read timeout")), 2500)
+          );
+
+          const { data, error } = await Promise.race([promise, timeout]) as any;
+          if (!error && data && data.value) {
             return data.value as T;
           }
-        } else {
-          console.warn(`Supabase read error for ${filename}:`, error.message || error);
+        } catch (err) {
           isSupabaseDbAvailable = false;
         }
-      } catch (err) {
-        console.error(`Error reading ${filename} from Supabase:`, err);
-        isSupabaseDbAvailable = false;
       }
+      return [] as unknown as T;
     }
-    const raw = fs.readFileSync(getFilePath(filename), "utf-8");
-    return JSON.parse(raw) as T;
   };
 
   const writeData = async <T>(filename: string, data: T): Promise<void> => {
-    // Always write to local filesystem first to guarantee persistence
+    // Always write to local filesystem first to guarantee instant persistence
     try {
       fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
     } catch (e) {
       console.error(`Local write error for ${filename}:`, e);
     }
 
+    // Write to Supabase asynchronously in background so response is non-blocking
     if (supabase && isSupabaseDbAvailable) {
-      try {
-        const promise = supabase
-          .from("key_value_store")
-          .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
+      (async () => {
+        try {
+          const { error } = await supabase
+            .from("key_value_store")
+            .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
 
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Supabase write timeout")), 2500)
-        );
-
-        const { error } = await Promise.race([promise, timeout]) as any;
-        if (error) {
-          console.error(`Error writing ${filename} to Supabase:`, error.message || error);
+          if (error) {
+            console.warn(`Supabase write warning for ${filename}:`, error.message || error);
+            isSupabaseDbAvailable = false;
+          }
+        } catch (err) {
+          console.warn(`Error writing ${filename} to Supabase:`, err);
           isSupabaseDbAvailable = false;
         }
-      } catch (err) {
-        console.error(`Error writing ${filename} to Supabase:`, err);
-        isSupabaseDbAvailable = false;
-      }
+      })();
     }
   };
 
@@ -835,27 +859,33 @@ async function startServer() {
 
       // --- SUPABASE STORAGE UPLOAD ---
       if (supabase) {
-        const cleanFilename = (filename || "upload")
-          .replace(/[^a-z0-9]/gi, "_")
-          .toLowerCase();
-        const uniqueFilename = `${cleanFilename}_${Date.now()}.${extension}`;
+        try {
+          const cleanFilename = (filename || "upload")
+            .replace(/[^a-z0-9]/gi, "_")
+            .toLowerCase();
+          const uniqueFilename = `${cleanFilename}_${Date.now()}.${extension}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from(supabaseBucket)
-          .upload(uniqueFilename, buffer, {
-            contentType: mimeType,
-            duplex: 'half'
-          } as any);
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(supabaseBucket)
+            .upload(uniqueFilename, buffer, {
+              contentType: mimeType,
+              duplex: 'half'
+            } as any);
 
-        if (uploadError) {
-          throw uploadError;
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage
+              .from(supabaseBucket)
+              .getPublicUrl(uniqueFilename);
+
+            if (urlData?.publicUrl) {
+              return res.json({ success: true, url: urlData.publicUrl });
+            }
+          } else {
+            console.warn("Supabase storage upload failed, falling back to local storage:", uploadError.message || uploadError);
+          }
+        } catch (supaErr) {
+          console.warn("Supabase storage upload exception, falling back to local storage:", supaErr);
         }
-
-        const { data: urlData } = supabase.storage
-          .from(supabaseBucket)
-          .getPublicUrl(uniqueFilename);
-
-        return res.json({ success: true, url: urlData.publicUrl });
       }
 
       // --- FALLBACK LOCAL FILESYSTEM UPLOAD ---
@@ -1295,26 +1325,71 @@ async function startServer() {
   });
 
   // Subscribers API
+  const extractCleanEmail = (input: any): string => {
+    if (!input) return '';
+    let curr = input;
+    while (curr && typeof curr === 'object') {
+      if (curr.email) curr = curr.email;
+      else break;
+    }
+    return typeof curr === 'string' ? curr.trim() : '';
+  };
+
   app.get("/api/subscribers", async (req, res) => {
-    res.json(await readData("subscribers.json"));
+    const raw = await readData<any[]>("subscribers.json");
+    const rawList = Array.isArray(raw) ? raw : [];
+    
+    // Normalize and deduplicate all records
+    const cleanedMap = new Map<string, { email: string; date: string }>();
+    for (const item of rawList) {
+      const email = extractCleanEmail(item);
+      if (email && email.includes('@')) {
+        const key = email.toLowerCase();
+        if (!cleanedMap.has(key)) {
+          let date = '';
+          let curr = item;
+          while (curr && typeof curr === 'object') {
+            if (curr.date && (typeof curr.date === 'string' || typeof curr.date === 'number')) {
+              date = String(curr.date);
+            }
+            curr = curr.email;
+          }
+          cleanedMap.set(key, { email, date: date || new Date().toISOString().split('T')[0] });
+        }
+      }
+    }
+
+    const cleanedList = Array.from(cleanedMap.values());
+    if (cleanedList.length !== rawList.length || JSON.stringify(rawList).includes('"email":{')) {
+      await writeData("subscribers.json", cleanedList);
+    }
+
+    res.json(cleanedList);
   });
 
   app.post("/api/subscribers", async (req, res) => {
-    const subscribers = await readData<string[]>("subscribers.json");
-    const { email } = req.body;
+    const rawSubs = await readData<any[]>("subscribers.json");
+    const subscribers = Array.isArray(rawSubs) ? rawSubs : [];
+    const email = extractCleanEmail(req.body?.email || req.body);
 
-    if (email && !subscribers.includes(email)) {
-      subscribers.unshift(email);
-      await writeData("subscribers.json", subscribers);
+    if (email && email.includes('@')) {
+      const exists = subscribers.some((s) => extractCleanEmail(s).toLowerCase() === email.toLowerCase());
+      if (!exists) {
+        subscribers.unshift({ email, date: new Date().toISOString().split('T')[0] });
+        await writeData("subscribers.json", subscribers);
+      }
     }
     res.json({ success: true });
   });
 
   app.delete("/api/subscribers", async (req, res) => {
-    const { email } = req.body;
-    const subscribers = await readData<string[]>("subscribers.json");
-    const filtered = subscribers.filter((e) => e !== email);
-    await writeData("subscribers.json", filtered);
+    const emailToDelete = extractCleanEmail(req.body?.email || req.body);
+    const rawSubs = await readData<any[]>("subscribers.json");
+    const subscribers = Array.isArray(rawSubs) ? rawSubs : [];
+    if (emailToDelete) {
+      const filtered = subscribers.filter((s) => extractCleanEmail(s).toLowerCase() !== emailToDelete.toLowerCase());
+      await writeData("subscribers.json", filtered);
+    }
     res.json({ success: true });
   });
 
