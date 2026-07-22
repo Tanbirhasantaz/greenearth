@@ -1149,34 +1149,51 @@ async function startServer() {
   app.post("/api/greenhero/trees", async (req, res) => {
     try {
       const trees = await readData<any[]>("ge_gh_trees.json");
-      const payload = req.body; // Can be a single tree object or an array of trees
+      const rawPayload = req.body;
+      const items = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
 
-      if (Array.isArray(payload)) {
-        const addedTrees: any[] = [];
-        let currentMaxId = trees.length > 0 ? Math.max(...trees.map(t => typeof t.id === 'number' ? t.id : parseInt(t.id, 10) || 0)) : 0;
-        
-        payload.forEach(t => {
-          currentMaxId += 1;
+      const addedTrees: any[] = [];
+      let currentMaxId = trees.length > 0 ? Math.max(...trees.map(t => typeof t.id === 'number' ? t.id : parseInt(t.id, 10) || 0)) : 0;
+
+      items.forEach(t => {
+        if (!t) return;
+        // Search if already exists on server
+        const index = trees.findIndex(st => {
+          if (st.id && t.id && String(st.id) === String(t.id)) return true;
+          return (
+            String(st.participantId || '').toUpperCase() === String(t.participantId || '').toUpperCase() &&
+            String(st.treeName || '').toLowerCase() === String(t.treeName || '').toLowerCase() &&
+            String(st.plantingDate || '') === String(t.plantingDate || '') &&
+            Number(st.quantity || 1) === Number(t.quantity || 1) &&
+            String(st.location || '').toLowerCase() === String(t.location || '').toLowerCase()
+          );
+        });
+
+        if (index !== -1) {
+          trees[index] = { ...trees[index], ...t };
+          addedTrees.push(trees[index]);
+        } else {
+          let treeId = t.id;
+          if (!treeId) {
+            currentMaxId += 1;
+            treeId = currentMaxId;
+          }
           const newTree = {
             ...t,
-            id: currentMaxId,
+            id: treeId,
             status: t.status || 'Approved'
           };
           trees.push(newTree);
           addedTrees.push(newTree);
-        });
-        await writeData("ge_gh_trees.json", trees);
+        }
+      });
+
+      await writeData("ge_gh_trees.json", trees);
+
+      if (Array.isArray(rawPayload)) {
         res.json({ success: true, trees: addedTrees });
       } else {
-        const nextId = trees.length > 0 ? Math.max(...trees.map(t => typeof t.id === 'number' ? t.id : parseInt(t.id, 10) || 0)) + 1 : 1;
-        const newTree = {
-          ...payload,
-          id: nextId,
-          status: payload.status || 'Approved'
-        };
-        trees.push(newTree);
-        await writeData("ge_gh_trees.json", trees);
-        res.json({ success: true, tree: newTree });
+        res.json({ success: true, tree: addedTrees[0] || rawPayload });
       }
     } catch (e: any) {
       res.status(500).json({ error: e.message });

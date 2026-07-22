@@ -248,12 +248,14 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         } catch {}
 
         const mergedMap = new Map();
-        localTrees.forEach((t, idx) => {
-          const key = t.id ? String(t.id) : `loc-${t.participantId}-${t.treeName}-${t.plantingDate}-${idx}`;
+        localTrees.forEach((t) => {
+          if (!t) return;
+          const key = t.id ? String(t.id) : `${t.participantId || ''}_${t.treeName || ''}_${t.plantingDate || ''}_${t.quantity || 1}`;
           mergedMap.set(key, t);
         });
-        validTrees.forEach((t, idx) => {
-          const key = t.id ? String(t.id) : `srv-${t.participantId}-${t.treeName}-${t.plantingDate}-${idx}`;
+        validTrees.forEach((t) => {
+          if (!t) return;
+          const key = t.id ? String(t.id) : `${t.participantId || ''}_${t.treeName || ''}_${t.plantingDate || ''}_${t.quantity || 1}`;
           mergedMap.set(key, t);
         });
         const finalTrees = Array.from(mergedMap.values());
