@@ -208,7 +208,18 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
   useEffect(() => {
     loadAllData();
-  }, []);
+    const interval = setInterval(() => {
+      loadAllData();
+    }, 4000);
+
+    const handleFocus = () => loadAllData();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [activeSubTab]);
 
   // --- SAVE EDITOR ---
   const handleSaveOverview = (e: React.FormEvent) => {
@@ -1157,15 +1168,25 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
               <h4 className="text-lg font-black text-gray-900 text-left">
                 Participants Registry (অংশগ্রহণকারী রেজিস্ট্রি)
               </h4>
-              <div className="relative max-w-xs w-full">
-                <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search by ID or Name..."
-                  value={partSearch}
-                  onChange={(e) => setPartSearch(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-full py-1.5 pl-9 pr-4 text-xs font-bold focus:ring-2 focus:ring-[#1F5E2E]"
-                />
+              <div className="flex items-center gap-2 max-w-sm w-full">
+                <button
+                  type="button"
+                  onClick={() => loadAllData()}
+                  className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                  title="Refresh Data (রিফ্রেশ করুন)"
+                >
+                  <RefreshCw size={14} />
+                </button>
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search ID, Name, Mobile, Inst..."
+                    value={partSearch}
+                    onChange={(e) => setPartSearch(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-full py-1.5 pl-9 pr-4 text-xs font-bold focus:ring-2 focus:ring-[#1F5E2E]"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1184,12 +1205,19 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {safeParticipants.filter(p => 
-                    p && p.id && p.name && (
-                      p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
-                      p.name.toLowerCase().includes(partSearch.toLowerCase())
-                    )
-                  ).length === 0 ? (
+                  {safeParticipants.filter(p => {
+                    if (!p) return false;
+                    if (!partSearch.trim()) return true;
+                    const q = partSearch.toLowerCase().trim();
+                    return (
+                      String(p.id || '').toLowerCase().includes(q) ||
+                      String(p.name || '').toLowerCase().includes(q) ||
+                      String(p.mobile || '').toLowerCase().includes(q) ||
+                      String(p.institution || '').toLowerCase().includes(q) ||
+                      String(p.district || '').toLowerCase().includes(q) ||
+                      String(p.upazila || '').toLowerCase().includes(q)
+                    );
+                  }).length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-12 text-center text-gray-400 font-bold font-sans">
                         <Users size={32} className="mx-auto text-gray-300 mb-2" />
@@ -1197,12 +1225,19 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                       </td>
                     </tr>
                   ) : (
-                    safeParticipants.filter(p => 
-                      p && p.id && p.name && (
-                        p.id.toLowerCase().includes(partSearch.toLowerCase()) ||
-                        p.name.toLowerCase().includes(partSearch.toLowerCase())
-                      )
-                    ).map((p, idx) => (
+                    safeParticipants.filter(p => {
+                      if (!p) return false;
+                      if (!partSearch.trim()) return true;
+                      const q = partSearch.toLowerCase().trim();
+                      return (
+                        String(p.id || '').toLowerCase().includes(q) ||
+                        String(p.name || '').toLowerCase().includes(q) ||
+                        String(p.mobile || '').toLowerCase().includes(q) ||
+                        String(p.institution || '').toLowerCase().includes(q) ||
+                        String(p.district || '').toLowerCase().includes(q) ||
+                        String(p.upazila || '').toLowerCase().includes(q)
+                      );
+                    }).map((p, idx) => (
                       <tr key={idx} className="hover:bg-gray-50/50">
                         <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
                         <td className="py-3.5 px-4 text-gray-900">

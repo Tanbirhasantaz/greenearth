@@ -666,33 +666,9 @@ async function startServer() {
     try {
       const raw = fs.readFileSync(getFilePath(filename), "utf-8");
       const localData = JSON.parse(raw) as T;
-
-      // Asynchronously trigger background Supabase read/sync if available
-      if (supabase && isSupabaseDbAvailable) {
-        (async () => {
-          try {
-            const { data, error } = await supabase
-              .from("key_value_store")
-              .select("value")
-              .eq("key", filename)
-              .maybeSingle();
-
-            if (!error && data && data.value) {
-              try {
-                fs.writeFileSync(getFilePath(filename), JSON.stringify(data.value, null, 2), "utf-8");
-              } catch (e) {}
-            } else if (error) {
-              isSupabaseDbAvailable = false;
-            }
-          } catch (e) {
-            isSupabaseDbAvailable = false;
-          }
-        })();
-      }
-
       return localData;
     } catch (localErr) {
-      // 2. Fallback if local file read fails
+      // 2. Fallback if local file read fails or file does not exist
       if (supabase && isSupabaseDbAvailable) {
         try {
           const promise = supabase
@@ -707,6 +683,9 @@ async function startServer() {
 
           const { data, error } = await Promise.race([promise, timeout]) as any;
           if (!error && data && data.value) {
+            try {
+              fs.writeFileSync(getFilePath(filename), JSON.stringify(data.value, null, 2), "utf-8");
+            } catch (e) {}
             return data.value as T;
           }
         } catch (err) {
