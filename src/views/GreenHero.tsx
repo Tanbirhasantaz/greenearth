@@ -8,7 +8,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Leaf, CheckCircle, AlertTriangle, Plus, Trash2, Camera, User, Lock, 
   Calendar, MapPin, Activity, Award, Search, FileText, Download, LogOut, 
-  Info, Users, Check, X, ChevronRight, HelpCircle, Settings
+  Info, Users, Check, X, ChevronRight, HelpCircle, Settings,
+  CheckCircle2, XCircle, RefreshCw, Eye, Edit3
 } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
 
@@ -531,12 +532,22 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 12 * 1024 * 1024) {
+        setLogError('Image file size must be under 12MB. (ছবি ১০ মেগাবাইটের কম হতে হবে)');
+        return;
+      }
       setIsUploadingLogImage(true);
+      setLogError('');
       try {
         const url = await uploadImageToServer(file, 'log_progress');
-        setter(url);
+        if (url) {
+          setter(url);
+        } else {
+          setLogError('Image processing failed. Please select another image.');
+        }
       } catch (err) {
         console.error("Log photo upload failed:", err);
+        setLogError('Photo upload failed. Please try again.');
       } finally {
         setIsUploadingLogImage(false);
       }
@@ -574,6 +585,26 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const [logComments, setLogComments] = useState('');
   const [logError, setLogError] = useState('');
   const [logSuccess, setLogSuccess] = useState('');
+  const [previewImageModal, setPreviewImageModal] = useState<string | null>(null);
+
+  // Pre-fill form values when switching month tabs
+  useEffect(() => {
+    if (!loggedInUser) return;
+    const existingLog = safeLogs.find(
+      (l: any) => l && String(l.participantId).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase() && Number(l.month) === Number(activeMonthTab)
+    );
+    if (existingLog) {
+      setLogPhoto(existingLog.photo || '');
+      setLogHealth(existingLog.health || 'Growing Well / Alive (বেঁচে আছে ও বেড়ে উঠছে)');
+      setLogComments(existingLog.comments || '');
+    } else {
+      setLogPhoto('');
+      setLogHealth('Growing Well / Alive (বেঁচে আছে ও বেড়ে উঠছে)');
+      setLogComments('');
+    }
+    setLogError('');
+    setLogSuccess('');
+  }, [activeMonthTab, loggedInUser?.id, logs]);
 
   // --- POPUP / ERROR BANNERS ---
   const [bannedSpeciesAlert, setBannedSpeciesAlert] = useState<string | null>(null);
@@ -995,111 +1026,114 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       });
   };
 
-  // Submit monthly log
+  // Submit or Resubmit monthly log
   const handleSubmitMonthlyLog = (e: React.FormEvent) => {
     e.preventDefault();
     setLogError('');
     setLogSuccess('');
 
-    // Photo validation
-    const finalLogPhoto = logPhoto || 'https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=400';
-
-    // Check if a log is already submitted/approved for this month
-    const existing = logs.find((l: any) => l.participantId === loggedInUser.id && l.month === activeMonthTab);
-
-    if (existing && (existing.status === 'Approved' || existing.status === 'Pending')) {
-      setLogError(`Log for Month ${activeMonthTab} is already ${existing.status} (${activeMonthTab} মাসের লগ ইতোমধ্যে ${existing.status === 'Approved' ? 'অনুমোদিত' : 'পর্যালোচনার অপেক্ষায়'} আছে)`);
+    if (isUploadingLogImage) {
+      setLogError('Photo is currently uploading. Please wait a moment... (ছবি আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...)');
       return;
     }
 
-    const newLog = {
+    if (!logPhoto) {
+      setLogError('Please upload a progress photo of your saplings. (জমাদান সম্পন্ন করতে অনুগ্রহ করে আপনার গাছের একটি অগ্রগতির ছবি আপলোড করুন।)');
+      return;
+    }
+
+    const existing = logs.find(
+      (l: any) => l && String(l.participantId).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase() && Number(l.month) === Number(activeMonthTab)
+    );
+
+    if (existing && existing.status === 'Approved') {
+      setLogError(`Log for Month ${activeMonthTab} is already Approved! (${activeMonthTab} মাসের লগ ইতোমধ্যে অনুমোদিত হয়েছে!)`);
+      return;
+    }
+
+    const logPayload = {
+      id: existing?.id, // Preserve existing ID for resubmission or update
       participantId: loggedInUser.id,
       month: activeMonthTab,
       health: logHealth,
-      photo: finalLogPhoto,
+      photo: logPhoto,
       comments: logComments.trim(),
-      status: 'Pending', // Sent to Admin
+      status: 'Pending', // Resubmitted or newly submitted log returns to Pending status
       remarks: '',
       date: new Date().toISOString().split('T')[0]
     };
 
-    const executeClientFallbackLogReg = () => {
-      try {
-        const savedLogs = localStorage.getItem('ge_gh_logs');
-        const currentLogs = savedLogs ? JSON.parse(savedLogs) : [];
-        
-        const lastLogId = currentLogs.reduce((max: number, l: any) => {
-          const match = l?.id?.match(/GE-LG-(\d+)/);
-          if (match) {
-            const num = parseInt(match[1], 10);
-            return num > max ? num : max;
-          }
-          return max;
-        }, 0);
+    const updateStateAndStorage = (finalLogObj: any) => {
+      setLogs(prev => {
+        let updated: any[];
+        const targetIdStr = finalLogObj.id ? String(finalLogObj.id).trim().toUpperCase() : '';
+        const index = prev.findIndex(l => {
+          if (!l) return false;
+          if (targetIdStr && String(l.id).trim().toUpperCase() === targetIdStr) return true;
+          if (String(l.participantId).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase() && Number(l.month) === Number(activeMonthTab)) return true;
+          return false;
+        });
 
-        const fallbackLog = {
-          ...newLog,
-          id: `GE-LG-${String(lastLogId + 1).padStart(6, '0')}`
-        };
+        if (index !== -1) {
+          updated = [...prev];
+          updated[index] = { ...updated[index], ...finalLogObj };
+        } else {
+          updated = [finalLogObj, ...prev];
+        }
 
-        const updatedLogs = [...currentLogs, fallbackLog];
-        localStorage.setItem('ge_gh_logs', JSON.stringify(updatedLogs));
-        setLogs(updatedLogs);
+        localStorage.setItem('ge_gh_logs', JSON.stringify(updated));
+        return updated;
+      });
 
-        setLogSuccess(`Monthly progress log submitted successfully for Month ${activeMonthTab}! It will be reviewed by administrators. (${activeMonthTab} মাসের প্রগতি লগ সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন এটি পর্যালোচনা করবেন।)`);
-        setLogComments('');
-        setLogPhoto('');
-      } catch (fallbackErr) {
-        console.error("Client fallback log submission failed:", fallbackErr);
-        setLogError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
-      }
+      const isResubmit = existing && existing.status === 'Rejected';
+      setLogSuccess(
+        isResubmit
+          ? `Month ${activeMonthTab} progress log resubmitted successfully! It is now pending admin review again. (${activeMonthTab} মাসের প্রগতি লগটি সফলভাবে পুনরায় জমা দেওয়া হয়েছে! এটি অ্যাডমিন পর্যালোচনার অপেক্ষায় আছে।)`
+          : `Month ${activeMonthTab} progress log submitted successfully! It will be reviewed by administrators. (${activeMonthTab} মাসের প্রগতি লগ সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন এটি পর্যালোচনা করবেন।)`
+      );
     };
 
     fetch('/api/greenhero/logs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newLog)
+      body: JSON.stringify(logPayload)
     })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Server returned non-OK status');
-        }
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          setLogSuccess(`Monthly progress log submitted successfully for Month ${activeMonthTab}! It will be reviewed by administrators. (${activeMonthTab} মাসের প্রগতি লগ সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন এটি পর্যালোচনা করবেন।)`);
-          setLogComments('');
-          setLogPhoto('');
-          loadDataFromServer();
+        if (data && data.success) {
+          const serverSavedLog = data.log || (Array.isArray(data.logs) ? data.logs.find((l: any) => Number(l.month) === Number(activeMonthTab)) : null);
+          updateStateAndStorage(serverSavedLog || logPayload);
         } else {
-          executeClientFallbackLogReg();
+          updateStateAndStorage(logPayload);
         }
+        loadDataFromServer();
       })
       .catch(err => {
-        console.error("Server log submit error, falling back to client-side localStorage:", err);
-        executeClientFallbackLogReg();
+        console.error("Server log submit error, using local fallback:", err);
+        updateStateAndStorage({
+          ...logPayload,
+          id: existing?.id || `GE-LG-${Date.now()}`
+        });
       });
   };
 
   // Get current participant's log status for a specific month
   const getMonthLogStatus = (partId: string, month: number): 'Locked' | 'Due' | 'Pending' | 'Approved' | 'Rejected' => {
-    const savedLogs = safeLogs.filter(l => l && l.participantId === partId);
+    const savedLogs = safeLogs.filter(l => l && String(l.participantId).trim().toUpperCase() === String(partId).trim().toUpperCase());
     
-    // Month 1 rules: always available unless approved
+    // Month 1 rules: always available
     // Month 2 rules: requires Month 1 Approved
     // Month 3 rules: requires Month 2 Approved
-    
     if (month === 2) {
-      const month1Approved = savedLogs.some(l => l && l.month === 1 && l.status === 'Approved');
+      const month1Approved = savedLogs.some(l => l && Number(l.month) === 1 && l.status === 'Approved');
       if (!month1Approved) return 'Locked';
     }
     if (month === 3) {
-      const month2Approved = savedLogs.some(l => l && l.month === 2 && l.status === 'Approved');
+      const month2Approved = savedLogs.some(l => l && Number(l.month) === 2 && l.status === 'Approved');
       if (!month2Approved) return 'Locked';
     }
 
-    const log = savedLogs.find(l => l && l.month === month);
+    const log = savedLogs.find(l => l && Number(l.month) === Number(month));
     if (!log) return 'Due';
     if (log.status === 'Pending') return 'Pending';
     if (log.status === 'Approved') return 'Approved';
@@ -2795,95 +2829,216 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                       </div>
 
                       {/* active month review details & logger */}
-                      <div className="p-5 bg-gray-50 border border-gray-200/50 rounded-2xl text-xs space-y-6">
-                        <div className="flex items-center gap-2 text-[#1B5E20] font-black border-b border-gray-200 pb-2.5">
-                          <Activity size={16} />
-                          <span>
-                            Month {activeMonthTab} Monitoring Container (মাস {activeMonthTab} ট্র্যাকিং কন্টেইনার)
-                          </span>
-                        </div>
+                      {(() => {
+                        const currentLog = safeLogs.find(
+                          l => l && String(l.participantId).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase() && Number(l.month) === Number(activeMonthTab)
+                        );
 
-                        {logError && (
-                          <div className="bg-red-50 border border-red-200 text-red-700 text-[11px] py-2 px-3 rounded-xl font-semibold">
-                            {logError}
-                          </div>
-                        )}
-                        {logSuccess && (
-                          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] py-2 px-3 rounded-xl font-semibold">
-                            {logSuccess}
-                          </div>
-                        )}
+                        return (
+                          <div className="p-5 bg-gray-50 border border-gray-200/50 rounded-2xl text-xs space-y-6 text-left font-sans">
+                            <div className="flex items-center justify-between border-b border-gray-200 pb-2.5">
+                              <div className="flex items-center gap-2 text-[#1B5E20] font-black">
+                                <Activity size={16} />
+                                <span>
+                                  Month {activeMonthTab} Monitoring Container (মাস {activeMonthTab} ট্র্যাকিং কন্টেইনার)
+                                </span>
+                              </div>
+                              {currentLog && (
+                                <span className={`py-1 px-3 rounded-full font-black text-[10px] uppercase tracking-wider ${
+                                  currentLog.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
+                                  currentLog.status === 'Pending' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  Status: {currentLog.status}
+                                </span>
+                              )}
+                            </div>
 
-                        {/* Logger Form */}
-                        <form onSubmit={handleSubmitMonthlyLog} className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-1.5">
-                              <label className="font-bold text-gray-500 uppercase tracking-wider">
-                                Upload Progress Photo (অগ্রগতির ছবি আপলোড)
-                              </label>
-                              <div className="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-2xl p-4 bg-white hover:bg-emerald-50/20 transition-all relative">
-                                <Camera size={24} className="text-[#1B5E20] mb-1.5" />
-                                <span className="text-xs text-gray-500 font-medium">Click to select or drag photo here</span>
-                                <span className="text-[10px] text-gray-400 mt-0.5">(JPG, PNG max 5MB)</span>
-                                <input 
-                                  type="file" 
-                                  accept="image/*"
-                                  onChange={(e) => handleImageUpload(e, setLogPhoto)}
-                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                  id="log-photo-file-input"
+                            {/* STATUS SPECIFIC BANNERS */}
+                            {currentLog?.status === 'Rejected' && (
+                              <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 space-y-3">
+                                <div className="flex items-center gap-2 text-red-700 font-black text-sm">
+                                  <XCircle size={20} className="shrink-0 text-red-600" />
+                                  <span>Month {activeMonthTab} Log Rejected by Admin (অ্যাডমিন কর্তৃক বাতিল করা হয়েছে)</span>
+                                </div>
+                                {currentLog.remarks && (
+                                  <div className="bg-white p-3 rounded-xl border border-red-200 text-xs text-red-900 font-semibold shadow-2xs">
+                                    <span className="font-bold text-red-700 block text-[10px] uppercase tracking-wider">Admin Remarks / Reason (অ্যাডমিনের মন্তব্য/কারণ):</span>
+                                    <p className="mt-1 text-xs font-bold text-gray-900">{currentLog.remarks}</p>
+                                  </div>
+                                )}
+                                <p className="text-xs text-red-800 font-semibold bg-red-100/60 p-2.5 rounded-xl border border-red-200/50">
+                                  💡 Action Required: Please review the remarks above, upload a updated clear tree photo or comments, and click <strong>"Resubmit Log (সংশোধিত লগ জমা দিন)"</strong> below.
+                                  (উপরে অ্যাডমিনের নির্দেশিকা অনুযায়ী ছবি বা তথ্য আপডেট করে নিচে পুনরায় সাবমিট করুন।)
+                                </p>
+                              </div>
+                            )}
+
+                            {currentLog?.status === 'Approved' && (
+                              <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 space-y-2">
+                                <div className="flex items-center gap-2 text-emerald-800 font-black text-sm">
+                                  <CheckCircle2 size={20} className="shrink-0 text-emerald-600" />
+                                  <span>Month {activeMonthTab} Log Verified & Approved (অ্যাডমিন কর্তৃক অনুমোদিত)</span>
+                                </div>
+                                {currentLog.remarks && (
+                                  <div className="bg-white p-3 rounded-xl border border-emerald-200 text-xs text-emerald-900 font-semibold">
+                                    <span className="font-bold text-emerald-700 block text-[10px] uppercase tracking-wider">Admin Remarks:</span>
+                                    <p className="mt-0.5">{currentLog.remarks}</p>
+                                  </div>
+                                )}
+                                <p className="text-xs text-emerald-800 font-semibold">
+                                  Great job! Your progress report for Month {activeMonthTab} has been verified and approved. (আপনার প্রগতি রিপোর্টটি সফলভাবে অনুমোদিত হয়েছে।)
+                                </p>
+                              </div>
+                            )}
+
+                            {currentLog?.status === 'Pending' && (
+                              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 space-y-2">
+                                <div className="flex items-center gap-2 text-amber-800 font-black text-sm">
+                                  <Activity size={18} className="shrink-0 text-amber-600 animate-pulse" />
+                                  <span>Month {activeMonthTab} Log Pending Admin Review (অ্যাডমিন পর্যালোচনার অপেক্ষায়)</span>
+                                </div>
+                                <p className="text-xs text-amber-900 font-medium leading-relaxed">
+                                  Your Month {activeMonthTab} progress log was submitted on {currentLog.date || 'recently'} and is currently under review by administrators. You may update your details below if needed.
+                                  (আপনার {activeMonthTab} মাসের লগটি জমা দেওয়া হয়েছে এবং অ্যাডমিন পর্যালোচনার অপেক্ষায় আছে। প্রয়োজন মনে করলে নিচে তথ্য আপডেট করতে পারেন।)
+                                </p>
+                              </div>
+                            )}
+
+                            {logError && (
+                              <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-xl font-bold flex items-center gap-2">
+                                <AlertTriangle size={16} className="shrink-0 text-red-600" />
+                                <span>{logError}</span>
+                              </div>
+                            )}
+                            {logSuccess && (
+                              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-xl font-bold flex items-center gap-2">
+                                <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                                <span>{logSuccess}</span>
+                              </div>
+                            )}
+
+                            {/* Logger Form */}
+                            <form onSubmit={handleSubmitMonthlyLog} className="space-y-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                                    <span>Upload Progress Photo (অগ্রগতির ছবি আপলোড)</span>
+                                    <span className="text-red-500">*</span>
+                                  </label>
+                                  
+                                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-2xl p-4 bg-white hover:bg-emerald-50/30 transition-all relative group cursor-pointer">
+                                    {isUploadingLogImage ? (
+                                      <div className="flex flex-col items-center gap-2 text-emerald-800 py-2">
+                                        <RefreshCw size={22} className="animate-spin text-[#1B5E20]" />
+                                        <span className="text-xs font-bold">Uploading photo... Please wait (ছবি আপলোড হচ্ছে...)</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Camera size={24} className="text-[#1B5E20] mb-1 group-hover:scale-110 transition-transform" />
+                                        <span className="text-xs text-gray-600 font-bold">
+                                          {logPhoto ? "Click to change photo (ছবি পরিবর্তন করুন)" : "Click or drag photo here (ছবি নির্বাচন করুন)"}
+                                        </span>
+                                        <span className="text-[10px] text-gray-400 mt-0.5">(JPG, PNG max 12MB)</span>
+                                        <input 
+                                          type="file" 
+                                          accept="image/*"
+                                          disabled={isUploadingLogImage}
+                                          onChange={(e) => handleImageUpload(e, setLogPhoto)}
+                                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+                                          id="log-photo-file-input"
+                                        />
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">
+                                    Current Health Status (গাছের বর্তমান অবস্থা)
+                                  </label>
+                                  <select
+                                    value={logHealth}
+                                    onChange={(e) => setLogHealth(e.target.value)}
+                                    className="bg-white border border-gray-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-[#1B5E20] font-bold text-gray-800"
+                                  >
+                                    <option value="Growing Well / Alive (বেঁচে আছে ও বেড়ে উঠছে)">Growing Well / Alive (বেঁচে আছে ও বেড়ে উঠছে)</option>
+                                    <option value="Damaged (ক্ষতিগ্রস্ত)">Damaged (ক্ষতিগ্রস্ত)</option>
+                                    <option value="Dead (নষ্ট হয়ে গেছে)">Dead (নষ্ট হয়ে গেছে)</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-1.5">
+                                <label className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">
+                                  Comments / Observations (মন্তব্য/পর্যবেক্ষণ)
+                                </label>
+                                <textarea
+                                  rows={2}
+                                  placeholder="e.g. Tree height increased, daily watering is done regularly."
+                                  value={logComments}
+                                  onChange={(e) => setLogComments(e.target.value)}
+                                  className="bg-white border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1B5E20] text-xs font-medium"
                                 />
                               </div>
-                            </div>
 
-                            <div className="flex flex-col gap-1.5">
-                              <label className="font-bold text-gray-500 uppercase tracking-wider">
-                                Current Health Status (গাছের বর্তমান অবস্থা)
-                              </label>
-                              <select
-                                value={logHealth}
-                                onChange={(e) => setLogHealth(e.target.value)}
-                                className="bg-white border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1B5E20]"
+                              {logPhoto && (
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-gray-500 uppercase tracking-wider text-[10px] block">Progress Photo Preview (ছবি প্রাকদর্শন)</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setLogPhoto('')}
+                                      className="text-red-600 hover:text-red-700 text-[10px] font-bold cursor-pointer"
+                                    >
+                                      ✕ Remove Photo
+                                    </button>
+                                  </div>
+                                  <div className="w-full h-36 bg-white rounded-xl overflow-hidden border border-gray-200 relative group">
+                                    <img src={logPhoto} alt="Progress Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewImageModal(logPhoto)}
+                                      className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity font-bold cursor-pointer"
+                                    >
+                                      <Eye size={20} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                type="submit"
+                                disabled={isUploadingLogImage}
+                                className={`w-full font-black py-3 rounded-xl cursor-pointer transition-all text-center text-xs shadow-sm flex items-center justify-center gap-2 ${
+                                  isUploadingLogImage
+                                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                                    : currentLog?.status === 'Rejected'
+                                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-200'
+                                      : currentLog?.status === 'Pending'
+                                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                        : 'bg-[#1B5E20] hover:bg-emerald-800 text-white'
+                                }`}
                               >
-                                <option value="Growing Well / Alive (বেঁচে আছে ও বেড়ে উঠছে)">Growing Well / Alive (বেঁচে আছে ও বেড়ে উঠছে)</option>
-                                <option value="Damaged (ক্ষতিগ্রস্ত)">Damaged (ক্ষতিগ্রস্ত)</option>
-                                <option value="Dead (নষ্ট হয়ে গেছে)">Dead (নষ্ট হয়ে গেছে)</option>
-                              </select>
-                            </div>
+                                {isUploadingLogImage ? (
+                                  <span>Uploading Photo... (ছবি আপলোড হচ্ছে...)</span>
+                                ) : currentLog?.status === 'Rejected' ? (
+                                  <>
+                                    <RefreshCw size={14} />
+                                    <span>Resubmit Log for Month {activeMonthTab} (মাস {activeMonthTab} এর সংশোধিত লগ পুনরায় জমা দিন)</span>
+                                  </>
+                                ) : currentLog?.status === 'Pending' ? (
+                                  <span>Update Submitted Log (জমা দেওয়া তথ্য আপডেট করুন)</span>
+                                ) : (
+                                  <span>Submit Log for Month {activeMonthTab} (মাস {activeMonthTab} এর লগ জমা দিন)</span>
+                                )}
+                              </button>
+                            </form>
                           </div>
-
-                          <div className="flex flex-col gap-1.5">
-                            <label className="font-bold text-gray-500 uppercase tracking-wider">
-                              Comments/Observations (মন্তব্য/পর্যবেক্ষণ) - Optional
-                            </label>
-                            <textarea
-                              rows={2}
-                              placeholder="e.g. Tree height increased by 5 cm, daily watering is on."
-                              value={logComments}
-                              onChange={(e) => setLogComments(e.target.value)}
-                              className="bg-white border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1B5E20]"
-                            />
-                          </div>
-
-                          {logPhoto && (
-                            <div className="space-y-1">
-                              <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] block">Progress Photo Preview (অগ্রগতির ছবি প্রাকদর্শন)</span>
-                              <div className="w-full h-32 bg-white rounded-xl overflow-hidden border border-gray-200">
-                                <img src={logPhoto} alt="Progress Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                              </div>
-                            </div>
-                          )}
-
-                          <button
-                            type="submit"
-                            className="w-full bg-[#1B5E20] hover:bg-emerald-800 text-white font-black py-3 rounded-xl cursor-pointer transition-colors text-center text-xs shadow-sm"
-                          >
-                            Submit Log (লগ জমা দিন)
-                          </button>
-                        </form>
-                      </div>
+                        );
+                      })()}
 
                       {/* Display historic logs for this user */}
-                      <div className="space-y-3 font-sans text-xs">
+                      <div className="space-y-3 font-sans text-xs text-left">
                         <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] block">Log History (লগের ইতিহাস)</span>
                         {logs.filter(isUserLog).length === 0 ? (
                           <div className="text-gray-400 font-bold text-center py-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -2892,22 +3047,47 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                         ) : (
                           <div className="space-y-2">
                             {logs.filter(isUserLog).map((log, idx) => (
-                              <div key={idx} className="flex gap-4 items-center p-3 bg-gray-50 border border-gray-200/50 rounded-xl">
-                                <img src={log.photo} alt="log" referrerPolicy="no-referrer" className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
-                                <div className="flex-grow text-left">
-                                  <h5 className="font-bold text-gray-900">Month {log.month} ({log.month}ম মাস)</h5>
-                                  <p className="text-[10px] text-gray-400 font-medium">Status: {log.health} • Submitted on {log.date}</p>
-                                  {log.remarks && (
-                                    <p className="text-[10px] text-[#1B5E20] font-semibold mt-0.5">Admin Remarks: {log.remarks}</p>
-                                  )}
+                              <div key={idx} className="flex flex-col sm:flex-row gap-3 sm:items-center p-3 bg-gray-50 border border-gray-200/50 rounded-xl justify-between">
+                                <div className="flex gap-3 items-center">
+                                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0 relative group cursor-pointer" onClick={() => setPreviewImageModal(log.photo)}>
+                                    <img src={log.photo} alt="log" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                      <Eye size={14} />
+                                    </div>
+                                  </div>
+                                  <div className="text-left">
+                                    <div className="flex items-center gap-2">
+                                      <h5 className="font-bold text-gray-900">Month {log.month} ({log.month}ম মাস)</h5>
+                                      <span className={`py-0.5 px-2 rounded-full font-bold text-[9px] uppercase tracking-wider ${
+                                        log.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
+                                        log.status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                      }`}>
+                                        {log.status === 'Approved' ? 'Approved (অনুমোদিত)' : 
+                                         log.status === 'Pending' ? 'Pending (পর্যালোচনায়)' : 'Rejected (বাতিল)'}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 font-medium">Status: {log.health} • Submitted: {log.date}</p>
+                                    {log.remarks && (
+                                      <p className="text-[10px] text-red-700 font-bold mt-0.5">Admin Remarks: {log.remarks}</p>
+                                    )}
+                                  </div>
                                 </div>
-                                <span className={`py-1 px-2.5 rounded-full font-bold text-[9px] uppercase tracking-wider ${
-                                  log.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
-                                  log.status === 'Pending' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {log.status === 'Approved' ? 'Approved (অনুমোদিত)' : 
-                                   log.status === 'Pending' ? 'Pending (পর্যালোচনায়)' : 'Rejected (বাতিল)'}
-                                </span>
+
+                                {log.status === 'Rejected' && (
+                                  <button
+                                    onClick={() => {
+                                      setActiveMonthTab(Number(log.month));
+                                      setLogPhoto(log.photo || '');
+                                      setLogHealth(log.health || '');
+                                      setLogComments(log.comments || '');
+                                      window.scrollTo({ top: 300, behavior: 'smooth' });
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded-lg text-[10px] shrink-0 cursor-pointer flex items-center justify-center gap-1 shadow-xs"
+                                  >
+                                    <Edit3 size={12} />
+                                    <span>Edit & Resubmit (সম্পাদনা করুন)</span>
+                                  </button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -3214,7 +3394,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                   setShowRegSuccess(null);
                   setActiveSubTab('portal');
                 }}
-                className="w-full bg-[#1B5E20] hover:bg-emerald-800 text-white font-black py-3 rounded-full text-xs shadow-lg transition-colors"
+                className="w-full bg-[#1B5E20] hover:bg-emerald-800 text-white font-black py-3 rounded-full text-xs shadow-lg transition-colors cursor-pointer"
               >
                 Proceed to Login (লগইন করতে এগিয়ে যান)
               </button>
@@ -3222,6 +3402,21 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* LIGHTBOX IMAGE ZOOM MODAL */}
+      {previewImageModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-sans cursor-pointer" onClick={() => setPreviewImageModal(null)}>
+          <div className="relative max-w-3xl max-h-[90vh] bg-transparent flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <img src={previewImageModal} alt="Enlarged tree photo" referrerPolicy="no-referrer" className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border-2 border-white/20" />
+            <button
+              onClick={() => setPreviewImageModal(null)}
+              className="mt-4 bg-white/20 hover:bg-white/40 text-white font-bold py-2 px-6 rounded-full text-xs backdrop-blur-md cursor-pointer transition-colors"
+            >
+              ✕ Close Preview (বন্ধ করুন)
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
