@@ -149,45 +149,8 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       if (treesRes.ok) {
         const treesData = await treesRes.json();
         const validTrees = Array.isArray(treesData) ? treesData : [];
-
-        const localTreesRaw = localStorage.getItem('ge_gh_trees');
-        let localTrees: any[] = [];
-        try {
-          localTrees = localTreesRaw ? JSON.parse(localTreesRaw) : [];
-          if (!Array.isArray(localTrees)) localTrees = [];
-        } catch {}
-
-        const mergedMap = new Map();
-        localTrees.forEach((t) => {
-          if (!t) return;
-          const key = t.id ? String(t.id) : `${t.participantId || ''}_${t.treeName || ''}_${t.plantingDate || ''}_${t.quantity || 1}`;
-          mergedMap.set(key, t);
-        });
-        validTrees.forEach((t) => {
-          if (!t) return;
-          const key = t.id ? String(t.id) : `${t.participantId || ''}_${t.treeName || ''}_${t.plantingDate || ''}_${t.quantity || 1}`;
-          mergedMap.set(key, t);
-        });
-        const finalTrees = Array.from(mergedMap.values());
-
-        setTrees(finalTrees);
-        localStorage.setItem('ge_gh_trees', JSON.stringify(finalTrees));
-
-        // Sync unsynced local trees to server
-        const serverKeys = new Set(validTrees.map(vt => vt.id ? String(vt.id) : `${vt.participantId || ''}_${vt.treeName || ''}_${vt.plantingDate || ''}_${vt.quantity || 1}`));
-        const unsyncedTrees = localTrees.filter(lt => {
-          if (!lt) return false;
-          const key = lt.id ? String(lt.id) : `${lt.participantId || ''}_${lt.treeName || ''}_${lt.plantingDate || ''}_${lt.quantity || 1}`;
-          return !serverKeys.has(key);
-        });
-
-        if (unsyncedTrees.length > 0) {
-          fetch('/api/greenhero/trees', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(unsyncedTrees)
-          }).catch(e => console.error("Sync unsynced trees error in Admin:", e));
-        }
+        setTrees(validTrees);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(validTrees));
       } else {
         const savedTrees = localStorage.getItem('ge_gh_trees');
         try {
@@ -203,29 +166,8 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       if (logsRes.ok) {
         const logsData = await logsRes.json();
         const validLogs = Array.isArray(logsData) ? logsData : [];
-        
-        const localLogsRaw = localStorage.getItem('ge_gh_logs');
-        let localLogs: any[] = [];
-        try {
-          localLogs = localLogsRaw ? JSON.parse(localLogsRaw) : [];
-          if (!Array.isArray(localLogs)) localLogs = [];
-        } catch {}
-
-        const mergedLogsMap = new Map();
-        localLogs.forEach((l) => {
-          if (!l) return;
-          const key = l.id ? String(l.id).trim().toUpperCase() : `part-${String(l.participantId).trim().toUpperCase()}-m-${l.month}`;
-          mergedLogsMap.set(key, l);
-        });
-        validLogs.forEach((l) => {
-          if (!l) return;
-          const key = l.id ? String(l.id).trim().toUpperCase() : `part-${String(l.participantId).trim().toUpperCase()}-m-${l.month}`;
-          mergedLogsMap.set(key, l);
-        });
-        const finalLogs = Array.from(mergedLogsMap.values());
-
-        setLogs(finalLogs);
-        localStorage.setItem('ge_gh_logs', JSON.stringify(finalLogs));
+        setLogs(validLogs);
+        localStorage.setItem('ge_gh_logs', JSON.stringify(validLogs));
       } else {
         const savedLogs = localStorage.getItem('ge_gh_logs');
         try {
