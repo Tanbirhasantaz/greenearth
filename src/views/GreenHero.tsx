@@ -189,39 +189,73 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
 
       // 2. Fetch Participants
       const partsRes = await fetch("/api/greenhero/participants");
+      let validParts: any[] = [];
       if (partsRes.ok) {
         const partsData = await partsRes.json();
-        const validParts = Array.isArray(partsData) ? partsData : [];
-        
-        setParticipants(validParts);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(validParts));
-        
-        // Update loggedInUser session state if logged in; if deleted from Admin, log out!
-        const currentSession = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
-        if (currentSession) {
-          try {
-            const storedUser = JSON.parse(currentSession);
-            const freshUser = validParts.find((p: any) => String(p.id).trim().toUpperCase() === String(storedUser.id).trim().toUpperCase());
-            if (freshUser) {
-              setLoggedInUser(freshUser);
-              sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
-              localStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
-            } else {
-              // Account deleted from Admin panel
-              setLoggedInUser(null);
-              sessionStorage.removeItem('ge_gh_logged_in');
-              localStorage.removeItem('ge_gh_logged_in');
-            }
-          } catch (e) {}
-        }
-      } else {
-        const localPartsRaw = localStorage.getItem('ge_gh_participants');
+        validParts = Array.isArray(partsData) ? partsData : [];
+      }
+
+      // Read local participants to prevent losing any local account
+      const localPartsRaw = localStorage.getItem('ge_gh_participants');
+      let localParts: any[] = [];
+      try {
+        localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
+        if (!Array.isArray(localParts)) localParts = [];
+      } catch {}
+
+      // Map participants by ID (or mobile)
+      const mergedMap = new Map<string, any>();
+      localParts.forEach(p => {
+        if (!p) return;
+        const key = p.id ? String(p.id).trim().toUpperCase() : (p.mobile ? `MOB_${p.mobile}` : null);
+        if (key) mergedMap.set(key, p);
+      });
+      validParts.forEach(p => {
+        if (!p) return;
+        const key = p.id ? String(p.id).trim().toUpperCase() : (p.mobile ? `MOB_${p.mobile}` : null);
+        if (key) mergedMap.set(key, { ...mergedMap.get(key), ...p });
+      });
+
+      let finalParts = Array.from(mergedMap.values());
+
+      // Sort sequentially by numeric ID (GE-AT-000001, GE-AT-000002, ...)
+      finalParts.sort((a, b) => {
+        const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+        return numA - numB;
+      });
+
+      setParticipants(finalParts);
+      localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
+
+      // Sync unsynced local participants to server
+      const serverKeys = new Set(validParts.map(vp => vp && vp.id ? String(vp.id).trim().toUpperCase() : ''));
+      const unsyncedLocalParts = localParts.filter(lp => lp && lp.id && !serverKeys.has(String(lp.id).trim().toUpperCase()));
+      if (unsyncedLocalParts.length > 0) {
+        fetch('/api/greenhero/participants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(unsyncedLocalParts)
+        }).catch(e => console.error("Sync unsynced participants error:", e));
+      }
+
+      // Update loggedInUser session state if logged in; if deleted from Admin, log out!
+      const currentSession = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
+      if (currentSession) {
         try {
-          const parsed = localPartsRaw ? JSON.parse(localPartsRaw) : [];
-          setParticipants(Array.isArray(parsed) ? parsed : []);
-        } catch {
-          setParticipants([]);
-        }
+          const storedUser = JSON.parse(currentSession);
+          const freshUser = finalParts.find((p: any) => String(p.id).trim().toUpperCase() === String(storedUser.id).trim().toUpperCase());
+          if (freshUser) {
+            setLoggedInUser(freshUser);
+            sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
+            localStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
+          } else {
+            // Account deleted from Admin panel
+            setLoggedInUser(null);
+            sessionStorage.removeItem('ge_gh_logged_in');
+            localStorage.removeItem('ge_gh_logged_in');
+          }
+        } catch (e) {}
       }
 
       // 3. Fetch Trees

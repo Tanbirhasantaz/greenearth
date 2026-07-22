@@ -1073,7 +1073,13 @@ async function startServer() {
   // 1. Participants
   app.get("/api/greenhero/participants", async (req, res) => {
     try {
-      const data = await readData<any[]>("ge_gh_participants.json");
+      const raw = await readData<any[]>("ge_gh_participants.json");
+      const data = Array.isArray(raw) ? raw : [];
+      data.sort((a, b) => {
+        const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+        return numA - numB;
+      });
       res.json(data);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -1091,7 +1097,7 @@ async function startServer() {
 
       let lastIdNum = participants.reduce((max, p) => {
         if (!p || !p.id) return max;
-        const match = String(p.id).match(/GE-AT-(\d+)/);
+        const match = String(p.id).match(/GE-AT-(\d+)/i);
         if (match) {
           const num = parseInt(match[1], 10);
           return num > max ? num : max;
@@ -1124,7 +1130,7 @@ async function startServer() {
         } else {
           // Add new record
           lastIdNum++;
-          const formattedId = item.id && String(item.id).startsWith('GE-AT-')
+          const formattedId = item.id && String(item.id).toUpperCase().startsWith('GE-AT-')
             ? item.id
             : `GE-AT-${String(lastIdNum).padStart(6, '0')}`;
 
@@ -1137,6 +1143,13 @@ async function startServer() {
           participants.push(newParticipant);
           processedParticipants.push(newParticipant);
         }
+      });
+
+      // Sort sequentially by ID before saving
+      participants.sort((a, b) => {
+        const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+        return numA - numB;
       });
 
       await writeData("ge_gh_participants.json", participants);
