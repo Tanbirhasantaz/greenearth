@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Trees, Users, Activity, Award, FileSpreadsheet, Settings, ShieldAlert,
   Search, Check, X, Eye, FileText, Download, AlertCircle, Info, RefreshCw, Edit,
-  Trash2, AlertTriangle
+  Trash2, AlertTriangle, CheckCircle2, XCircle
 } from 'lucide-react';
 
 interface GreenHeroAdminProps {
@@ -70,6 +70,10 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   const [certNameY, setCertNameY] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_name_y')) || 53);
   const [certFontSize, setCertFontSize] = useState<number>(() => Number(localStorage.getItem('ge_gh_custom_cert_font_size')) || 36);
   const [certColor, setCertColor] = useState<string>(() => localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20');
+
+  // Certificate permission management filter states
+  const [certFilter, setCertFilter] = useState<'all' | 'approved' | 'pending'>('all');
+  const [certSearch, setCertSearch] = useState('');
 
   // Load all records from Server
   const loadAllData = async () => {
@@ -192,12 +196,14 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
         } catch {}
 
         const mergedLogsMap = new Map();
-        localLogs.forEach((l, idx) => {
-          const key = l.id || `local-lg-${l.participantId}-${l.month}-${idx}`;
+        localLogs.forEach((l) => {
+          if (!l) return;
+          const key = l.id ? String(l.id).trim().toUpperCase() : `part-${String(l.participantId).trim().toUpperCase()}-m-${l.month}`;
           mergedLogsMap.set(key, l);
         });
-        validLogs.forEach((l, idx) => {
-          const key = l.id || `server-lg-${l.participantId}-${l.month}-${idx}`;
+        validLogs.forEach((l) => {
+          if (!l) return;
+          const key = l.id ? String(l.id).trim().toUpperCase() : `part-${String(l.participantId).trim().toUpperCase()}-m-${l.month}`;
           mergedLogsMap.set(key, l);
         });
         const finalLogs = Array.from(mergedLogsMap.values());
@@ -384,6 +390,53 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     setTimeout(() => setSuccessBanner(''), 4000);
   };
 
+  const handleToggleCertApproval = (id: string, currentApproved: boolean) => {
+    const newApproved = !currentApproved;
+    const newStatus = newApproved ? 'Approved' : 'Pending';
+
+    fetch(`/api/greenhero/participants/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        certificateApproved: newApproved,
+        certificateStatus: newStatus
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSuccessBanner(
+            newApproved
+              ? `Certificate permission APPROVED for participant ${id}! User can now view and download their certificate from user portal. (অংশগ্রহণকারী ${id} এর সার্টিফিকেট সফলভাবে অনুমোদন করা হয়েছে!)`
+              : `Certificate permission REVOKED for participant ${id}. (অংশগ্রহণকারী ${id} এর সার্টিফিকেট অনুমোদন বাতিল করা হয়েছে।)`
+          );
+          setTimeout(() => setSuccessBanner(''), 4000);
+
+          setParticipants(prev =>
+            prev.map(p =>
+              p && String(p.id).trim().toUpperCase() === String(id).trim().toUpperCase()
+                ? { ...p, certificateApproved: newApproved, certificateStatus: newStatus }
+                : p
+            )
+          );
+
+          const localPartsRaw = localStorage.getItem('ge_gh_participants');
+          let localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
+          if (Array.isArray(localParts)) {
+            localParts = localParts.map((p: any) =>
+              p && String(p.id).trim().toUpperCase() === String(id).trim().toUpperCase()
+                ? { ...p, certificateApproved: newApproved, certificateStatus: newStatus }
+                : p
+            );
+            localStorage.setItem('ge_gh_participants', JSON.stringify(localParts));
+          }
+
+          loadAllData();
+        }
+      })
+      .catch(err => console.error(err));
+  };
+
   const handleDeletePart = (id: string) => {
     fetch(`/api/greenhero/participants/${id}`, {
       method: 'DELETE'
@@ -481,54 +534,80 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   // --- LOG AUDIT ACTIONS (APPROVE/REJECT) ---
-  const handleAuditLog = (logId: string, isApproved: boolean) => {
-    const remark = remarksInput[logId] || '';
+  const handleAuditLog = (logId: string | number, isApproved: boolean) => {
+    const key = String(logId);
+    const remark = remarksInput[key] || remarksInput[logId] || '';
     const status = isApproved ? 'Approved' : 'Rejected';
     const remarks = remark.trim() || (isApproved ? 'Approved by Admin (অ্যাডমিন কর্তৃক অনুমোদিত)' : 'Rejected by Admin (অ্যাডমিন কর্তৃক বাতিল)');
+    const targetIdStr = String(logId).trim().toUpperCase();
 
+    // 1. Optimistic update of local React state & localStorage
+    setLogs(prev => {
+      const updated = prev.map(l => {
+        if (!l) return l;
+        const matchesId = String(l.id).trim().toUpperCase() === targetIdStr;
+        if (matchesId) {
+          return { ...l, status, remarks };
+        }
+        return l;
+      });
+      localStorage.setItem('ge_gh_logs', JSON.stringify(updated));
+      return updated;
+    });
+
+    setRemarksInput(prev => ({ ...prev, [key]: '', [logId]: '' }));
+    setSuccessBanner(
+      isApproved
+        ? `Log APPROVED successfully! (লগ সফলভাবে অনুমোদন করা হয়েছে!)`
+        : `Log REJECTED successfully! (লগ সফলভাবে বাতিল করা হয়েছে!)`
+    );
+    setTimeout(() => setSuccessBanner(''), 4000);
+
+    // 2. Sync to server
     fetch(`/api/greenhero/logs/${logId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, remarks })
     })
       .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Clear remarks input
-          setRemarksInput(prev => ({ ...prev, [logId]: '' }));
-          setSuccessBanner(`Log reviewed successfully! (লগ সফলভাবে পর্যালোচনা করা হয়েছে!)`);
-          setTimeout(() => setSuccessBanner(''), 4000);
-          loadAllData();
-        }
+      .then(() => {
+        loadAllData();
       })
       .catch(err => console.error(err));
   };
 
-  const handleDeleteLog = (logId: string) => {
-    const targetLog = logs.find(l => l.id === logId);
-    if (targetLog) {
-      setDeleteConfirmLog(targetLog);
-    }
+  const handleDeleteLog = (logId: string | number) => {
+    const targetIdStr = String(logId).trim().toUpperCase();
+    const targetLog = logs.find(l => l && String(l.id).trim().toUpperCase() === targetIdStr) || { id: logId };
+    setDeleteConfirmLog(targetLog);
   };
 
-  const executeDeleteLog = (logId: string) => {
+  const executeDeleteLog = (logId: string | number) => {
+    const targetIdStr = String(logId).trim().toUpperCase();
+
+    // 1. Optimistic removal from React state & localStorage
+    setLogs(prev => {
+      const updated = prev.filter(l => l && String(l.id).trim().toUpperCase() !== targetIdStr);
+      localStorage.setItem('ge_gh_logs', JSON.stringify(updated));
+      return updated;
+    });
+
+    setDeleteConfirmLog(null);
+    setSuccessBanner('Log deleted successfully. (প্রগতি লগটি সফলভাবে ডিলিট করা হয়েছে।)');
+    setTimeout(() => setSuccessBanner(''), 4000);
+
+    // 2. Call server API
     fetch(`/api/greenhero/logs/${logId}`, {
       method: 'DELETE'
     })
       .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setDeleteConfirmLog(null);
-          setSuccessBanner('Log deleted successfully. (প্রগতি লগটি সফলভাবে ডিলিট করা হয়েছে।)');
-          setTimeout(() => setSuccessBanner(''), 3000);
-          loadAllData();
-        }
-      })
+      .then(() => loadAllData())
       .catch(err => console.error(err));
   };
 
   const handleSuspendParticipantFromLog = (participantId: string) => {
-    const targetPart = safeParticipants.find(p => p && p.id === participantId) || { id: participantId, name: participantId };
+    const targetIdStr = String(participantId).trim().toUpperCase();
+    const targetPart = safeParticipants.find(p => p && String(p.id).trim().toUpperCase() === targetIdStr) || { id: participantId, name: participantId };
     setSuspendConfirmPart(targetPart);
   };
 
@@ -1312,32 +1391,42 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                         </div>
                       )}
 
-                      {/* Action workflow (only shown if log is Pending) */}
-                      {l.status === 'Pending' && (
-                        <div className="pt-3 border-t border-gray-200/60 flex flex-col sm:flex-row items-center gap-3">
-                          <input
-                            type="text"
-                            placeholder="Add remarks (e.g. Great growth, or Please re-upload with clear photo)"
-                            value={remarksInput[l.id] || ''}
-                            onChange={(e) => setRemarksInput({ ...remarksInput, [l.id]: e.target.value })}
-                            className="flex-grow bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-2 focus:ring-[#1F5E2E] focus:outline-none"
-                          />
-                          <div className="flex gap-2 w-full sm:w-auto">
-                            <button
-                              onClick={() => handleAuditLog(l.id, true)}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl cursor-pointer shadow-xs whitespace-nowrap"
-                            >
-                              Approve Log (অনুমোদন)
-                            </button>
-                            <button
-                              onClick={() => handleAuditLog(l.id, false)}
-                              className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2 px-4 rounded-xl cursor-pointer whitespace-nowrap"
-                            >
-                              Reject Log (বাতিল)
-                            </button>
-                          </div>
+                      {/* Action workflow (available for all logs so admin can audit or re-audit) */}
+                      <div className="pt-3 border-t border-gray-200/60 flex flex-col sm:flex-row items-center gap-3">
+                        <input
+                          type="text"
+                          placeholder="Add audit remarks (মন্তব্য যোগ করুন, যেমন: ভালো বৃদ্ধি, অথবা স্পষ্ট ছবি দিন)..."
+                          value={remarksInput[l.id] || remarksInput[String(l.id)] || ''}
+                          onChange={(e) => setRemarksInput({ ...remarksInput, [l.id]: e.target.value, [String(l.id)]: e.target.value })}
+                          className="flex-grow bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-2 focus:ring-[#1F5E2E] focus:outline-none"
+                        />
+                        <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                          <button
+                            onClick={() => handleAuditLog(l.id, true)}
+                            className={`font-bold py-2 px-4 rounded-xl cursor-pointer transition-all shadow-xs whitespace-nowrap flex items-center gap-1.5 text-xs ${
+                              l.status === 'Approved'
+                                ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-300'
+                                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            }`}
+                            title="Approve this progress log"
+                          >
+                            <CheckCircle2 size={14} />
+                            <span>{l.status === 'Approved' ? 'Approved (অনুমোদিত)' : 'Approve Log (অনুমোদন)'}</span>
+                          </button>
+                          <button
+                            onClick={() => handleAuditLog(l.id, false)}
+                            className={`font-bold py-2 px-4 rounded-xl cursor-pointer transition-all whitespace-nowrap flex items-center gap-1.5 text-xs ${
+                              l.status === 'Rejected'
+                                ? 'bg-red-600 text-white shadow-sm ring-2 ring-red-300'
+                                : 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200'
+                            }`}
+                            title="Reject this progress log"
+                          >
+                            <XCircle size={14} />
+                            <span>{l.status === 'Rejected' ? 'Rejected (বাতিল)' : 'Reject Log (বাতিল)'}</span>
+                          </button>
                         </div>
-                      )}
+                      </div>
 
                       {/* Persistent Quick Admin Actions (Delete Log / Suspend Owner) */}
                       <div className="pt-3 border-t border-gray-200/60 flex flex-wrap gap-2 items-center justify-between text-[11px] font-bold">
@@ -1530,64 +1619,157 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
               </div>
             </div>
 
-            <div className="overflow-x-auto text-xs text-left">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 text-gray-400 font-bold border-b border-gray-100 uppercase tracking-wider">
-                    <th className="py-3 px-4">Participant ID (আইডি)</th>
-                    <th className="py-3 px-4">Name (নাম)</th>
-                    <th className="py-3 px-4">Institution (শিক্ষা প্রতিষ্ঠান)</th>
-                    <th className="py-3 px-4 text-center">Month 1</th>
-                    <th className="py-3 px-4 text-center">Month 2</th>
-                    <th className="py-3 px-4 text-center">Month 3</th>
-                    <th className="py-3 px-4 text-center">Certificate Status (সার্টিফিকেট)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
-                  {safeParticipants.map((p, idx) => {
-                    if (!p) return null;
-                    const m1 = safeLogs.find(l => l && l.participantId === p.id && l.month === 1)?.status || 'None';
-                    const m2 = safeLogs.find(l => l && l.participantId === p.id && l.month === 2)?.status || 'None';
-                    const m3 = safeLogs.find(l => l && l.participantId === p.id && l.month === 3)?.status || 'None';
-                    const isEligible = m3 === 'Approved';
+            {/* Participant Permission Table */}
+            <div className="space-y-4 text-left font-sans border-t border-gray-100 pt-6">
+              <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-200/80">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider font-anek">Filter Status (ফিল্টার):</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setCertFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        certFilter === 'all'
+                          ? 'bg-[#1F5E2E] text-white shadow-xs'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      All ({safeParticipants.length})
+                    </button>
+                    <button
+                      onClick={() => setCertFilter('approved')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        certFilter === 'approved'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-emerald-50'
+                      }`}
+                    >
+                      Approved ({safeParticipants.filter(p => p && (p.certificateApproved === true || p.certificateStatus === 'Approved')).length})
+                    </button>
+                    <button
+                      onClick={() => setCertFilter('pending')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        certFilter === 'pending'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-amber-50'
+                      }`}
+                    >
+                      Pending Approval ({safeParticipants.filter(p => p && !(p.certificateApproved === true || p.certificateStatus === 'Approved')).length})
+                    </button>
+                  </div>
+                </div>
 
-                    return (
-                      <tr key={idx} className="hover:bg-gray-50/50">
-                        <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
-                        <td className="py-3.5 px-4 text-gray-900 font-bold">{p.name}</td>
-                        <td className="py-3.5 px-4 text-gray-500">{p.institution || 'Volunteer'}</td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`py-0.5 px-1.5 rounded text-[10px] font-bold ${m1 === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'}`}>
-                            {m1 === 'Approved' ? '✓ Approved' : m1}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`py-0.5 px-1.5 rounded text-[10px] font-bold ${m2 === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'}`}>
-                            {m2 === 'Approved' ? '✓ Approved' : m2}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`py-0.5 px-1.5 rounded text-[10px] font-bold ${m3 === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'}`}>
-                            {m3 === 'Approved' ? '✓ Approved' : m3}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          {isEligible ? (
-                            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 py-1 px-3 rounded-full font-black text-[10px] tracking-wide uppercase">
-                              <Award size={12} fill="currentColor" />
-                              <span>CERTIFIED HERO (গ্রিন হিরো)</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-400 py-1 px-3 rounded-full text-[10px]">
-                              In Progress (চলমান)
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                <div className="relative w-full md:w-64">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by ID or Name... (খুঁজুন)"
+                    value={certSearch}
+                    onChange={(e) => setCertSearch(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-[#1F5E2E]"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto text-xs text-left">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-400 font-bold border-b border-gray-100 uppercase tracking-wider">
+                      <th className="py-3 px-4">Participant ID (আইডি)</th>
+                      <th className="py-3 px-4">Name (নাম)</th>
+                      <th className="py-3 px-4">Institution (শিক্ষা প্রতিষ্ঠান)</th>
+                      <th className="py-3 px-4 text-center">Trees (গাছ)</th>
+                      <th className="py-3 px-4 text-center">Month 1</th>
+                      <th className="py-3 px-4 text-center">Month 2</th>
+                      <th className="py-3 px-4 text-center">Month 3</th>
+                      <th className="py-3 px-4 text-center">Certificate Status (সার্টিফিকেট অবস্থা)</th>
+                      <th className="py-3 px-4 text-center">Admin Permission Action (অনুমোদন একশন)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
+                    {safeParticipants
+                      .filter(p => {
+                        if (!p) return false;
+                        const isApproved = p.certificateApproved === true || p.certificateStatus === 'Approved';
+                        if (certFilter === 'approved' && !isApproved) return false;
+                        if (certFilter === 'pending' && isApproved) return false;
+                        if (certSearch) {
+                          const q = certSearch.toLowerCase();
+                          return (p.id && String(p.id).toLowerCase().includes(q)) || (p.name && String(p.name).toLowerCase().includes(q));
+                        }
+                        return true;
+                      })
+                      .map((p, idx) => {
+                        if (!p) return null;
+                        const pTrees = trees.filter(t => t && String(t.participantId).trim().toUpperCase() === String(p.id).trim().toUpperCase());
+                        const treeCount = pTrees.reduce((sum, t) => sum + Number(t.quantity || 0), 0);
+
+                        const m1 = safeLogs.find(l => l && String(l.participantId).trim().toUpperCase() === String(p.id).trim().toUpperCase() && l.month === 1)?.status || 'None';
+                        const m2 = safeLogs.find(l => l && String(l.participantId).trim().toUpperCase() === String(p.id).trim().toUpperCase() && l.month === 2)?.status || 'None';
+                        const m3 = safeLogs.find(l => l && String(l.participantId).trim().toUpperCase() === String(p.id).trim().toUpperCase() && l.month === 3)?.status || 'None';
+
+                        const isCertApproved = p.certificateApproved === true || p.certificateStatus === 'Approved';
+
+                        return (
+                          <tr key={p.id || idx} className="hover:bg-gray-50/50">
+                            <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
+                            <td className="py-3.5 px-4 text-gray-900 font-bold">{p.name}</td>
+                            <td className="py-3.5 px-4 text-gray-500">{p.institution || 'Volunteer'}</td>
+                            <td className="py-3.5 px-4 text-center font-bold font-mono text-emerald-800">{treeCount} Nos</td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`py-0.5 px-1.5 rounded text-[10px] font-bold ${m1 === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'}`}>
+                                {m1 === 'Approved' ? '✓ Approved' : m1}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`py-0.5 px-1.5 rounded text-[10px] font-bold ${m2 === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'}`}>
+                                {m2 === 'Approved' ? '✓ Approved' : m2}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`py-0.5 px-1.5 rounded text-[10px] font-bold ${m3 === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'}`}>
+                                {m3 === 'Approved' ? '✓ Approved' : m3}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              {isCertApproved ? (
+                                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 py-1 px-3 rounded-full font-black text-[10px] tracking-wide uppercase border border-emerald-200">
+                                  <Award size={12} fill="currentColor" />
+                                  <span>✓ APPROVED (অনুমোদিত)</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 py-1 px-3 rounded-full font-bold text-[10px] border border-amber-200">
+                                  <ShieldAlert size={12} />
+                                  <span>Pending Approval (অনুমোদনের অপেক্ষায়)</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              {isCertApproved ? (
+                                <button
+                                  onClick={() => handleToggleCertApproval(p.id, true)}
+                                  className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1.5 px-3 rounded-xl text-xs transition-colors cursor-pointer border border-red-200 flex items-center gap-1 mx-auto"
+                                  title="Revoke certificate permission"
+                                >
+                                  <X size={12} />
+                                  <span>Revoke Permission (অনুমোদন বাতিল)</span>
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleToggleCertApproval(p.id, false)}
+                                  className="bg-[#1F5E2E] hover:bg-emerald-800 text-white font-bold py-1.5 px-3 rounded-xl text-xs transition-all cursor-pointer shadow-xs flex items-center gap-1.5 mx-auto font-anek"
+                                  title="Approve certificate permission for this user"
+                                >
+                                  <Award size={13} />
+                                  <span>Approve Certificate (সার্টিফিকেট অনুমোদন দিন)</span>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

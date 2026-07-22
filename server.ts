@@ -1112,7 +1112,8 @@ async function startServer() {
   app.patch("/api/greenhero/participants/:id", async (req, res) => {
     try {
       const participants = await readData<any[]>("ge_gh_participants.json");
-      const index = participants.findIndex(p => p.id === req.params.id);
+      const targetId = String(req.params.id).trim().toUpperCase();
+      const index = participants.findIndex(p => p && String(p.id).trim().toUpperCase() === targetId);
       if (index !== -1) {
         participants[index] = { ...participants[index], ...req.body };
         await writeData("ge_gh_participants.json", participants);
@@ -1128,7 +1129,8 @@ async function startServer() {
   app.delete("/api/greenhero/participants/:id", async (req, res) => {
     try {
       const participants = await readData<any[]>("ge_gh_participants.json");
-      const filtered = participants.filter(p => p.id !== req.params.id);
+      const targetId = String(req.params.id).trim().toUpperCase();
+      const filtered = participants.filter(p => p && String(p.id).trim().toUpperCase() !== targetId);
       await writeData("ge_gh_participants.json", filtered);
       res.json({ success: true });
     } catch (e: any) {
@@ -1247,16 +1249,33 @@ async function startServer() {
   app.post("/api/greenhero/logs", async (req, res) => {
     try {
       const logs = await readData<any[]>("ge_gh_logs.json");
-      const newLog = req.body;
-      const nextId = logs.length > 0 ? Math.max(...logs.map(l => typeof l.id === 'number' ? l.id : parseInt(l.id, 10) || 0)) + 1 : 1;
+      const incoming = Array.isArray(req.body) ? req.body : [req.body];
       
-      newLog.id = nextId;
-      newLog.status = newLog.status || 'Pending';
-      newLog.date = newLog.date || new Date().toISOString().split('T')[0];
+      incoming.forEach(newLog => {
+        if (!newLog) return;
+        const targetIdStr = newLog.id ? String(newLog.id).trim().toUpperCase() : '';
+        const existingIdx = logs.findIndex(l => {
+          if (!l) return false;
+          if (l.id && targetIdStr && String(l.id).trim().toUpperCase() === targetIdStr) return true;
+          if (l.participantId && newLog.participantId && String(l.participantId).trim().toUpperCase() === String(newLog.participantId).trim().toUpperCase() && Number(l.month) === Number(newLog.month)) return true;
+          return false;
+        });
 
-      logs.unshift(newLog); // Newest first
+        if (existingIdx !== -1) {
+          logs[existingIdx] = { ...logs[existingIdx], ...newLog };
+        } else {
+          if (!newLog.id) {
+            const nextId = logs.length > 0 ? Math.max(...logs.map(l => typeof l.id === 'number' ? l.id : parseInt(l.id, 10) || 0)) + 1 : 1;
+            newLog.id = nextId;
+          }
+          newLog.status = newLog.status || 'Pending';
+          newLog.date = newLog.date || new Date().toISOString().split('T')[0];
+          logs.unshift(newLog);
+        }
+      });
+
       await writeData("ge_gh_logs.json", logs);
-      res.json({ success: true, log: newLog });
+      res.json({ success: true, logs });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -1265,15 +1284,31 @@ async function startServer() {
   app.patch("/api/greenhero/logs/:id", async (req, res) => {
     try {
       const logs = await readData<any[]>("ge_gh_logs.json");
-      const targetId = parseInt(req.params.id, 10);
-      const index = logs.findIndex(l => l.id === targetId || String(l.id) === req.params.id);
+      const paramIdStr = String(req.params.id).trim().toUpperCase();
+      const paramIdNum = parseInt(req.params.id, 10);
+      const cleanNum = parseInt(paramIdStr.replace(/\D/g, ''), 10);
+
+      let index = logs.findIndex(l => {
+        if (!l) return false;
+        const logIdStr = String(l.id).trim().toUpperCase();
+        if (logIdStr === paramIdStr) return true;
+        if (!isNaN(paramIdNum) && (l.id === paramIdNum || Number(l.id) === paramIdNum)) return true;
+        if (!isNaN(cleanNum) && cleanNum > 0 && (Number(l.id) === cleanNum || String(l.id).includes(String(cleanNum)))) return true;
+        if (req.body.participantId && String(l.participantId).trim().toUpperCase() === String(req.body.participantId).trim().toUpperCase() && Number(l.month) === Number(req.body.month)) return true;
+        return false;
+      });
+
       if (index !== -1) {
         logs[index] = { ...logs[index], ...req.body };
-        await writeData("ge_gh_logs.json", logs);
-        res.json({ success: true, log: logs[index] });
       } else {
-        res.status(404).json({ error: "Log not found" });
+        // Upsert if not found
+        const newLog = { id: req.params.id, status: 'Pending', date: new Date().toISOString().split('T')[0], ...req.body };
+        logs.unshift(newLog);
+        index = 0;
       }
+
+      await writeData("ge_gh_logs.json", logs);
+      res.json({ success: true, log: logs[index] });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -1282,8 +1317,19 @@ async function startServer() {
   app.delete("/api/greenhero/logs/:id", async (req, res) => {
     try {
       const logs = await readData<any[]>("ge_gh_logs.json");
-      const targetId = parseInt(req.params.id, 10);
-      const filtered = logs.filter(l => l.id !== targetId && String(l.id) !== req.params.id);
+      const paramIdStr = String(req.params.id).trim().toUpperCase();
+      const paramIdNum = parseInt(req.params.id, 10);
+      const cleanNum = parseInt(paramIdStr.replace(/\D/g, ''), 10);
+
+      const filtered = logs.filter(l => {
+        if (!l) return false;
+        const logIdStr = String(l.id).trim().toUpperCase();
+        if (logIdStr === paramIdStr) return false;
+        if (!isNaN(paramIdNum) && (l.id === paramIdNum || Number(l.id) === paramIdNum)) return false;
+        if (!isNaN(cleanNum) && cleanNum > 0 && Number(l.id) === cleanNum) return false;
+        return true;
+      });
+
       await writeData("ge_gh_logs.json", filtered);
       res.json({ success: true });
     } catch (e: any) {

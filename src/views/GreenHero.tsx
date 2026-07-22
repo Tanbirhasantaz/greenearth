@@ -1153,8 +1153,10 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   }).filter(Boolean).sort((a, b) => (b?.treesSurviving || 0) - (a?.treesSurviving || 0) || (b?.rate || 0) - (a?.rate || 0));
 
   // Is logged in participant eligible for certificate?
-  // Eligible if Month 3 status is 'Approved'
-  const isEligibleForCertificate = loggedInUser && getMonthLogStatus(loggedInUser.id, 3) === 'Approved';
+  // Requires explicit Admin permission/approval from Admin Portal
+  const isEligibleForCertificate = Boolean(
+    loggedInUser && (loggedInUser.certificateApproved === true || loggedInUser.certificateStatus === 'Approved')
+  );
 
   // State to show the live bilingual certificate display
   const [showCertificatePreview, setShowCertificatePreview] = useState(false);
@@ -2242,14 +2244,21 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                       </div>
                     </div>
                     <div className="flex flex-wrap justify-center md:justify-end gap-3 shrink-0 font-anek">
-                      {trees.filter(isUserTree).length > 0 && (
+                      {isEligibleForCertificate ? (
                         <button
                           onClick={() => setShowCertificatePreview(true)}
-                          className="bg-[#D4AF37] hover:bg-amber-600 text-white font-bold py-2.5 px-5 rounded-full text-xs shadow cursor-pointer transition-colors flex items-center gap-1.5 text-sm"
+                          className="bg-[#D4AF37] hover:bg-amber-600 text-white font-bold py-2.5 px-5 rounded-full text-xs shadow cursor-pointer transition-all flex items-center gap-1.5 text-sm animate-pulse"
                         >
                           <Award size={14} />
                           <span>Get Certificate (সনদপত্র অর্জন করুন)</span>
                         </button>
+                      ) : (
+                        trees.filter(isUserTree).length > 0 && (
+                          <div className="bg-black/30 text-amber-200 border border-amber-300/30 font-semibold py-2 px-4 rounded-full text-xs flex items-center gap-1.5 font-anek shrink-0">
+                            <Award size={14} className="text-amber-300 shrink-0" />
+                            <span>Certificate Pending Admin Approval (সার্টিফিকেট অ্যাডমিন অনুমোদনের অপেক্ষায়)</span>
+                          </div>
+                        )
                       )}
                       
                       <button
@@ -2266,7 +2275,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
 
                   {/* Dynamic Certificate Preview Modal */}
                   <AnimatePresence>
-                    {showCertificatePreview && loggedInUser && (
+                    {showCertificatePreview && loggedInUser && isEligibleForCertificate && (
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
