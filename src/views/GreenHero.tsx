@@ -193,23 +193,46 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       if (partsRes.ok) {
         const partsData = await partsRes.json();
         finalParts = Array.isArray(partsData) ? partsData : [];
-        finalParts.sort((a, b) => {
-          const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
-          const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
-          return numA - numB;
-        });
-        setParticipants(finalParts);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
       } else {
         const savedParts = localStorage.getItem('ge_gh_participants');
         try {
           const parsed = savedParts ? JSON.parse(savedParts) : [];
           finalParts = Array.isArray(parsed) ? parsed : [];
-          setParticipants(finalParts);
         } catch {
-          setParticipants([]);
+          finalParts = [];
         }
       }
+
+      // Merge local storage items that might not be on server yet
+      const savedPartsRaw = localStorage.getItem('ge_gh_participants');
+      let localParts: any[] = [];
+      try {
+        localParts = savedPartsRaw ? JSON.parse(savedPartsRaw) : [];
+        if (!Array.isArray(localParts)) localParts = [];
+      } catch {}
+
+      const unsyncedParts = localParts.filter(lp =>
+        lp && lp.id && !finalParts.some(sp => String(sp.id).trim().toUpperCase() === String(lp.id).trim().toUpperCase())
+      );
+
+      if (unsyncedParts.length > 0) {
+        // Sync unsynced local participants to server
+        fetch("/api/greenhero/participants", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(unsyncedParts)
+        }).catch(e => console.warn("Sync error:", e));
+        finalParts = [...finalParts, ...unsyncedParts];
+      }
+
+      finalParts.sort((a, b) => {
+        const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+        return numA - numB;
+      });
+
+      setParticipants(finalParts);
+      localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
 
       // Update loggedInUser session state if logged in; if deleted from Admin, log out!
       const currentSession = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');

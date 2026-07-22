@@ -662,38 +662,56 @@ async function startServer() {
 
   // Helper read/write methods
   const readData = async <T>(filename: string): Promise<T> => {
-    // 1. Read from local filesystem instantly (<1ms)
+    let localData: T | null = null;
+
+    // 1. Read from local filesystem
     try {
-      const raw = fs.readFileSync(getFilePath(filename), "utf-8");
-      const localData = JSON.parse(raw) as T;
-      return localData;
-    } catch (localErr) {
-      // 2. Fallback if local file read fails or file does not exist
-      if (supabase && isSupabaseDbAvailable) {
-        try {
-          const promise = supabase
-            .from("key_value_store")
-            .select("value")
-            .eq("key", filename)
-            .maybeSingle();
-
-          const timeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Supabase read timeout")), 2500)
-          );
-
-          const { data, error } = await Promise.race([promise, timeout]) as any;
-          if (!error && data && data.value) {
-            try {
-              fs.writeFileSync(getFilePath(filename), JSON.stringify(data.value, null, 2), "utf-8");
-            } catch (e) {}
-            return data.value as T;
-          }
-        } catch (err) {
-          isSupabaseDbAvailable = false;
-        }
+      if (fs.existsSync(getFilePath(filename))) {
+        const raw = fs.readFileSync(getFilePath(filename), "utf-8");
+        localData = JSON.parse(raw) as T;
       }
-      return [] as unknown as T;
+    } catch (localErr) {
+      console.warn(`Local read warning for ${filename}:`, localErr);
     }
+
+    const isNonEmpty = (data: any) => {
+      if (!data) return false;
+      if (Array.isArray(data)) return data.length > 0;
+      if (typeof data === 'object') return Object.keys(data).length > 0;
+      return true;
+    };
+
+    if (isNonEmpty(localData)) {
+      return localData as T;
+    }
+
+    // 2. Fallback to Supabase if local file is empty or missing
+    if (supabase && isSupabaseDbAvailable) {
+      try {
+        const promise = supabase
+          .from("key_value_store")
+          .select("value")
+          .eq("key", filename)
+          .maybeSingle();
+
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase read timeout")), 2500)
+        );
+
+        const { data, error } = await Promise.race([promise, timeout]) as any;
+        if (!error && data && data.value && isNonEmpty(data.value)) {
+          try {
+            fs.writeFileSync(getFilePath(filename), JSON.stringify(data.value, null, 2), "utf-8");
+          } catch (e) {}
+          return data.value as T;
+        }
+      } catch (err) {
+        console.warn(`Supabase read fallback warning for ${filename}:`, err);
+        isSupabaseDbAvailable = false;
+      }
+    }
+
+    return (localData ?? (Array.isArray(localData) ? [] : {})) as T;
   };
 
   const writeData = async <T>(filename: string, data: T): Promise<void> => {

@@ -96,25 +96,50 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
       // 2. Fetch Participants
       const partsRes = await fetch("/api/greenhero/participants");
+      let serverParts: any[] = [];
       if (partsRes.ok) {
         const partsData = await partsRes.json();
-        const validParts = Array.isArray(partsData) ? partsData : [];
-        validParts.sort((a, b) => {
-          const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
-          const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
-          return numA - numB;
-        });
-        setParticipants(validParts);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(validParts));
+        serverParts = Array.isArray(partsData) ? partsData : [];
       } else {
         const localPartsRaw = localStorage.getItem('ge_gh_participants');
         try {
-          const parsed = localPartsRaw ? JSON.parse(localPartsRaw) : [];
-          setParticipants(Array.isArray(parsed) ? parsed : []);
+          serverParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
+          if (!Array.isArray(serverParts)) serverParts = [];
         } catch {
-          setParticipants([]);
+          serverParts = [];
         }
       }
+
+      // Check localStorage for any locally registered participants missing on server
+      const localPartsRaw = localStorage.getItem('ge_gh_participants');
+      let localParts: any[] = [];
+      try {
+        localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
+        if (!Array.isArray(localParts)) localParts = [];
+      } catch {}
+
+      const unsyncedParts = localParts.filter(lp =>
+        lp && lp.id && !serverParts.some(sp => String(sp.id).trim().toUpperCase() === String(lp.id).trim().toUpperCase())
+      );
+
+      if (unsyncedParts.length > 0) {
+        // Sync unsynced local participants to server
+        fetch("/api/greenhero/participants", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(unsyncedParts)
+        }).catch(e => console.warn("Sync error:", e));
+        serverParts = [...serverParts, ...unsyncedParts];
+      }
+
+      serverParts.sort((a, b) => {
+        const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+        return numA - numB;
+      });
+
+      setParticipants(serverParts);
+      localStorage.setItem('ge_gh_participants', JSON.stringify(serverParts));
 
       // 3. Fetch Trees
       const treesRes = await fetch("/api/greenhero/trees");
