@@ -324,34 +324,66 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
   // --- PARTICIPANT MANAGEMENT ACTIONS ---
   const handleUpdatePartStatus = (id: string, newStatus: 'Approved' | 'Suspended') => {
+    const targetIdStr = String(id).trim().toUpperCase();
     const payload = newStatus === 'Approved' 
       ? { status: 'Approved', appealStatus: 'Approved', appealText: '' }
       : { status: 'Suspended' };
 
+    // 1. Optimistic React state update for instant UI feedback
+    setParticipants(prev =>
+      prev.map(p =>
+        p && String(p.id).trim().toUpperCase() === targetIdStr
+          ? { ...p, ...payload }
+          : p
+      )
+    );
+
+    // 2. LocalStorage persistence update
+    const localPartsRaw = localStorage.getItem('ge_gh_participants');
+    if (localPartsRaw) {
+      try {
+        const parsed = JSON.parse(localPartsRaw);
+        const updated = parsed.map((p: any) =>
+          p && String(p.id).trim().toUpperCase() === targetIdStr
+            ? { ...p, ...payload }
+            : p
+        );
+        localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
+      } catch (e) {}
+    }
+
+    // 3. Active session user update if suspended/reactivated participant is logged in
+    const activeUserRaw = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
+    if (activeUserRaw) {
+      try {
+        const activeUser = JSON.parse(activeUserRaw);
+        if (activeUser && activeUser.id && String(activeUser.id).trim().toUpperCase() === targetIdStr) {
+          const updatedUser = { ...activeUser, ...payload };
+          sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+          localStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+        }
+      } catch (e) {}
+    }
+
+    // 4. Display notification banner
+    setSuccessBanner(
+      newStatus === 'Approved'
+        ? `Participant ${id} account reactivated/approved successfully! (অংশগ্রহণকারীর অ্যাকাউন্ট সচল/অনুমোদিত করা হয়েছে।)`
+        : `Participant ${id} account suspended! (অংশগ্রহণকারীকে সাময়িকভাবে স্থগিত/সাসপেন্ড করা হয়েছে।)`
+    );
+    setTimeout(() => setSuccessBanner(''), 4000);
+
+    // 5. Send server patch request
     fetch(`/api/greenhero/participants/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const targetIdStr = String(id).trim().toUpperCase();
-          const localPartsRaw = localStorage.getItem('ge_gh_participants');
-          if (localPartsRaw) {
-            try {
-              const parsed = JSON.parse(localPartsRaw);
-              const updated = parsed.map((p: any) => p && String(p.id).trim().toUpperCase() === targetIdStr ? { ...p, ...payload } : p);
-              localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
-            } catch (e) {}
-          }
-
-          setSuccessBanner(`Participant ${id} status updated to ${newStatus}. (${newStatus === 'Approved' ? 'অংশগ্রহণকারীর অ্যাকাউন্ট সচল/অনুমোদিত করা হয়েছে।' : 'অংশগ্রহণকারীকে সাময়িকভাবে স্থগিত/সাসপেন্ড করা হয়েছে।'})`);
-          setTimeout(() => setSuccessBanner(''), 4000);
-          loadAllData();
-        }
+      .then(() => {
+        loadAllData();
       })
-      .catch(err => console.error(err));
+      .catch(err => console.error("Server patch error:", err));
   };
 
   // --- CUSTOM CERTIFICATE TEMPLATE HANDLERS ---
@@ -521,19 +553,56 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     e.preventDefault();
     if (!editPartModal) return;
 
+    const targetIdStr = String(editPartModal.id).trim().toUpperCase();
+
+    // Optimistic update for React state
+    setParticipants(prev =>
+      prev.map(p =>
+        p && String(p.id).trim().toUpperCase() === targetIdStr
+          ? { ...p, ...editPartModal }
+          : p
+      )
+    );
+
+    // Update localStorage
+    const localPartsRaw = localStorage.getItem('ge_gh_participants');
+    if (localPartsRaw) {
+      try {
+        const parsed = JSON.parse(localPartsRaw);
+        const updated = parsed.map((p: any) =>
+          p && String(p.id).trim().toUpperCase() === targetIdStr
+            ? { ...p, ...editPartModal }
+            : p
+        );
+        localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
+      } catch (err) {}
+    }
+
+    // Update active user session if matching
+    const activeUserRaw = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
+    if (activeUserRaw) {
+      try {
+        const activeUser = JSON.parse(activeUserRaw);
+        if (activeUser && activeUser.id && String(activeUser.id).trim().toUpperCase() === targetIdStr) {
+          const updatedUser = { ...activeUser, ...editPartModal };
+          sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+          localStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+        }
+      } catch (err) {}
+    }
+
+    setEditPartModal(null);
+    setSuccessBanner('Participant information updated successfully! (অংশগ্রহণকারীর তথ্য সফলভাবে আপডেট করা হয়েছে!)');
+    setTimeout(() => setSuccessBanner(''), 4000);
+
     fetch(`/api/greenhero/participants/${editPartModal.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editPartModal)
     })
       .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setEditPartModal(null);
-          setSuccessBanner('Participant information updated successfully! (অংশগ্রহণকারীর তথ্য সফলভাবে আপডেট করা হয়েছে!)');
-          setTimeout(() => setSuccessBanner(''), 4000);
-          loadAllData();
-        }
+      .then(() => {
+        loadAllData();
       })
       .catch(err => console.error(err));
   };
@@ -1251,7 +1320,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                           >
                             ✏️ Edit (সম্পাদনা)
                           </button>
-                          {p.status !== 'Approved' ? (
+                          {p.status === 'Suspended' ? (
                             <button
                               onClick={() => handleUpdatePartStatus(p.id, 'Approved')}
                               className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1 px-2 rounded-md cursor-pointer"
