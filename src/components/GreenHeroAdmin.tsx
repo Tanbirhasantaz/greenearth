@@ -862,7 +862,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                 </div>
               )}
 
-              <div className="pt-4 flex gap-3">
+              <div className="pt-4 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setEditTreeModal(null)}
@@ -871,8 +871,20 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                   Cancel (বাতিল)
                 </button>
                 <button
+                  type="button"
+                  onClick={() => {
+                    if (editTreeModal) {
+                      setDeleteConfirmTree(editTreeModal);
+                      setEditTreeModal(null);
+                    }
+                  }}
+                  className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 py-2.5 px-4 rounded-xl font-bold cursor-pointer transition-colors text-center text-xs flex items-center justify-center gap-1 font-anek"
+                >
+                  ✕ Delete (মুছে ফেলুন)
+                </button>
+                <button
                   type="submit"
-                  className="flex-1 bg-[#1F5E2E] hover:bg-emerald-800 text-white py-2.5 rounded-xl font-bold cursor-pointer transition-colors text-center"
+                  className="flex-1 bg-[#1F5E2E] hover:bg-emerald-800 text-white py-2.5 rounded-xl font-bold cursor-pointer transition-colors text-center font-sans text-xs shadow-md"
                 >
                   Save Changes (সংরক্ষণ করুন)
                 </button>

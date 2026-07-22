@@ -923,6 +923,31 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       .catch(err => console.error(err));
   };
 
+  // Delete registered tree details by participant
+  const handleDeleteTreeParticipant = (treeId: number | string) => {
+    if (!window.confirm("Are you sure you want to delete this registered tree? (আপনি কি নিশ্চিত যে এই নিবন্ধিত গাছটি মুছে ফেলতে চান?)")) {
+      return;
+    }
+
+    fetch(`/api/greenhero/trees/${treeId}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (editTreeParticipant && (editTreeParticipant.id === treeId || String(editTreeParticipant.id) === String(treeId))) {
+            setEditTreeParticipant(null);
+          }
+          setTrees(prev => prev.filter(t => t.id !== treeId && String(t.id) !== String(treeId)));
+          loadDataFromServer();
+        }
+      })
+      .catch(err => {
+        console.error("Error deleting tree:", err);
+        setTrees(prev => prev.filter(t => t.id !== treeId && String(t.id) !== String(treeId)));
+      });
+  };
+
   // Submit monthly log
   const handleSubmitMonthlyLog = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2886,12 +2911,19 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                                 <td className="py-3 px-4 text-center font-black text-[#1B5E20] font-mono text-sm">{t.quantity}</td>
                                 <td className="py-3 px-4 text-gray-500 text-xs font-mono">{t.plantingDate}</td>
                                 <td className="py-3 px-4 text-gray-600 font-medium text-xs max-w-[150px] truncate font-anek" title={t.location}>{t.location}</td>
-                                <td className="py-3 px-4 text-center">
+                                <td className="py-3 px-4 text-center space-x-1.5 whitespace-nowrap">
                                   <button
                                     onClick={() => setEditTreeParticipant(t)}
-                                    className="bg-emerald-50 hover:bg-[#1B5E20] hover:text-white text-[#1B5E20] font-black py-1.5 px-3.5 rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1 font-anek shadow-sm"
+                                    className="bg-emerald-50 hover:bg-[#1B5E20] hover:text-white text-[#1B5E20] font-black py-1.5 px-3 rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1 font-anek shadow-sm"
                                   >
                                     ✏️ Edit (সম্পাদনা)
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTreeParticipant(t.id)}
+                                    className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 font-black py-1.5 px-3 rounded-xl text-xs transition-all cursor-pointer inline-flex items-center gap-1 font-anek shadow-sm"
+                                    title="Delete Tree (গাছ মুছুন)"
+                                  >
+                                    🗑️ Delete (মুছে ফেলুন)
                                   </button>
                                 </td>
                               </tr>
@@ -3035,13 +3067,24 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                               )}
                             </div>
 
-                            <div className="pt-4 flex gap-3">
+                            <div className="pt-4 flex gap-2">
                               <button
                                 type="button"
                                 onClick={() => setEditTreeParticipant(null)}
                                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-bold cursor-pointer transition-colors text-center font-sans text-xs"
                               >
                                 Cancel (বাতিল)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (editTreeParticipant) {
+                                    handleDeleteTreeParticipant(editTreeParticipant.id);
+                                  }
+                                }}
+                                className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 py-2.5 px-4 rounded-xl font-bold cursor-pointer transition-colors text-center font-sans text-xs flex items-center justify-center gap-1 font-anek"
+                              >
+                                🗑️ Delete (মুছে ফেলুন)
                               </button>
                               <button
                                 type="submit"
