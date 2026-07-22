@@ -324,16 +324,30 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
   // --- PARTICIPANT MANAGEMENT ACTIONS ---
   const handleUpdatePartStatus = (id: string, newStatus: 'Approved' | 'Suspended') => {
+    const payload = newStatus === 'Approved' 
+      ? { status: 'Approved', appealStatus: 'Approved', appealText: '' }
+      : { status: 'Suspended' };
+
     fetch(`/api/greenhero/participants/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
+      body: JSON.stringify(payload)
     })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          setSuccessBanner(`Participant ${id} status updated to ${newStatus}.`);
-          setTimeout(() => setSuccessBanner(''), 3000);
+          const targetIdStr = String(id).trim().toUpperCase();
+          const localPartsRaw = localStorage.getItem('ge_gh_participants');
+          if (localPartsRaw) {
+            try {
+              const parsed = JSON.parse(localPartsRaw);
+              const updated = parsed.map((p: any) => p && String(p.id).trim().toUpperCase() === targetIdStr ? { ...p, ...payload } : p);
+              localStorage.setItem('ge_gh_participants', JSON.stringify(updated));
+            } catch (e) {}
+          }
+
+          setSuccessBanner(`Participant ${id} status updated to ${newStatus}. (${newStatus === 'Approved' ? 'অংশগ্রহণকারীর অ্যাকাউন্ট সচল/অনুমোদিত করা হয়েছে।' : 'অংশগ্রহণকারীকে সাময়িকভাবে স্থগিত/সাসপেন্ড করা হয়েছে।'})`);
+          setTimeout(() => setSuccessBanner(''), 4000);
           loadAllData();
         }
       })
@@ -394,6 +408,53 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
     const newApproved = !currentApproved;
     const newStatus = newApproved ? 'Approved' : 'Pending';
 
+    const applyUpdates = () => {
+      // 1. Update React state for participants in Admin
+      setParticipants(prev =>
+        prev.map(p =>
+          p && String(p.id).trim().toUpperCase() === String(id).trim().toUpperCase()
+            ? { ...p, certificateApproved: newApproved, certificateStatus: newStatus }
+            : p
+        )
+      );
+
+      // 2. Update ge_gh_participants in localStorage
+      const localPartsRaw = localStorage.getItem('ge_gh_participants');
+      let localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
+      if (Array.isArray(localParts)) {
+        localParts = localParts.map((p: any) =>
+          p && String(p.id).trim().toUpperCase() === String(id).trim().toUpperCase()
+            ? { ...p, certificateApproved: newApproved, certificateStatus: newStatus }
+            : p
+        );
+        localStorage.setItem('ge_gh_participants', JSON.stringify(localParts));
+      }
+
+      // 3. Update active session user in localStorage and sessionStorage if matching
+      const activeUserRaw = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
+      if (activeUserRaw) {
+        try {
+          const activeUser = JSON.parse(activeUserRaw);
+          if (activeUser && activeUser.id && String(activeUser.id).trim().toUpperCase() === String(id).trim().toUpperCase()) {
+            const updatedUser = { ...activeUser, certificateApproved: newApproved, certificateStatus: newStatus };
+            sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+            localStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+          }
+        } catch (e) {}
+      }
+
+      // 4. Show success notification
+      setSuccessBanner(
+        newApproved
+          ? `Certificate permission APPROVED for participant ${id}! User can now view and download their certificate from user portal. (অংশগ্রহণকারী ${id} এর সার্টিফিকেট সফলভাবে অনুমোদন করা হয়েছে!)`
+          : `Certificate permission REVOKED for participant ${id}. (অংশগ্রহণকারী ${id} এর সার্টিফিকেট অনুমোদন বাতিল করা হয়েছে।)`
+      );
+      setTimeout(() => setSuccessBanner(''), 4000);
+    };
+
+    // Immediate local apply for snappy UI responsiveness
+    applyUpdates();
+
     fetch(`/api/greenhero/participants/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -403,38 +464,12 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       })
     })
       .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setSuccessBanner(
-            newApproved
-              ? `Certificate permission APPROVED for participant ${id}! User can now view and download their certificate from user portal. (অংশগ্রহণকারী ${id} এর সার্টিফিকেট সফলভাবে অনুমোদন করা হয়েছে!)`
-              : `Certificate permission REVOKED for participant ${id}. (অংশগ্রহণকারী ${id} এর সার্টিফিকেট অনুমোদন বাতিল করা হয়েছে।)`
-          );
-          setTimeout(() => setSuccessBanner(''), 4000);
-
-          setParticipants(prev =>
-            prev.map(p =>
-              p && String(p.id).trim().toUpperCase() === String(id).trim().toUpperCase()
-                ? { ...p, certificateApproved: newApproved, certificateStatus: newStatus }
-                : p
-            )
-          );
-
-          const localPartsRaw = localStorage.getItem('ge_gh_participants');
-          let localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
-          if (Array.isArray(localParts)) {
-            localParts = localParts.map((p: any) =>
-              p && String(p.id).trim().toUpperCase() === String(id).trim().toUpperCase()
-                ? { ...p, certificateApproved: newApproved, certificateStatus: newStatus }
-                : p
-            );
-            localStorage.setItem('ge_gh_participants', JSON.stringify(localParts));
-          }
-
-          loadAllData();
-        }
+      .then(() => {
+        loadAllData();
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        console.error("Server update error:", err);
+      });
   };
 
   const handleDeletePart = (id: string) => {
@@ -444,8 +479,37 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          setSuccessBanner(`Participant ${id} has been deleted successfully. (অংশগ্রহণকারী ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
-          setTimeout(() => setSuccessBanner(''), 4000);
+          const targetIdStr = String(id).trim().toUpperCase();
+
+          const localPartsRaw = localStorage.getItem('ge_gh_participants');
+          if (localPartsRaw) {
+            try {
+              const parsed = JSON.parse(localPartsRaw);
+              const filtered = parsed.filter((p: any) => p && String(p.id).trim().toUpperCase() !== targetIdStr);
+              localStorage.setItem('ge_gh_participants', JSON.stringify(filtered));
+            } catch (e) {}
+          }
+
+          const localTreesRaw = localStorage.getItem('ge_gh_trees');
+          if (localTreesRaw) {
+            try {
+              const parsed = JSON.parse(localTreesRaw);
+              const filtered = parsed.filter((t: any) => t && String(t.participantId).trim().toUpperCase() !== targetIdStr);
+              localStorage.setItem('ge_gh_trees', JSON.stringify(filtered));
+            } catch (e) {}
+          }
+
+          const localLogsRaw = localStorage.getItem('ge_gh_logs');
+          if (localLogsRaw) {
+            try {
+              const parsed = JSON.parse(localLogsRaw);
+              const filtered = parsed.filter((l: any) => l && String(l.participantId).trim().toUpperCase() !== targetIdStr);
+              localStorage.setItem('ge_gh_logs', JSON.stringify(filtered));
+            } catch (e) {}
+          }
+
+          setSuccessBanner(`Participant ${id} and all associated tree records and progress logs have been permanently deleted across all portals. (অংশগ্রহণকারী ${id} এবং তার সমস্ত গাছের তথ্য ও মনিটরিং লগ সফলভাবে স্থায়ীভাবে মুছে ফেলা হয়েছে।)`);
+          setTimeout(() => setSuccessBanner(''), 5000);
           setDeleteConfirmPart(null);
           loadAllData();
         }
@@ -1142,7 +1206,27 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                     ).map((p, idx) => (
                       <tr key={idx} className="hover:bg-gray-50/50">
                         <td className="py-3.5 px-4 font-mono font-black text-[#1F5E2E]">{p.id}</td>
-                        <td className="py-3.5 px-4 text-gray-900">{p.name}</td>
+                        <td className="py-3.5 px-4 text-gray-900">
+                          <div className="font-bold">{p.name}</div>
+                          {p.appealText && (
+                            <div className="mt-2 p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1 text-left max-w-xs shadow-2xs">
+                              <span className="font-black text-amber-900 text-[10px] uppercase tracking-wider block flex items-center gap-1">
+                                📩 Appeal Request (আপিল বার্তা)
+                              </span>
+                              <p className="text-xs font-semibold text-gray-900 italic">"{p.appealText}"</p>
+                              <span className="text-[10px] text-gray-500 block">
+                                Submitted: {p.appealDate ? p.appealDate.split('T')[0] : 'Recently'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdatePartStatus(p.id, 'Approved')}
+                                className="mt-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2.5 rounded-lg text-[10px] cursor-pointer shadow-2xs transition-colors flex items-center gap-1"
+                              >
+                                ✓ Approve & Reactivate (আবেদন গ্রহণ ও সচল করুন)
+                              </button>
+                            </div>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4 text-gray-500">
                           {p.institution} <span className="block text-[10px] text-gray-400 font-normal">{p.grade || 'N/A'}</span>
                         </td>
@@ -1153,15 +1237,16 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                         <td className="py-3.5 px-4 font-mono">{p.regDate}</td>
                         <td className="py-3.5 px-4 text-center">
                           <span className={`py-0.5 px-2 rounded-full font-bold text-[9px] uppercase tracking-wider ${
-                            p.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            p.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
+                            p.status === 'Suspended' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-amber-100 text-amber-800'
                           }`}>
-                            {p.status}
+                            {p.status || 'Approved'}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-center space-x-1 whitespace-nowrap">
                           <button
                             onClick={() => setEditPartModal({ ...p })}
-                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md"
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-1 px-2 rounded-md cursor-pointer"
                             title="Edit Participant Details"
                           >
                             ✏️ Edit (সম্পাদনা)
@@ -1169,21 +1254,21 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
                           {p.status !== 'Approved' ? (
                             <button
                               onClick={() => handleUpdatePartStatus(p.id, 'Approved')}
-                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1 px-2 rounded-md"
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-1 px-2 rounded-md cursor-pointer"
                             >
-                              Approve
+                              Reactivate (সচল করুন)
                             </button>
                           ) : (
                             <button
                               onClick={() => handleUpdatePartStatus(p.id, 'Suspended')}
-                              className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded-md"
+                              className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded-md cursor-pointer"
                             >
-                              Suspend
+                              Suspend (স্থগিত করুন)
                             </button>
                           )}
                           <button
                             onClick={() => setDeleteConfirmPart(p)}
-                            className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md"
+                            className="bg-gray-100 hover:bg-red-100 hover:text-red-700 text-gray-600 font-bold py-1 px-2 rounded-md cursor-pointer"
                           >
                             ✕ Delete
                           </button>
@@ -1962,7 +2047,7 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
             <p className="text-sm text-gray-600 leading-relaxed font-semibold">
               Are you sure you want to delete participant <strong className="text-red-700 font-mono">{deleteConfirmPart.id}</strong> ({deleteConfirmPart.name})? 
               <span className="block mt-2 text-red-600 font-bold font-anek">
-                (আপনি কি নিশ্চিতভাবে অংশগ্রহণকারী {deleteConfirmPart.name} মুছে ফেলতে চান? তার সব রোপিত চারা এবং মনিটরিং লগ বজায় থাকবে।)
+                (আপনি কি নিশ্চিতভাবে সদস্য {deleteConfirmPart.name} স্থায়ীভাবে মুছে ফেলতে চান? এটি নিশ্চিত করলে এই সদস্যের অ্যাকাউন্ট, সমস্ত রোপিত গাছের রেজিস্ট্রি এবং সমস্ত ট্র্যাকিং/মনিটরিং লগ সকল পোর্টাল থেকে পুরোপুরি মুছে যাবে।)
               </span>
             </p>
             <div className="flex gap-3">

@@ -439,6 +439,31 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const safeTrees = Array.isArray(trees) ? trees : [];
   const safeLogs = Array.isArray(logs) ? logs : [];
 
+  // Session check against safeParticipants (Handles real-time Admin deletions & status changes)
+  useEffect(() => {
+    if (!loggedInUser || !loggedInUser.id) return;
+    const targetId = String(loggedInUser.id).trim().toUpperCase();
+    const matched = safeParticipants.find(p => p && p.id && String(p.id).trim().toUpperCase() === targetId);
+    
+    if (!matched && safeParticipants.length > 0) {
+      // Participant was deleted by Admin!
+      setLoggedInUser(null);
+      sessionStorage.removeItem('ge_gh_logged_in');
+      localStorage.removeItem('ge_gh_logged_in');
+      setLoginError('Your account has been deleted by Administrator. (আপনার অ্যাকাউন্টটি অ্যাডমিন কর্তৃক মুছে ফেলা হয়েছে।)');
+    } else if (matched && (
+      matched.status !== loggedInUser.status || 
+      matched.appealText !== loggedInUser.appealText || 
+      matched.appealStatus !== loggedInUser.appealStatus ||
+      matched.certificateApproved !== loggedInUser.certificateApproved ||
+      matched.certificateStatus !== loggedInUser.certificateStatus
+    )) {
+      setLoggedInUser(matched);
+      sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(matched));
+      localStorage.setItem('ge_gh_logged_in', JSON.stringify(matched));
+    }
+  }, [safeParticipants, loggedInUser?.id]);
+
   const totalParticipants = safeParticipants.length;
   // Count total registered trees
   const totalTreesPlanted = safeTrees.reduce((sum, t) => sum + (t ? (Number(t.quantity) || 0) : 0), 0);
@@ -481,6 +506,12 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const [loginId, setLoginId] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  // Appeal states for suspended users
+  const [appealInput, setAppealInput] = useState('');
+  const [appealSuccess, setAppealSuccess] = useState('');
+  const [appealError, setAppealError] = useState('');
+  const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
 
   // --- ACTIVE TREE REGISTRATION REPEATER STATES ---
   const [treeRows, setTreeRows] = useState<any[]>([
@@ -765,23 +796,89 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
     e.preventDefault();
     setLoginError('');
 
-    const savedParts = localStorage.getItem('ge_gh_participants');
-    const currentParts = savedParts ? JSON.parse(savedParts) : [];
+    const savedPartsRaw = localStorage.getItem('ge_gh_participants');
+    let localParts: any[] = [];
+    try {
+      localParts = savedPartsRaw ? JSON.parse(savedPartsRaw) : [];
+      if (!Array.isArray(localParts)) localParts = [];
+    } catch (e) {}
 
-    const found = currentParts.find(
-      (p: any) => p.id.toUpperCase() === loginId.trim().toUpperCase() && p.password === loginPassword
+    const allPartsMap = new Map();
+    safeParticipants.forEach(p => { if (p && p.id) allPartsMap.set(String(p.id).trim().toUpperCase(), p); });
+    localParts.forEach(p => { if (p && p.id) allPartsMap.set(String(p.id).trim().toUpperCase(), p); });
+    const mergedParticipants = Array.from(allPartsMap.values());
+
+    const inputId = loginId.trim().toUpperCase();
+    const found = mergedParticipants.find(
+      (p: any) => p && String(p.id).trim().toUpperCase() === inputId && String(p.password || '') === String(loginPassword)
     );
 
     if (found) {
       setLoggedInUser(found);
       sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(found));
       localStorage.setItem('ge_gh_logged_in', JSON.stringify(found));
-      // Reset form
       setLoginId('');
       setLoginPassword('');
     } else {
-      setLoginError('Invalid Participant ID or Password (অকার্যকর অংশগ্রহণকারী আইডি অথবা পাসওয়ার্ড)');
+      setLoginError('Invalid Participant ID / Password, or account has been deleted. (অংশগ্রহণকারী আইডি অথবা পাসওয়ার্ড ভুল, অথবা অ্যাকাউন্টটি মুছে ফেলা হয়েছে)');
     }
+  };
+
+  // Submit appeal handler for suspended participants
+  const handleSubmitAppeal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loggedInUser || !loggedInUser.id) return;
+    if (!appealInput.trim()) {
+      setAppealError('Please write your appeal reason. (আপিলের বিস্তারিত বিবরণ লিখুন।)');
+      return;
+    }
+    setIsSubmittingAppeal(true);
+    setAppealError('');
+    setAppealSuccess('');
+
+    const payload = {
+      appealText: appealInput.trim(),
+      appealDate: new Date().toISOString(),
+      appealStatus: 'Pending'
+    };
+
+    fetch(`/api/greenhero/participants/${loggedInUser.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const updatedUser = { ...loggedInUser, ...payload };
+          setLoggedInUser(updatedUser);
+          sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+          localStorage.setItem('ge_gh_logged_in', JSON.stringify(updatedUser));
+
+          setParticipants(prev => prev.map(p => p && String(p.id).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase() ? { ...p, ...payload } : p));
+          
+          const localPartsRaw = localStorage.getItem('ge_gh_participants');
+          if (localPartsRaw) {
+            try {
+              const parsed = JSON.parse(localPartsRaw);
+              const updatedParts = parsed.map((p: any) => p && String(p.id).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase() ? { ...p, ...payload } : p);
+              localStorage.setItem('ge_gh_participants', JSON.stringify(updatedParts));
+            } catch (e) {}
+          }
+
+          setAppealSuccess('Your appeal has been submitted to Admin! (আপনার আপিল বার্তাটি অ্যাডমিনের নিকট সফলভাবে পাঠানো হয়েছে।)');
+          setAppealInput('');
+        } else {
+          setAppealError(data.error || 'Failed to submit appeal. (আপিল পাঠানো সম্ভব হয়নি।)');
+        }
+      })
+      .catch(err => {
+        console.error("Appeal submit error:", err);
+        setAppealError('Server error while submitting appeal. (সার্ভার সমস্যা, পরে চেষ্টা করুন।)');
+      })
+      .finally(() => {
+        setIsSubmittingAppeal(false);
+      });
   };
 
   const handleLogoutParticipant = () => {
@@ -2305,7 +2402,99 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                     </div>
                   </div>
 
+                  {/* Suspended Notice & Appeal Submission Container */}
+                  {loggedInUser.status === 'Suspended' && (
+                    <div className="bg-red-50 border-2 border-red-300 rounded-3xl p-6 sm:p-8 space-y-6 text-left shadow-md">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-red-100 text-red-700 rounded-2xl shrink-0">
+                          <AlertTriangle size={32} />
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <h3 className="text-xl font-black text-red-900 font-sans">
+                              Account Suspended by Administrator (অ্যাকাউন্ট স্থগিত রাখা হয়েছে)
+                            </h3>
+                            <span className="py-1 px-3 bg-red-200 text-red-900 text-xs font-black rounded-full uppercase tracking-wider">
+                              Status: Suspended
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm font-semibold text-red-800 leading-relaxed font-anek">
+                            Your account is currently suspended by Administrator. You cannot register new trees or submit progress logs until your account is reinstated.
+                            (আপনার অ্যাকাউন্টটি বর্তমানে অ্যাডমিন কর্তৃক সাময়িকভাবে স্থগিত রাখা হয়েছে। অ্যাকাউন্ট পুনরায় সচল না করা পর্যন্ত নতুন গাছ নিবন্ধন বা মনিটরিং ডাটা জমা বন্ধ থাকবে।)
+                          </p>
+                        </div>
+                      </div>
 
+                      {/* Appeal Submission Box */}
+                      <div className="bg-white p-6 rounded-2xl border border-red-200 space-y-4 shadow-2xs">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-3 flex-wrap gap-2">
+                          <div className="flex items-center gap-2 text-red-800 font-black text-sm">
+                            <FileText size={18} />
+                            <span>Submit Appeal to Admin (অ্যাকাউন্ট পুনরায় সচলের জন্য আপিল জমা দিন)</span>
+                          </div>
+                          {loggedInUser.appealStatus && (
+                            <span className={`py-1 px-3 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              loggedInUser.appealStatus === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
+                              loggedInUser.appealStatus === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                            }`}>
+                              Appeal Status: {loggedInUser.appealStatus}
+                            </span>
+                          )}
+                        </div>
+
+                        {loggedInUser.appealText && (
+                          <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                            <span className="font-bold text-amber-800 text-[10px] uppercase tracking-wider block">
+                              Your Last Submitted Appeal Message (আপনার পাঠানো পূর্ববর্তী আপিল বার্তা):
+                            </span>
+                            <p className="font-medium italic text-gray-900 font-sans text-sm">"{loggedInUser.appealText}"</p>
+                            <span className="text-[10px] text-amber-700 block mt-1">
+                              Submitted: {loggedInUser.appealDate ? loggedInUser.appealDate.split('T')[0] : 'Recently'}
+                            </span>
+                          </div>
+                        )}
+
+                        {appealSuccess && (
+                          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2">
+                            <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                            <span>{appealSuccess}</span>
+                          </div>
+                        )}
+
+                        {appealError && (
+                          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
+                            <AlertTriangle size={16} className="shrink-0 text-red-600" />
+                            <span>{appealError}</span>
+                          </div>
+                        )}
+
+                        <form onSubmit={handleSubmitAppeal} className="space-y-3 font-sans">
+                          <label className="font-bold text-gray-700 text-xs block font-anek">
+                            Write your explanation or request to Admin (অ্যাডমিনের কাছে আপনার আবেদন বা কারণ তুলে ধরুন):
+                          </label>
+                          <textarea
+                            rows={3}
+                            placeholder="e.g. I have corrected my tree photos and details. Please reactivate my account... (আমি আমার রোপণ করা গাছের তথ্য ঠিক করেছি। অনুগ্রহ করে অ্যাকাউন্ট সচল করুন...)"
+                            value={appealInput}
+                            onChange={(e) => setAppealInput(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-red-500 text-xs font-medium"
+                            required
+                          />
+                          <button
+                            type="submit"
+                            disabled={isSubmittingAppeal}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl shadow transition-all text-xs cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            {isSubmittingAppeal ? (
+                              <span>Sending Appeal... (আপিল বার্তা পাঠানো হচ্ছে...)</span>
+                            ) : (
+                              <span>Submit Appeal to Admin (অ্যাডমিনের নিকট আপিল জমা দিন)</span>
+                            )}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Dynamic Certificate Preview Modal */}
                   <AnimatePresence>

@@ -1128,12 +1128,37 @@ async function startServer() {
 
   app.delete("/api/greenhero/participants/:id", async (req, res) => {
     try {
-      const participants = await readData<any[]>("ge_gh_participants.json");
       const targetId = String(req.params.id).trim().toUpperCase();
-      const filtered = participants.filter(p => p && String(p.id).trim().toUpperCase() !== targetId);
-      await writeData("ge_gh_participants.json", filtered);
-      res.json({ success: true });
+      
+      // 1. Filter participant
+      const participants = await readData<any[]>("ge_gh_participants.json");
+      const targetPart = participants.find(p => p && String(p.id).trim().toUpperCase() === targetId);
+      const filteredParticipants = participants.filter(p => p && String(p.id).trim().toUpperCase() !== targetId);
+      await writeData("ge_gh_participants.json", filteredParticipants);
+
+      // 2. Cascade delete trees
+      const trees = await readData<any[]>("ge_gh_trees.json");
+      const filteredTrees = trees.filter(t => {
+        if (!t) return false;
+        if (t.participantId && String(t.participantId).trim().toUpperCase() === targetId) return false;
+        if (targetPart && targetPart.mobileNumber && String(t.mobileNumber || '').trim() === String(targetPart.mobileNumber || '').trim()) return false;
+        if (targetPart && targetPart.studentName && String(t.studentName || '').trim().toLowerCase() === String(targetPart.studentName || '').trim().toLowerCase() && String(t.schoolName || '').trim().toLowerCase() === String(targetPart.schoolName || '').trim().toLowerCase()) return false;
+        return true;
+      });
+      await writeData("ge_gh_trees.json", filteredTrees);
+
+      // 3. Cascade delete logs
+      const logs = await readData<any[]>("ge_gh_logs.json");
+      const filteredLogs = logs.filter(l => {
+        if (!l) return false;
+        if (l.participantId && String(l.participantId).trim().toUpperCase() === targetId) return false;
+        return true;
+      });
+      await writeData("ge_gh_logs.json", filteredLogs);
+
+      res.json({ success: true, message: `Participant ${targetId} and all associated trees and progress logs permanently deleted.` });
     } catch (e: any) {
+      console.error("Cascade delete participant error:", e);
       res.status(500).json({ error: e.message });
     }
   });
