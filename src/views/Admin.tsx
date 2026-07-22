@@ -4,7 +4,7 @@ import {
   Lock, LayoutDashboard, Trees, BookOpen, Users, Heart, Image as ImageIcon, 
   Mail, Settings, Plus, Edit, Trash2, LogOut, Search, Check, X, Phone, MapPin, 
   Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Flag, Megaphone,
-  Clock, Calendar
+  Clock, Calendar, RefreshCw
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
 import GreenHeroAdmin from '../components/GreenHeroAdmin';
@@ -215,6 +215,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
 
   // Loading states
   const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Form Modal States
   const [isEditing, setIsEditing] = useState(false);
@@ -410,13 +411,238 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     const token = localStorage.getItem('green-earth-admin-token-2026');
     if (token) {
       setIsAuthenticated(true);
-      fetchAllData();
+      const cached = loadFromLocalCache();
+      fetchAllData(!cached);
     }
   }, []);
 
+  // Helper to seed settings state fields
+  const seedSettingsFields = (resSettings: any) => {
+    if (!resSettings) return;
+    setSetOrgName(resSettings.orgName || 'Green Earth');
+    setSetTagline(resSettings.tagline || 'Cleaner, Greener & Sustainable Future');
+    setSetTaglineBn(resSettings.taglineBn || 'পরিচ্ছন্ন, সবুজ ও টেকসই ভবিষ্যৎ');
+    setSetPhone(resSettings.phone || '+880 1712-345678');
+    setSetEmail(resSettings.email || 'info@greenearth-bd.org');
+    setSetAddress(resSettings.address || '42, Road 11, Banani, Dhaka-1213, Bangladesh.');
+    setSetAddressBn(resSettings.addressBn || '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।');
+    setSetLogoUrl(resSettings.logoUrl || '');
+    setSetAboutText(resSettings.aboutText || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.');
+    setSetAboutTextBn(resSettings.aboutTextBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।');
+    setSetHeroImgUrl(resSettings.heroImgUrl || '/src/assets/images/hero_landscape_bangladesh_1783444495014.jpg');
+    setSetHeroTagline(resSettings.heroTagline || 'For a sustainable tomorrow');
+    setSetHeroTaglineBn(resSettings.heroTaglineBn || 'একটি সুন্দর ভবিষ্যৎ গড়তে');
+    setSetHeroTitle(resSettings.heroTitle || 'Cleaner, Greener & Sustainable Future');
+    setSetHeroTitleBn(resSettings.heroTitleBn || 'পরিচ্ছন্ন, সবুজ এবং টেকসই বাংলাদেশ');
+    setSetHeroBio(resSettings.heroBio || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.');
+    setSetHeroBioBn(resSettings.heroBioBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।');
+
+    setSetStatTreesTarget(resSettings.statTreesTarget || '12450');
+    setSetStatVillagesTarget(resSettings.statVillagesTarget || '68');
+    setSetStatVolunteersTarget(resSettings.statVolunteersTarget || '850');
+    setSetStatWaterTarget(resSettings.statWaterTarget || '35');
+
+    setSetAboutStory1(resSettings.aboutStory1 || 'Bangladesh is on the immediate frontline of the global climate crisis. Rising sea levels, salinity in drinking water, and severe riverbanks erosion displacement are displacement risks that threaten millions of lives in this low-lying delta. Founded in early 2024 by a passionate group of university environmental scientists and student groups, Green Earth was born to create pragmatic, local ecological responses.');
+    setSetAboutStory1Bn(resSettings.aboutStory1Bn || 'জলবায়ু পরিবর্তনের ঝুঁকিতে থাকা বাংলাদেশ বিশ্বের অন্যতম ঝুঁকিপূর্ণ অঞ্চলের একটি। বঙ্গোপসাগরের ঘূর্ণিঝড়, ক্রমাগত লবণাক্ত পানি প্রবেশ, আর উত্তরবঙ্গের নদীভাঙন ধ্বংস করছে মানুষের স্বপ্ন ও জীবন। ঠিক এই ক্রান্তিলগ্নে ২০২৪ সালে ঢাকা বিশ্ববিদ্যালয়ের একদল পরিবেশ বিজ্ঞানী ও ছাত্র স্বেচ্ছাসেবীদের হাত ধরে গ্রিন আর্থের বীজ রোপণ করা হয়।');
+    setSetAboutStory2(resSettings.aboutStory2 || 'Our design philosophy is centered around bottom-up community action. We believe that true conservation happens when local villagers own and protect the projects. Over the past years, our projects have bridged scientific groundwater tests with grassroot plantation drives, setting a blueprint for localized delta conservation.');
+    setSetAboutStory2Bn(resSettings.aboutStory2Bn || 'আমরা বিশ্বাস করি, ঠান্ডা কর্পোরেট অফিস বা সেমিনার কক্ষে পরিবেশ সুরক্ষা অসম্ভব। প্রকৃত পরিবেশবান্ধব বাংলাদেশ গড়তে আমাদের মাঠ পর্যায়ে মানুষের সাথে কাজ করতে হবে। তাই আমরা সুন্দরবন ও উত্তরের নদী চরাঞ্চলে সরাসরি মানুষের কাছে পৌঁছাই এবং তাদের সহায়তায় প্রকল্পসমূহ সচল রাখি।');
+    setSetAboutMission(resSettings.aboutMission || 'To restore coastal eco-barriers, deliver clean solar energy grids, and guarantee safe, arsenic-free drinking water through community ownership.');
+    setSetAboutMissionBn(resSettings.aboutMissionBn || 'স্থানীয় অংশীদারিত্বের মাধ্যমে বৃক্ষরোপণ, নবায়নযোগ্য জ্বালানির ব্যবহার এবং আর্সেনিকমুক্ত নিরাপদ পানির টেকসই সংস্থান নিশ্চিত করা।');
+    setSetAboutVision(resSettings.aboutVision || 'A climate-resilient Bangladesh where every household shares clean air, pure drinking water, and infinite solar electricity.');
+    setSetAboutVisionBn(resSettings.aboutVisionBn || 'এমন এক বাংলাদেশের সবুজ রূপান্তর, যেখানে প্রতিটি মানুষের জন্য থাকবে বিশুদ্ধ পানি, পরিচ্ছন্ন বায়ু এবং পরিবেশবান্ধব জ্বালানি।');
+
+    setSetBkashNo(resSettings.bkashNo || '01712345678');
+    setSetNagadNo(resSettings.nagadNo || '01712345678');
+    setSetMembershipFormUrl(resSettings.membershipFormUrl || 'https://forms.gle/51Kt57CfRuAnAGy88');
+
+    setSetAboutHeroLabel(resSettings.aboutHeroLabel || 'Who We Are');
+    setSetAboutHeroLabelBn(resSettings.aboutHeroLabelBn || 'আমাদের পরিচয়');
+    setSetAboutHeroTitle(resSettings.aboutHeroTitle || 'Our Story, Mission & Values');
+    setSetAboutHeroTitleBn(resSettings.aboutHeroTitleBn || 'আমাদের গল্প ও শক্তি');
+    setSetAboutHeroSub(resSettings.aboutHeroSub || 'Empowering local custodians to combat sea level rise, manage single-use waste, and establish off-grid solar-powered schools.');
+    setSetAboutHeroSubBn(resSettings.aboutHeroSubBn || 'গ্রিন আর্থ হলো স্থানীয় সম্প্রদায়ের নেতৃত্বাধীন পরিবেশ উন্নয়নমূলক জোট, যা মাঠ পর্যায়ে সবুজ রূপান্তর আনয়ন করছে।');
+    setSetAboutStoryTitle(resSettings.aboutStoryTitle || 'How We Started');
+    setSetAboutStoryTitleBn(resSettings.aboutStoryTitleBn || 'আমাদের প্রতিষ্ঠার প্রেক্ষাপট');
+    setSetAboutPrinciplesLabel(resSettings.aboutPrinciplesLabel || 'Our Principles');
+    setSetAboutPrinciplesLabelBn(resSettings.aboutPrinciplesLabelBn || 'আমাদের আদর্শ');
+    setSetAboutPrinciplesTitle(resSettings.aboutPrinciplesTitle || 'Our Core Organizational Values');
+    setSetAboutPrinciplesTitleBn(resSettings.aboutPrinciplesTitleBn || 'যে মূল্যবোধের ওপর আমরা দাঁড়িয়ে');
+    setSetAboutMilestonesLabel(resSettings.aboutMilestonesLabel || 'Our Milestones');
+    setSetAboutMilestonesLabelBn(resSettings.aboutMilestonesLabelBn || 'আমাদের অর্জন');
+    setSetAboutMilestonesTitle(resSettings.aboutMilestonesTitle || 'The Milestones of Our Journey');
+    setSetAboutMilestonesTitleBn(resSettings.aboutMilestonesTitleBn || 'আজ পর্যন্ত আমাদের পথচলা');
+    setSetAboutTeamLabel(resSettings.aboutTeamLabel || 'Our Team Leaders');
+    setSetAboutTeamLabelBn(resSettings.aboutTeamLabelBn || 'আমাদের অভিভাবক');
+    setSetAboutTeamTitle(resSettings.aboutTeamTitle || 'The Visionaries Behind Green Earth');
+    setSetAboutTeamTitleBn(resSettings.aboutTeamTitleBn || 'সবুজ আন্দোলনের পেছনের মুখ');
+
+    setFooterAboutText(resSettings.footerAboutText || 'Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.');
+    setFooterAboutTextBn(resSettings.footerAboutTextBn || 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।');
+    setFooterFbUrl(resSettings.footerFbUrl || 'https://www.facebook.com/greenearthbd.25/');
+    setFooterInstaUrl(resSettings.footerInstaUrl || 'https://instagram.com');
+    setFooterLinkedinUrl(resSettings.footerLinkedinUrl || 'https://linkedin.com');
+    setFooterYoutubeUrl(resSettings.footerYoutubeUrl || 'https://youtube.com');
+    setFooterNewsletterTitle(resSettings.footerNewsletterTitle || 'Subscribe to Eco-News');
+    setFooterNewsletterTitleBn(resSettings.footerNewsletterTitleBn || 'নিউজলেটার সাবস্ক্রাইব');
+    setFooterNewsletterDesc(resSettings.footerNewsletterDesc || 'Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.');
+    setFooterNewsletterDescBn(resSettings.footerNewsletterDescBn || 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।');
+    setFooterCopyright(resSettings.footerCopyright || '© 2026 Green Earth Bangladesh. All Rights Reserved.');
+    setFooterCopyrightBn(resSettings.footerCopyrightBn || '© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।');
+
+    setPopupEnabled(resSettings.popupEnabled ?? false);
+    setPopupTitle(resSettings.popupTitle || '');
+    setPopupTitleBn(resSettings.popupTitleBn || '');
+    setPopupMessage(resSettings.popupMessage || '');
+    setPopupMessageBn(resSettings.popupMessageBn || '');
+    setPopupLinkText(resSettings.popupLinkText || '');
+    setPopupLinkTextBn(resSettings.popupLinkTextBn || '');
+    setPopupLinkUrl(resSettings.popupLinkUrl || '');
+    setPopupImageUrl(resSettings.popupImageUrl || '');
+  };
+
+  // Instant local cache loader
+  const loadFromLocalCache = (): boolean => {
+    let hasLoaded = false;
+    try {
+      const cachedProj = localStorage.getItem('admin_cache_projects');
+      if (cachedProj) { setProjects(JSON.parse(cachedProj)); hasLoaded = true; }
+
+      const cachedBlogs = localStorage.getItem('admin_cache_blogs');
+      if (cachedBlogs) { setBlogs(JSON.parse(cachedBlogs)); hasLoaded = true; }
+
+      const cachedTeam = localStorage.getItem('admin_cache_team');
+      if (cachedTeam) { setTeam(JSON.parse(cachedTeam)); hasLoaded = true; }
+
+      const cachedGallery = localStorage.getItem('admin_cache_gallery');
+      if (cachedGallery) { setGallery(JSON.parse(cachedGallery)); hasLoaded = true; }
+
+      const cachedTests = localStorage.getItem('admin_cache_testimonials');
+      if (cachedTests) { setTestimonials(JSON.parse(cachedTests)); hasLoaded = true; }
+
+      const cachedVols = localStorage.getItem('volunteers');
+      if (cachedVols) { setVolunteers(JSON.parse(cachedVols)); hasLoaded = true; }
+
+      const cachedDons = localStorage.getItem('donations');
+      if (cachedDons) { setDonations(JSON.parse(cachedDons)); hasLoaded = true; }
+
+      const cachedSubs = localStorage.getItem('subscribers');
+      if (cachedSubs) {
+        const parsedSubs = JSON.parse(cachedSubs);
+        if (Array.isArray(parsedSubs)) {
+          const subsMap = new Map();
+          parsedSubs.forEach(item => {
+            const info = extractSubscriberInfo(item);
+            if (info.email && info.email.includes('@')) {
+              subsMap.set(info.email.toLowerCase(), info);
+            }
+          });
+          setSubscribers(Array.from(subsMap.values()));
+          hasLoaded = true;
+        }
+      }
+
+      const cachedContacts = localStorage.getItem('contacts');
+      if (cachedContacts) { setContacts(JSON.parse(cachedContacts)); hasLoaded = true; }
+
+      const cachedMilestones = localStorage.getItem('admin_cache_milestones');
+      if (cachedMilestones) { setMilestonesList(JSON.parse(cachedMilestones)); hasLoaded = true; }
+
+      const cachedCoreValues = localStorage.getItem('admin_cache_corevalues');
+      if (cachedCoreValues) { setCoreValuesList(JSON.parse(cachedCoreValues)); hasLoaded = true; }
+
+      const cachedFocusAreas = localStorage.getItem('admin_cache_focusareas');
+      if (cachedFocusAreas) { setFocusAreasList(JSON.parse(cachedFocusAreas)); hasLoaded = true; }
+
+      const cachedSettings = localStorage.getItem('admin_cache_settings');
+      if (cachedSettings) {
+        const parsedSettings = JSON.parse(cachedSettings);
+        setSettings(parsedSettings);
+        seedSettingsFields(parsedSettings);
+        hasLoaded = true;
+      }
+    } catch (err) {
+      console.warn('Failed to parse admin local cache:', err);
+    }
+    return hasLoaded;
+  };
+
   // Fetch all datasets from Express server
-  const fetchAllData = async () => {
-    setLoading(true);
+  const fetchAllData = async (showFullSpinner = false) => {
+    if (showFullSpinner) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+
+    // Trigger non-blocking background sync for local offline submissions
+    (async () => {
+      try {
+        const savedVols = localStorage.getItem('volunteers');
+        const currentVols = savedVols ? JSON.parse(savedVols) : [];
+        if (Array.isArray(currentVols)) {
+          const localOnly = currentVols.filter(v => v && String(v.id).startsWith('VOL-LOCAL-'));
+          await Promise.all(localOnly.map(vol => {
+            const { id, ...cleanVol } = vol;
+            return fetch('/api/volunteers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cleanVol)
+            }).catch(() => {});
+          }));
+        }
+      } catch (e) {}
+
+      try {
+        const savedDons = localStorage.getItem('donations');
+        const currentDons = savedDons ? JSON.parse(savedDons) : [];
+        if (Array.isArray(currentDons)) {
+          const localOnly = currentDons.filter(d => d && String(d.id).startsWith('DON-LOCAL-'));
+          await Promise.all(localOnly.map(don => {
+            const { id, ...cleanDon } = don;
+            return fetch('/api/donations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cleanDon)
+            }).catch(() => {});
+          }));
+        }
+      } catch (e) {}
+
+      try {
+        const savedContacts = localStorage.getItem('contacts');
+        const currentContacts = savedContacts ? JSON.parse(savedContacts) : [];
+        if (Array.isArray(currentContacts)) {
+          const localOnly = currentContacts.filter(c => c && String(c.id).startsWith('CON-LOCAL-'));
+          await Promise.all(localOnly.map(contact => {
+            const { id, ...cleanContact } = contact;
+            return fetch('/api/contacts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cleanContact)
+            }).catch(() => {});
+          }));
+        }
+      } catch (e) {}
+
+      try {
+        const savedSubs = localStorage.getItem('subscribers');
+        const currentSubs = savedSubs ? JSON.parse(savedSubs) : [];
+        if (Array.isArray(currentSubs)) {
+          await Promise.all(currentSubs.map(subItem => {
+            const { email } = extractSubscriberInfo(subItem);
+            if (email && email.includes('@')) {
+              return fetch('/api/subscribers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+              }).catch(() => {});
+            }
+            return Promise.resolve();
+          }));
+        }
+      } catch (e) {}
+    })();
+
     try {
       const [
         resProj, resBlogs, resTeam, resGallery, 
@@ -438,81 +664,24 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         fetch('/api/focusareas').then((r) => r.json()).catch(() => [])
       ]);
 
-      // Try to silently sync local data to server first
-      try {
-        // 1. Sync Volunteers
-        const savedVols = localStorage.getItem('volunteers');
-        const currentVols = savedVols ? JSON.parse(savedVols) : [];
-        if (Array.isArray(currentVols)) {
-          const localOnly = currentVols.filter(v => v && String(v.id).startsWith('VOL-LOCAL-'));
-          for (const vol of localOnly) {
-            const { id, ...cleanVol } = vol;
-            await fetch('/api/volunteers', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(cleanVol)
-            });
-          }
-        }
-      } catch (e) {}
-
-      try {
-        // 2. Sync Donations
-        const savedDons = localStorage.getItem('donations');
-        const currentDons = savedDons ? JSON.parse(savedDons) : [];
-        if (Array.isArray(currentDons)) {
-          const localOnly = currentDons.filter(d => d && String(d.id).startsWith('DON-LOCAL-'));
-          for (const don of localOnly) {
-            const { id, ...cleanDon } = don;
-            await fetch('/api/donations', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(cleanDon)
-            });
-          }
-        }
-      } catch (e) {}
-
-      try {
-        // 3. Sync Contacts
-        const savedContacts = localStorage.getItem('contacts');
-        const currentContacts = savedContacts ? JSON.parse(savedContacts) : [];
-        if (Array.isArray(currentContacts)) {
-          const localOnly = currentContacts.filter(c => c && String(c.id).startsWith('CON-LOCAL-'));
-          for (const contact of localOnly) {
-            const { id, ...cleanContact } = contact;
-            await fetch('/api/contacts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(cleanContact)
-            });
-          }
-        }
-      } catch (e) {}
-
-      try {
-        // 4. Sync Subscribers
-        const savedSubs = localStorage.getItem('subscribers');
-        const currentSubs = savedSubs ? JSON.parse(savedSubs) : [];
-        if (Array.isArray(currentSubs)) {
-          for (const subItem of currentSubs) {
-            const { email } = extractSubscriberInfo(subItem);
-            if (email && email.includes('@')) {
-              await fetch('/api/subscribers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-              });
-            }
-          }
-        }
-      } catch (e) {}
-
       setProjects(resProj);
       setBlogs(resBlogs);
       setTeam(resTeam);
       setGallery(resGallery);
       setTestimonials(resTests);
+
+      // Save cache to localStorage for instant load next time
+      try {
+        localStorage.setItem('admin_cache_projects', JSON.stringify(resProj));
+        localStorage.setItem('admin_cache_blogs', JSON.stringify(resBlogs));
+        localStorage.setItem('admin_cache_team', JSON.stringify(resTeam));
+        localStorage.setItem('admin_cache_gallery', JSON.stringify(resGallery));
+        localStorage.setItem('admin_cache_testimonials', JSON.stringify(resTests));
+        if (resSettings) localStorage.setItem('admin_cache_settings', JSON.stringify(resSettings));
+        if (Array.isArray(resMilestones)) localStorage.setItem('admin_cache_milestones', JSON.stringify(resMilestones));
+        if (Array.isArray(resCoreValues)) localStorage.setItem('admin_cache_corevalues', JSON.stringify(resCoreValues));
+        if (Array.isArray(resFocusAreas)) localStorage.setItem('admin_cache_focusareas', JSON.stringify(resFocusAreas));
+      } catch (e) {}
 
       // Merge Volunteers
       const localVolsRaw = localStorage.getItem('volunteers');
@@ -609,94 +778,12 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       setCoreValuesList(Array.isArray(resCoreValues) ? resCoreValues : []);
       setFocusAreasList(Array.isArray(resFocusAreas) ? resFocusAreas : []);
 
-      // Seed settings inputs
-      if (resSettings) {
-        setSetOrgName(resSettings.orgName || 'Green Earth');
-        setSetTagline(resSettings.tagline || 'Cleaner, Greener & Sustainable Future');
-        setSetTaglineBn(resSettings.taglineBn || 'পরিচ্ছন্ন, সবুজ ও টেকসই ভবিষ্যৎ');
-        setSetPhone(resSettings.phone || '+880 1712-345678');
-        setSetEmail(resSettings.email || 'info@greenearth-bd.org');
-        setSetAddress(resSettings.address || '42, Road 11, Banani, Dhaka-1213, Bangladesh.');
-        setSetAddressBn(resSettings.addressBn || '৪২, রোড ১১, বনানী, ঢাকা-১২১৩, বাংলাদেশ।');
-        setSetLogoUrl(resSettings.logoUrl || '');
-        setSetAboutText(resSettings.aboutText || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.');
-        setSetAboutTextBn(resSettings.aboutTextBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।');
-        setSetHeroImgUrl(resSettings.heroImgUrl || '/src/assets/images/hero_landscape_bangladesh_1783444495014.jpg');
-        setSetHeroTagline(resSettings.heroTagline || 'For a sustainable tomorrow');
-        setSetHeroTaglineBn(resSettings.heroTaglineBn || 'একটি সুন্দর ভবিষ্যৎ গড়তে');
-        setSetHeroTitle(resSettings.heroTitle || 'Cleaner, Greener & Sustainable Future');
-        setSetHeroTitleBn(resSettings.heroTitleBn || 'পরিচ্ছন্ন, সবুজ এবং টেকসই বাংলাদেশ');
-        setSetHeroBio(resSettings.heroBio || 'Empowering communities across Bangladesh to restore coastal mangrove shield walls, light up remote rivers islands with clean solar power, and access safe drinking water.');
-        setSetHeroBioBn(resSettings.heroBioBn || 'আমরা বাংলাদেশের পরিবেশ সুরক্ষায় নিবেদিত একদল স্বেচ্ছাসেবী। উপকূলীয় ম্যানগ্রোভ বনায়ন, প্রত্যন্ত চরাঞ্চলে সৌরবিদ্যুৎ এবং বিশুদ্ধ খাবার পানির সংস্থানে আমরা কাজ করছি তৃণমূল পর্যায়ে।');
-
-        setSetStatTreesTarget(resSettings.statTreesTarget || '12450');
-        setSetStatVillagesTarget(resSettings.statVillagesTarget || '68');
-        setSetStatVolunteersTarget(resSettings.statVolunteersTarget || '850');
-        setSetStatWaterTarget(resSettings.statWaterTarget || '35');
-
-        setSetAboutStory1(resSettings.aboutStory1 || 'Bangladesh is on the immediate frontline of the global climate crisis. Rising sea levels, salinity in drinking water, and severe riverbanks erosion displacement are displacement risks that threaten millions of lives in this low-lying delta. Founded in early 2024 by a passionate group of university environmental scientists and student groups, Green Earth was born to create pragmatic, local ecological responses.');
-        setSetAboutStory1Bn(resSettings.aboutStory1Bn || 'জলবায়ু পরিবর্তনের ঝুঁকিতে থাকা বাংলাদেশ বিশ্বের অন্যতম ঝুঁকিপূর্ণ অঞ্চলের একটি। বঙ্গোপসাগরের ঘূর্ণিঝড়, ক্রমাগত লবণাক্ত পানি প্রবেশ, আর উত্তরবঙ্গের নদীভাঙন ধ্বংস করছে মানুষের স্বপ্ন ও জীবন। ঠিক এই ক্রান্তিলগ্নে ২০২৪ সালে ঢাকা বিশ্ববিদ্যালয়ের একদল পরিবেশ বিজ্ঞানী ও ছাত্র স্বেচ্ছাসেবীদের হাত ধরে গ্রিন আর্থের বীজ রোপণ করা হয়।');
-        setSetAboutStory2(resSettings.aboutStory2 || 'Our design philosophy is centered around bottom-up community action. We believe that true conservation happens when local villagers own and protect the projects. Over the past years, our projects have bridged scientific groundwater tests with grassroot plantation drives, setting a blueprint for localized delta conservation.');
-        setSetAboutStory2Bn(resSettings.aboutStory2Bn || 'আমরা বিশ্বাস করি, ঠান্ডা কর্পোরেট অফিস বা সেমিনার কক্ষে পরিবেশ সুরক্ষা অসম্ভব। প্রকৃত পরিবেশবান্ধব বাংলাদেশ গড়তে আমাদের মাঠ পর্যায়ে মানুষের সাথে কাজ করতে হবে। তাই আমরা সুন্দরবন ও উত্তরের নদী চরাঞ্চলে সরাসরি মানুষের কাছে পৌঁছাই এবং তাদের সহায়তায় প্রকল্পসমূহ সচল রাখি।');
-        setSetAboutMission(resSettings.aboutMission || 'To restore coastal eco-barriers, deliver clean solar energy grids, and guarantee safe, arsenic-free drinking water through community ownership.');
-        setSetAboutMissionBn(resSettings.aboutMissionBn || 'স্থানীয় অংশীদারিত্বের মাধ্যমে বৃক্ষরোপণ, নবায়নযোগ্য জ্বালানির ব্যবহার এবং আর্সেনিকমুক্ত নিরাপদ পানির টেকসই সংস্থান নিশ্চিত করা।');
-        setSetAboutVision(resSettings.aboutVision || 'A climate-resilient Bangladesh where every household shares clean air, pure drinking water, and infinite solar electricity.');
-        setSetAboutVisionBn(resSettings.aboutVisionBn || 'এমন এক বাংলাদেশের সবুজ রূপান্তর, যেখানে প্রতিটি মানুষের জন্য থাকবে বিশুদ্ধ পানি, পরিচ্ছন্ন বায়ু এবং পরিবেশবান্ধব জ্বালানি।');
-
-        setSetBkashNo(resSettings.bkashNo || '01712345678');
-        setSetNagadNo(resSettings.nagadNo || '01712345678');
-        setSetMembershipFormUrl(resSettings.membershipFormUrl || 'https://forms.gle/51Kt57CfRuAnAGy88');
-
-        // New About Page Headers Seeding
-        setSetAboutHeroLabel(resSettings.aboutHeroLabel || 'Who We Are');
-        setSetAboutHeroLabelBn(resSettings.aboutHeroLabelBn || 'আমাদের পরিচয়');
-        setSetAboutHeroTitle(resSettings.aboutHeroTitle || 'Our Story, Mission & Values');
-        setSetAboutHeroTitleBn(resSettings.aboutHeroTitleBn || 'আমাদের গল্প ও শক্তি');
-        setSetAboutHeroSub(resSettings.aboutHeroSub || 'Empowering local custodians to combat sea level rise, manage single-use waste, and establish off-grid solar-powered schools.');
-        setSetAboutHeroSubBn(resSettings.aboutHeroSubBn || 'গ্রিন আর্থ হলো স্থানীয় সম্প্রদায়ের নেতৃত্বাধীন পরিবেশ উন্নয়নমূলক জোট, যা মাঠ পর্যায়ে সবুজ রূপান্তর আনয়ন করছে।');
-        setSetAboutStoryTitle(resSettings.aboutStoryTitle || 'How We Started');
-        setSetAboutStoryTitleBn(resSettings.aboutStoryTitleBn || 'আমাদের প্রতিষ্ঠার প্রেক্ষাপট');
-        setSetAboutPrinciplesLabel(resSettings.aboutPrinciplesLabel || 'Our Principles');
-        setSetAboutPrinciplesLabelBn(resSettings.aboutPrinciplesLabelBn || 'আমাদের আদর্শ');
-        setSetAboutPrinciplesTitle(resSettings.aboutPrinciplesTitle || 'Our Core Organizational Values');
-        setSetAboutPrinciplesTitleBn(resSettings.aboutPrinciplesTitleBn || 'যে মূল্যবোধের ওপর আমরা দাঁড়িয়ে');
-        setSetAboutMilestonesLabel(resSettings.aboutMilestonesLabel || 'Our Milestones');
-        setSetAboutMilestonesLabelBn(resSettings.aboutMilestonesLabelBn || 'আমাদের অর্জন');
-        setSetAboutMilestonesTitle(resSettings.aboutMilestonesTitle || 'The Milestones of Our Journey');
-        setSetAboutMilestonesTitleBn(resSettings.aboutMilestonesTitleBn || 'আজ পর্যন্ত আমাদের পথচলা');
-        setSetAboutTeamLabel(resSettings.aboutTeamLabel || 'Our Team Leaders');
-        setSetAboutTeamLabelBn(resSettings.aboutTeamLabelBn || 'আমাদের অভিভাবক');
-        setSetAboutTeamTitle(resSettings.aboutTeamTitle || 'The Visionaries Behind Green Earth');
-        setSetAboutTeamTitleBn(resSettings.aboutTeamTitleBn || 'সবুজ আন্দোলনের পেছনের মুখ');
-
-        // Seed Footer Settings
-        setFooterAboutText(resSettings.footerAboutText || 'Green Earth is a grassroots, non-profit environmental organization based in Bangladesh, driving sustainable reforestation, solar transition, and water safety.');
-        setFooterAboutTextBn(resSettings.footerAboutTextBn || 'গ্রিন আর্থ হলো বাংলাদেশে জলবায়ু পরিবর্তনের ক্ষতিকর প্রভাব মোকাবিলা ও পরিবেশ সংরক্ষণে নিয়োজিত একটি তৃণমূল সামাজিক সংস্থা।');
-        setFooterFbUrl(resSettings.footerFbUrl || 'https://www.facebook.com/greenearthbd.25/');
-        setFooterInstaUrl(resSettings.footerInstaUrl || 'https://instagram.com');
-        setFooterLinkedinUrl(resSettings.footerLinkedinUrl || 'https://linkedin.com');
-        setFooterYoutubeUrl(resSettings.footerYoutubeUrl || 'https://youtube.com');
-        setFooterNewsletterTitle(resSettings.footerNewsletterTitle || 'Subscribe to Eco-News');
-        setFooterNewsletterTitleBn(resSettings.footerNewsletterTitleBn || 'নিউজলেটার সাবস্ক্রাইব');
-        setFooterNewsletterDesc(resSettings.footerNewsletterDesc || 'Sign up to receive timely updates on planting drives, solar microgrid operations, and ecological guidelines in Bangladesh.');
-        setFooterNewsletterDescBn(resSettings.footerNewsletterDescBn || 'নতুন প্রকল্প ও বৃক্ষরোপণ অভিযানের খবরাখবর সবার আগে জানতে আপনার ইমেইল দিয়ে সংযুক্ত থাকুন।');
-        setFooterCopyright(resSettings.footerCopyright || '© 2026 Green Earth Bangladesh. All Rights Reserved.');
-        setFooterCopyrightBn(resSettings.footerCopyrightBn || '© ২০২৬ গ্রিন আর্থ বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।');
-
-        setPopupEnabled(resSettings.popupEnabled ?? false);
-        setPopupTitle(resSettings.popupTitle || '');
-        setPopupTitleBn(resSettings.popupTitleBn || '');
-        setPopupMessage(resSettings.popupMessage || '');
-        setPopupMessageBn(resSettings.popupMessageBn || '');
-        setPopupLinkText(resSettings.popupLinkText || '');
-        setPopupLinkTextBn(resSettings.popupLinkTextBn || '');
-        setPopupLinkUrl(resSettings.popupLinkUrl || '');
-        setPopupImageUrl(resSettings.popupImageUrl || '');
-      }
+      seedSettingsFields(resSettings);
     } catch (err) {
       console.error('Error loading admin data', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -723,7 +810,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       if (data.success) {
         localStorage.setItem('green-earth-admin-token-2026', data.token);
         setIsAuthenticated(true);
-        fetchAllData();
+        const cached = loadFromLocalCache();
+        fetchAllData(!cached);
       } else {
         setLoginError(data.error || 'Invalid credentials');
       }
@@ -1915,10 +2003,12 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
             </select>
 
             <button
-              onClick={fetchAllData}
-              className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-bold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5"
+              onClick={() => fetchAllData(false)}
+              disabled={isRefreshing}
+              className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-bold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
             >
-              <span>Refresh Data</span>
+              <RefreshCw size={14} className={isRefreshing ? "animate-spin text-[#1F5E2E]" : ""} />
+              <span>{isRefreshing ? (isBangla ? 'আপডেট হচ্ছে...' : 'Refreshing...') : (isBangla ? 'ডাটা রিফ্রেশ' : 'Refresh Data')}</span>
             </button>
           </div>
         </div>
