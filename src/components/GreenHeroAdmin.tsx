@@ -96,52 +96,24 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
 
       // 2. Fetch Participants
       const partsRes = await fetch("/api/greenhero/participants");
-      let validParts: any[] = [];
       if (partsRes.ok) {
         const partsData = await partsRes.json();
-        validParts = Array.isArray(partsData) ? partsData : [];
-      }
-
-      const localPartsRaw = localStorage.getItem('ge_gh_participants');
-      let localParts: any[] = [];
-      try {
-        localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
-        if (!Array.isArray(localParts)) localParts = [];
-      } catch {}
-
-      const mergedMap = new Map<string, any>();
-      localParts.forEach(p => {
-        if (!p) return;
-        const key = p.id ? String(p.id).trim().toUpperCase() : (p.mobile ? `MOB_${p.mobile}` : null);
-        if (key) mergedMap.set(key, p);
-      });
-      validParts.forEach(p => {
-        if (!p) return;
-        const key = p.id ? String(p.id).trim().toUpperCase() : (p.mobile ? `MOB_${p.mobile}` : null);
-        if (key) mergedMap.set(key, { ...mergedMap.get(key), ...p });
-      });
-
-      let finalParts = Array.from(mergedMap.values());
-
-      // Sort sequentially by numeric ID (GE-AT-000001, GE-AT-000002, ...)
-      finalParts.sort((a, b) => {
-        const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
-        const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
-        return numA - numB;
-      });
-
-      setParticipants(finalParts);
-      localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
-
-      // Sync unsynced local participants to server
-      const serverKeys = new Set(validParts.map(vp => vp && vp.id ? String(vp.id).trim().toUpperCase() : ''));
-      const unsyncedLocalParts = localParts.filter(lp => lp && lp.id && !serverKeys.has(String(lp.id).trim().toUpperCase()));
-      if (unsyncedLocalParts.length > 0) {
-        fetch('/api/greenhero/participants', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(unsyncedLocalParts)
-        }).catch(e => console.error("Sync unsynced participants error in Admin:", e));
+        const validParts = Array.isArray(partsData) ? partsData : [];
+        validParts.sort((a, b) => {
+          const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+          const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+          return numA - numB;
+        });
+        setParticipants(validParts);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(validParts));
+      } else {
+        const localPartsRaw = localStorage.getItem('ge_gh_participants');
+        try {
+          const parsed = localPartsRaw ? JSON.parse(localPartsRaw) : [];
+          setParticipants(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setParticipants([]);
+        }
       }
 
       // 3. Fetch Trees

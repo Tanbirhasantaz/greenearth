@@ -1091,8 +1091,20 @@ async function startServer() {
       const rawParticipants = await readData<any[]>("ge_gh_participants.json");
       const participants = Array.isArray(rawParticipants) ? rawParticipants : [];
       const rawPayload = req.body;
-      const items = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
 
+      // If single item registration without an existing ID, check for duplicate mobile
+      if (!Array.isArray(rawPayload) && rawPayload && !rawPayload.id) {
+        const cleanMobile = String(rawPayload.mobile || '').trim();
+        const existingMobile = participants.find(p => p && p.mobile && String(p.mobile).trim() === cleanMobile);
+        if (cleanMobile && existingMobile) {
+          return res.status(400).json({
+            success: false,
+            error: 'This mobile number is already registered. Please login or use a different number. (এই মোবাইল নম্বরটি দিয়ে ইতোমধ্যে রেজিস্ট্রেশন করা হয়েছে।)'
+          });
+        }
+      }
+
+      const items = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
       const processedParticipants: any[] = [];
 
       let lastIdNum = participants.reduce((max, p) => {
@@ -1111,11 +1123,10 @@ async function startServer() {
         const cleanMobile = String(item.mobile || '').trim();
         const itemId = item.id ? String(item.id).trim().toUpperCase() : null;
 
-        // Check if participant already exists by ID or by mobile
+        // Check if participant already exists by ID (or by mobile if ID is supplied)
         const existingIndex = participants.findIndex((p) => {
           if (!p) return false;
           if (itemId && p.id && String(p.id).trim().toUpperCase() === itemId) return true;
-          if (cleanMobile && p.mobile && String(p.mobile || '').trim() === cleanMobile) return true;
           return false;
         });
 
