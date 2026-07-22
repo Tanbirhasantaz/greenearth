@@ -765,7 +765,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
     const inputPassword = loginPassword;
 
     if (!inputId) {
-      setLoginError('Please enter your Participant ID. (আপনার অংশগ্রহণকারী আইডি প্রদান করুন)');
+      setLoginError('Please enter your Participant ID or Mobile Number. (আপনার অংশগ্রহণকারী আইডি অথবা মোবাইল নম্বর প্রদান করুন)');
       return;
     }
 
@@ -785,8 +785,16 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       console.warn("Using local state for participant validation:", err);
     }
 
+    const cleanInputMobile = loginId.replace(/\D/g, '');
+
     const found = activeParticipantsList.find(
-      (p: any) => p && String(p.id).trim().toUpperCase() === inputId && String(p.password || '') === String(inputPassword)
+      (p: any) =>
+        p &&
+        (
+          String(p.id || '').trim().toUpperCase() === inputId ||
+          (cleanInputMobile.length >= 8 && String(p.mobile || '').replace(/\D/g, '').includes(cleanInputMobile))
+        ) &&
+        String(p.password || '') === String(inputPassword)
     );
 
     if (found) {
@@ -796,7 +804,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       setLoginId('');
       setLoginPassword('');
     } else {
-      setLoginError('Invalid Participant ID / Password, or account is not found in Admin records. (অংশগ্রহণকারী আইডি অথবা পাসওয়ার্ড ভুল, অথবা অ্যাকাউন্টটি অ্যাডমিন প্যানেলে নেই)');
+      setLoginError('Invalid Participant ID / Mobile or Password, or account is not found in Admin records. (অংশগ্রহণকারী আইডি/মোবাইল অথবা পাসওয়ার্ড ভুল, অথবা অ্যাকাউন্টটি অ্যাডমিন প্যানেলে নেই)');
     }
   };
 
@@ -1089,13 +1097,21 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
           if (editTreeParticipant && (editTreeParticipant.id === treeId || String(editTreeParticipant.id) === String(treeId))) {
             setEditTreeParticipant(null);
           }
-          setTrees(prev => prev.filter(t => t.id !== treeId && String(t.id) !== String(treeId)));
+          setTrees(prev => {
+            const filtered = prev.filter(t => t.id !== treeId && String(t.id) !== String(treeId));
+            localStorage.setItem('ge_gh_trees', JSON.stringify(filtered));
+            return filtered;
+          });
           loadDataFromServer();
         }
       })
       .catch(err => {
         console.error("Error deleting tree:", err);
-        setTrees(prev => prev.filter(t => t.id !== treeId && String(t.id) !== String(treeId)));
+        setTrees(prev => {
+          const filtered = prev.filter(t => t.id !== treeId && String(t.id) !== String(treeId));
+          localStorage.setItem('ge_gh_trees', JSON.stringify(filtered));
+          return filtered;
+        });
       });
   };
 
@@ -2102,10 +2118,10 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
 
                     <form onSubmit={handleLoginParticipant} className="space-y-4 font-sans text-xs">
                       <div className="flex flex-col gap-1.5">
-                        <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Participant ID (অংশগ্রহণকারী আইডি)</label>
+                        <label className="font-bold text-gray-500 uppercase tracking-wider font-anek text-sm">Participant ID / Mobile (অংশগ্রহণকারী আইডি / মোবাইল নম্বর)</label>
                         <input 
                           type="text" 
-                          placeholder="e.g. GE-AT-000001"
+                          placeholder="e.g. GE-AT-000001 or 01700000000"
                           value={loginId}
                           onChange={(e) => setLoginId(e.target.value)}
                           className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#1B5E20] focus:outline-none text-sm"
