@@ -162,6 +162,17 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   // Active Logged-In Participant state
   const [loggedInUser, setLoggedInUser] = useState<any | null>(null);
 
+  // Helper matching functions for logged-in user trees and logs
+  const isUserTree = (tree: any) => {
+    if (!loggedInUser || !loggedInUser.id || !tree || !tree.participantId) return false;
+    return String(tree.participantId).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase();
+  };
+
+  const isUserLog = (log: any) => {
+    if (!loggedInUser || !loggedInUser.id || !log || !log.participantId) return false;
+    return String(log.participantId).trim().toUpperCase() === String(loggedInUser.id).trim().toUpperCase();
+  };
+
   // Load Green Hero data from server APIs
   const loadDataFromServer = async () => {
     try {
@@ -190,10 +201,10 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
 
         const mergedPartsMap = new Map();
         localParts.forEach(p => {
-          if (p && p.id) mergedPartsMap.set(p.id, p);
+          if (p && p.id) mergedPartsMap.set(String(p.id).toUpperCase(), p);
         });
         validParts.forEach(p => {
-          if (p && p.id) mergedPartsMap.set(p.id, p);
+          if (p && p.id) mergedPartsMap.set(String(p.id).toUpperCase(), p);
         });
         const finalParts = Array.from(mergedPartsMap.values());
 
@@ -201,14 +212,17 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
         
         // Update loggedInUser session state if logged in to keep participant info fresh
-        const currentSession = sessionStorage.getItem('ge_gh_logged_in');
+        const currentSession = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
         if (currentSession) {
-          const storedUser = JSON.parse(currentSession);
-          const freshUser = finalParts.find((p: any) => p.id === storedUser.id);
-          if (freshUser) {
-            setLoggedInUser(freshUser);
-            sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
-          }
+          try {
+            const storedUser = JSON.parse(currentSession);
+            const freshUser = finalParts.find((p: any) => String(p.id).trim().toUpperCase() === String(storedUser.id).trim().toUpperCase());
+            if (freshUser) {
+              setLoggedInUser(freshUser);
+              sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
+              localStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
+            }
+          } catch (e) {}
         }
       } else {
         const localPartsRaw = localStorage.getItem('ge_gh_participants');
@@ -226,8 +240,37 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         const treesData = await treesRes.json();
         const validTrees = Array.isArray(treesData) ? treesData : [];
 
-        setTrees(validTrees);
-        localStorage.setItem('ge_gh_trees', JSON.stringify(validTrees));
+        const localTreesRaw = localStorage.getItem('ge_gh_trees');
+        let localTrees: any[] = [];
+        try {
+          localTrees = localTreesRaw ? JSON.parse(localTreesRaw) : [];
+          if (!Array.isArray(localTrees)) localTrees = [];
+        } catch {}
+
+        const mergedMap = new Map();
+        localTrees.forEach((t, idx) => {
+          const key = t.id ? String(t.id) : `loc-${t.participantId}-${t.treeName}-${t.plantingDate}-${idx}`;
+          mergedMap.set(key, t);
+        });
+        validTrees.forEach((t, idx) => {
+          const key = t.id ? String(t.id) : `srv-${t.participantId}-${t.treeName}-${t.plantingDate}-${idx}`;
+          mergedMap.set(key, t);
+        });
+        const finalTrees = Array.from(mergedMap.values());
+
+        setTrees(finalTrees);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(finalTrees));
+
+        // Sync unsynced trees to server if any local tree isn't on server yet
+        const serverKeys = new Set(validTrees.map(vt => String(vt.id)));
+        const unsyncedTrees = localTrees.filter(lt => lt.id && !serverKeys.has(String(lt.id)));
+        if (unsyncedTrees.length > 0) {
+          fetch('/api/greenhero/trees', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(unsyncedTrees)
+          }).catch(e => console.error("Sync unsynced trees error:", e));
+        }
       } else {
         const localTreesRaw = localStorage.getItem('ge_gh_trees');
         try {
@@ -371,7 +414,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
     }
 
     // Recover session if logged in
-    const currentSession = sessionStorage.getItem('ge_gh_logged_in');
+    const currentSession = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
     if (currentSession) {
       try {
         setLoggedInUser(JSON.parse(currentSession));
@@ -699,6 +742,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
     if (found) {
       setLoggedInUser(found);
       sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(found));
+      localStorage.setItem('ge_gh_logged_in', JSON.stringify(found));
       // Reset form
       setLoginId('');
       setLoginPassword('');
@@ -710,6 +754,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const handleLogoutParticipant = () => {
     setLoggedInUser(null);
     sessionStorage.removeItem('ge_gh_logged_in');
+    localStorage.removeItem('ge_gh_logged_in');
   };
 
   // Repeater controls for registering trees
@@ -850,6 +895,24 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       })
       .then(data => {
         if (data.success) {
+          const added = Array.isArray(data.trees) ? data.trees : (data.tree ? [data.tree] : newTreesPayload);
+          
+          const savedTreesRaw = localStorage.getItem('ge_gh_trees');
+          const currentTrees = savedTreesRaw ? JSON.parse(savedTreesRaw) : [];
+          const updated = [...currentTrees];
+          
+          added.forEach((item: any) => {
+            const idx = updated.findIndex((ct: any) => String(ct.id) === String(item.id));
+            if (idx !== -1) {
+              updated[idx] = item;
+            } else {
+              updated.push(item);
+            }
+          });
+
+          localStorage.setItem('ge_gh_trees', JSON.stringify(updated));
+          setTrees(updated);
+
           // Update state to trigger counters instantly
           setTreeRegSuccess('Trees registered successfully! (গাছগুলো সফলভাবে নিবন্ধিত হয়েছে!)');
           
@@ -2177,7 +2240,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                       </div>
                     </div>
                     <div className="flex flex-wrap justify-center md:justify-end gap-3 shrink-0 font-anek">
-                      {trees.filter(t => t.participantId === loggedInUser.id).length > 0 && (
+                      {trees.filter(isUserTree).length > 0 && (
                         <button
                           onClick={() => setShowCertificatePreview(true)}
                           className="bg-[#D4AF37] hover:bg-amber-600 text-white font-bold py-2.5 px-5 rounded-full text-xs shadow cursor-pointer transition-colors flex items-center gap-1.5 text-sm"
@@ -2302,7 +2365,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                               <div>
                                 <span className="block text-gray-400 uppercase font-bold text-[9px]">Surviving Trees (টিকে থাকা গাছ):</span>
                                 <span className="font-bold text-emerald-700">
-                                  {trees.filter(t => t.participantId === loggedInUser.id).reduce((sum, t) => sum + t.quantity, 0)} Nos (টি)
+                                  {trees.filter(isUserTree).reduce((sum, t) => sum + Number(t.quantity || 0), 0)} Nos (টি)
                                 </span>
                               </div>
                               <div>
@@ -2811,13 +2874,13 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                       {/* Display historic logs for this user */}
                       <div className="space-y-3 font-sans text-xs">
                         <span className="font-bold text-gray-400 uppercase tracking-wider text-[10px] block">Log History (লগের ইতিহাস)</span>
-                        {logs.filter(l => l.participantId === loggedInUser.id).length === 0 ? (
+                        {logs.filter(isUserLog).length === 0 ? (
                           <div className="text-gray-400 font-bold text-center py-4 bg-gray-50 rounded-2xl border border-gray-100">
                             No logs submitted yet. (কোনো লগ এখনও সাবমিট করা হয়নি।)
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            {logs.filter(l => l.participantId === loggedInUser.id).map((log, idx) => (
+                            {logs.filter(isUserLog).map((log, idx) => (
                               <div key={idx} className="flex gap-4 items-center p-3 bg-gray-50 border border-gray-200/50 rounded-xl">
                                 <img src={log.photo} alt="log" referrerPolicy="no-referrer" className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
                                 <div className="flex-grow text-left">
@@ -2855,11 +2918,11 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                         </p>
                       </div>
                       <span className="bg-emerald-50 text-emerald-800 text-xs font-bold py-1.5 px-3 rounded-full border border-emerald-100 font-mono self-start sm:self-center">
-                        Total: {trees.filter(t => t.participantId === loggedInUser.id).reduce((sum, t) => sum + t.quantity, 0)} Trees (টি গাছ)
+                        Total: {trees.filter(isUserTree).reduce((sum, t) => sum + Number(t.quantity || 0), 0)} Trees (টি গাছ)
                       </span>
                     </div>
 
-                    {trees.filter(t => t.participantId === loggedInUser.id).length === 0 ? (
+                    {trees.filter(isUserTree).length === 0 ? (
                       <div className="text-gray-400 font-bold text-center py-10 bg-gray-50 rounded-2xl border border-gray-150 font-anek text-sm">
                         No trees registered yet. (এখনও কোনো গাছ নিবন্ধন করা হয়নি।)
                       </div>
@@ -2878,7 +2941,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 font-semibold text-gray-700 text-sm">
-                            {trees.filter(t => t.participantId === loggedInUser.id).map((t, idx) => (
+                            {trees.filter(isUserTree).map((t, idx) => (
                               <tr key={t.id || idx} className="hover:bg-emerald-50/10 transition-colors">
                                 <td className="py-3 px-4">
                                   <img 
