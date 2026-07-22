@@ -99,25 +99,8 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       if (partsRes.ok) {
         const partsData = await partsRes.json();
         const validParts = Array.isArray(partsData) ? partsData : [];
-        
-        const localPartsRaw = localStorage.getItem('ge_gh_participants');
-        let localParts: any[] = [];
-        try {
-          localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
-          if (!Array.isArray(localParts)) localParts = [];
-        } catch {}
-
-        const mergedPartsMap = new Map();
-        localParts.forEach(p => {
-          if (p && p.id) mergedPartsMap.set(p.id, p);
-        });
-        validParts.forEach(p => {
-          if (p && p.id) mergedPartsMap.set(p.id, p);
-        });
-        const finalParts = Array.from(mergedPartsMap.values());
-
-        setParticipants(finalParts);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
+        setParticipants(validParts);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(validParts));
       } else {
         const savedParts = localStorage.getItem('ge_gh_participants');
         try {

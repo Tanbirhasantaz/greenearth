@@ -1082,29 +1082,72 @@ async function startServer() {
 
   app.post("/api/greenhero/participants", async (req, res) => {
     try {
-      const participants = await readData<any[]>("ge_gh_participants.json");
-      const newParticipant = req.body;
+      const rawParticipants = await readData<any[]>("ge_gh_participants.json");
+      const participants = Array.isArray(rawParticipants) ? rawParticipants : [];
+      const rawPayload = req.body;
+      const items = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
 
-      // Ensure unique ID generation on the server side
-      const lastIdNum = participants.reduce((max, p) => {
-        const match = p.id?.match(/GE-AT-(\d+)/);
+      const processedParticipants: any[] = [];
+
+      let lastIdNum = participants.reduce((max, p) => {
+        if (!p || !p.id) return max;
+        const match = String(p.id).match(/GE-AT-(\d+)/);
         if (match) {
           const num = parseInt(match[1], 10);
           return num > max ? num : max;
         }
         return max;
       }, 0);
-      const nextIdNum = lastIdNum + 1;
-      const formattedId = `GE-AT-${String(nextIdNum).padStart(6, '0')}`;
 
-      newParticipant.id = formattedId;
-      newParticipant.regDate = newParticipant.regDate || new Date().toISOString().split('T')[0];
-      newParticipant.status = newParticipant.status || 'Approved';
+      items.forEach((item) => {
+        if (!item || (!item.name && !item.mobile)) return;
 
-      participants.push(newParticipant);
+        const cleanMobile = String(item.mobile || '').trim();
+        const itemId = item.id ? String(item.id).trim().toUpperCase() : null;
+
+        // Check if participant already exists by ID or by mobile
+        const existingIndex = participants.findIndex((p) => {
+          if (!p) return false;
+          if (itemId && p.id && String(p.id).trim().toUpperCase() === itemId) return true;
+          if (cleanMobile && p.mobile && String(p.mobile || '').trim() === cleanMobile) return true;
+          return false;
+        });
+
+        if (existingIndex !== -1) {
+          // Update existing record
+          participants[existingIndex] = {
+            ...participants[existingIndex],
+            ...item,
+            id: participants[existingIndex].id || itemId // Preserve original ID
+          };
+          processedParticipants.push(participants[existingIndex]);
+        } else {
+          // Add new record
+          lastIdNum++;
+          const formattedId = item.id && String(item.id).startsWith('GE-AT-')
+            ? item.id
+            : `GE-AT-${String(lastIdNum).padStart(6, '0')}`;
+
+          const newParticipant = {
+            ...item,
+            id: formattedId,
+            regDate: item.regDate || new Date().toISOString().split('T')[0],
+            status: item.status || 'Approved'
+          };
+          participants.push(newParticipant);
+          processedParticipants.push(newParticipant);
+        }
+      });
+
       await writeData("ge_gh_participants.json", participants);
-      res.json({ success: true, participant: newParticipant });
+
+      if (Array.isArray(rawPayload)) {
+        res.json({ success: true, participants: processedParticipants });
+      } else {
+        res.json({ success: true, participant: processedParticipants[0] });
+      }
     } catch (e: any) {
+      console.error("POST /api/greenhero/participants error:", e);
       res.status(500).json({ error: e.message });
     }
   });

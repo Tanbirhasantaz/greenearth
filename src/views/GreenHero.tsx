@@ -193,35 +193,24 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         const partsData = await partsRes.json();
         const validParts = Array.isArray(partsData) ? partsData : [];
         
-        const localPartsRaw = localStorage.getItem('ge_gh_participants');
-        let localParts: any[] = [];
-        try {
-          localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
-          if (!Array.isArray(localParts)) localParts = [];
-        } catch {}
-
-        const mergedPartsMap = new Map();
-        localParts.forEach(p => {
-          if (p && p.id) mergedPartsMap.set(String(p.id).toUpperCase(), p);
-        });
-        validParts.forEach(p => {
-          if (p && p.id) mergedPartsMap.set(String(p.id).toUpperCase(), p);
-        });
-        const finalParts = Array.from(mergedPartsMap.values());
-
-        setParticipants(finalParts);
-        localStorage.setItem('ge_gh_participants', JSON.stringify(finalParts));
+        setParticipants(validParts);
+        localStorage.setItem('ge_gh_participants', JSON.stringify(validParts));
         
-        // Update loggedInUser session state if logged in to keep participant info fresh
+        // Update loggedInUser session state if logged in; if deleted from Admin, log out!
         const currentSession = sessionStorage.getItem('ge_gh_logged_in') || localStorage.getItem('ge_gh_logged_in');
         if (currentSession) {
           try {
             const storedUser = JSON.parse(currentSession);
-            const freshUser = finalParts.find((p: any) => String(p.id).trim().toUpperCase() === String(storedUser.id).trim().toUpperCase());
+            const freshUser = validParts.find((p: any) => String(p.id).trim().toUpperCase() === String(storedUser.id).trim().toUpperCase());
             if (freshUser) {
               setLoggedInUser(freshUser);
               sessionStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
               localStorage.setItem('ge_gh_logged_in', JSON.stringify(freshUser));
+            } else {
+              // Account deleted from Admin panel
+              setLoggedInUser(null);
+              sessionStorage.removeItem('ge_gh_logged_in');
+              localStorage.removeItem('ge_gh_logged_in');
             }
           } catch (e) {}
         }
@@ -766,8 +755,30 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       })
       .then(data => {
         if (data.success && data.participant) {
+          const newP = data.participant;
+
+          // Save to localStorage immediately
+          const savedParts = localStorage.getItem('ge_gh_participants');
+          let currentParts: any[] = [];
+          try {
+            currentParts = savedParts ? JSON.parse(savedParts) : [];
+            if (!Array.isArray(currentParts)) currentParts = [];
+          } catch {}
+
+          const existsIdx = currentParts.findIndex(p => p && String(p.id).trim().toUpperCase() === String(newP.id).trim().toUpperCase());
+          let updatedParts: any[];
+          if (existsIdx !== -1) {
+            currentParts[existsIdx] = newP;
+            updatedParts = [...currentParts];
+          } else {
+            updatedParts = [...currentParts, newP];
+          }
+
+          localStorage.setItem('ge_gh_participants', JSON.stringify(updatedParts));
+          setParticipants(updatedParts);
+
           // Show success details modal
-          setShowRegSuccess(data.participant);
+          setShowRegSuccess(newP);
 
           // Clear form
           setRegName('');
@@ -792,25 +803,36 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   };
 
   // Participant Login handler
-  const handleLoginParticipant = (e: React.FormEvent) => {
+  const handleLoginParticipant = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
-    const savedPartsRaw = localStorage.getItem('ge_gh_participants');
-    let localParts: any[] = [];
-    try {
-      localParts = savedPartsRaw ? JSON.parse(savedPartsRaw) : [];
-      if (!Array.isArray(localParts)) localParts = [];
-    } catch (e) {}
-
-    const allPartsMap = new Map();
-    safeParticipants.forEach(p => { if (p && p.id) allPartsMap.set(String(p.id).trim().toUpperCase(), p); });
-    localParts.forEach(p => { if (p && p.id) allPartsMap.set(String(p.id).trim().toUpperCase(), p); });
-    const mergedParticipants = Array.from(allPartsMap.values());
-
     const inputId = loginId.trim().toUpperCase();
-    const found = mergedParticipants.find(
-      (p: any) => p && String(p.id).trim().toUpperCase() === inputId && String(p.password || '') === String(loginPassword)
+    const inputPassword = loginPassword;
+
+    if (!inputId) {
+      setLoginError('Please enter your Participant ID. (আপনার অংশগ্রহণকারী আইডি প্রদান করুন)');
+      return;
+    }
+
+    // Always validate against active server participants
+    let activeParticipantsList = safeParticipants;
+    try {
+      const res = await fetch("/api/greenhero/participants");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          activeParticipantsList = data;
+          setParticipants(data);
+          localStorage.setItem('ge_gh_participants', JSON.stringify(data));
+        }
+      }
+    } catch (err) {
+      console.warn("Using local state for participant validation:", err);
+    }
+
+    const found = activeParticipantsList.find(
+      (p: any) => p && String(p.id).trim().toUpperCase() === inputId && String(p.password || '') === String(inputPassword)
     );
 
     if (found) {
@@ -820,7 +842,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       setLoginId('');
       setLoginPassword('');
     } else {
-      setLoginError('Invalid Participant ID / Password, or account has been deleted. (অংশগ্রহণকারী আইডি অথবা পাসওয়ার্ড ভুল, অথবা অ্যাকাউন্টটি মুছে ফেলা হয়েছে)');
+      setLoginError('Invalid Participant ID / Password, or account is not found in Admin records. (অংশগ্রহণকারী আইডি অথবা পাসওয়ার্ড ভুল, অথবা অ্যাকাউন্টটি অ্যাডমিন প্যানেলে নেই)');
     }
   };
 
