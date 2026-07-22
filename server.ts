@@ -1203,8 +1203,13 @@ async function startServer() {
   app.delete("/api/greenhero/trees/:id", async (req, res) => {
     try {
       const trees = await readData<any[]>("ge_gh_trees.json");
-      const targetId = parseInt(req.params.id, 10);
-      const filtered = trees.filter(t => t.id !== targetId && String(t.id) !== req.params.id);
+      const paramId = String(req.params.id).trim();
+      const targetId = parseInt(paramId, 10);
+      const filtered = trees.filter(t => {
+        if (t.id === paramId || String(t.id) === paramId) return false;
+        if (!isNaN(targetId) && (t.id === targetId || Number(t.id) === targetId)) return false;
+        return true;
+      });
       await writeData("ge_gh_trees.json", filtered);
       res.json({ success: true });
     } catch (e: any) {

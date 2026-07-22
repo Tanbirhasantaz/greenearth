@@ -226,26 +226,8 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         const treesData = await treesRes.json();
         const validTrees = Array.isArray(treesData) ? treesData : [];
 
-        const localTreesRaw = localStorage.getItem('ge_gh_trees');
-        let localTrees: any[] = [];
-        try {
-          localTrees = localTreesRaw ? JSON.parse(localTreesRaw) : [];
-          if (!Array.isArray(localTrees)) localTrees = [];
-        } catch {}
-
-        const mergedTreesMap = new Map();
-        localTrees.forEach((t, idx) => {
-          const key = t.id || `local-tr-${t.participantId}-${t.treeName}-${idx}`;
-          mergedTreesMap.set(key, t);
-        });
-        validTrees.forEach((t, idx) => {
-          const key = t.id || `server-tr-${t.participantId}-${t.treeName}-${idx}`;
-          mergedTreesMap.set(key, t);
-        });
-        const finalTrees = Array.from(mergedTreesMap.values());
-
-        setTrees(finalTrees);
-        localStorage.setItem('ge_gh_trees', JSON.stringify(finalTrees));
+        setTrees(validTrees);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(validTrees));
       } else {
         const localTreesRaw = localStorage.getItem('ge_gh_trees');
         try {

@@ -129,27 +129,9 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       if (treesRes.ok) {
         const treesData = await treesRes.json();
         const validTrees = Array.isArray(treesData) ? treesData : [];
-        
-        const localTreesRaw = localStorage.getItem('ge_gh_trees');
-        let localTrees: any[] = [];
-        try {
-          localTrees = localTreesRaw ? JSON.parse(localTreesRaw) : [];
-          if (!Array.isArray(localTrees)) localTrees = [];
-        } catch {}
 
-        const mergedTreesMap = new Map();
-        localTrees.forEach((t, idx) => {
-          const key = t.id || `local-tr-${t.participantId}-${t.treeName}-${idx}`;
-          mergedTreesMap.set(key, t);
-        });
-        validTrees.forEach((t, idx) => {
-          const key = t.id || `server-tr-${t.participantId}-${t.treeName}-${idx}`;
-          mergedTreesMap.set(key, t);
-        });
-        const finalTrees = Array.from(mergedTreesMap.values());
-
-        setTrees(finalTrees);
-        localStorage.setItem('ge_gh_trees', JSON.stringify(finalTrees));
+        setTrees(validTrees);
+        localStorage.setItem('ge_gh_trees', JSON.stringify(validTrees));
       } else {
         const savedTrees = localStorage.getItem('ge_gh_trees');
         try {
@@ -434,6 +416,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
           setSuccessBanner(`Tree record ${id} has been deleted successfully. (গাছ রেকর্ড ${id} সফলভাবে মুছে ফেলা হয়েছে।)`);
           setTimeout(() => setSuccessBanner(''), 4000);
           setDeleteConfirmTree(null);
+          setTrees(prev => {
+            const filtered = prev.filter(t => t.id !== id && String(t.id) !== String(id));
+            localStorage.setItem('ge_gh_trees', JSON.stringify(filtered));
+            return filtered;
+          });
           loadAllData();
         }
       })
