@@ -110,28 +110,6 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
         }
       }
 
-      // Check localStorage for any locally registered participants missing on server
-      const localPartsRaw = localStorage.getItem('ge_gh_participants');
-      let localParts: any[] = [];
-      try {
-        localParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];
-        if (!Array.isArray(localParts)) localParts = [];
-      } catch {}
-
-      const unsyncedParts = localParts.filter(lp =>
-        lp && lp.id && !serverParts.some(sp => String(sp.id).trim().toUpperCase() === String(lp.id).trim().toUpperCase())
-      );
-
-      if (unsyncedParts.length > 0) {
-        // Sync unsynced local participants to server
-        fetch("/api/greenhero/participants", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(unsyncedParts)
-        }).catch(e => console.warn("Sync error:", e));
-        serverParts = [...serverParts, ...unsyncedParts];
-      }
-
       serverParts.sort((a, b) => {
         const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
         const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
@@ -471,14 +449,19 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   };
 
   const handleDeletePart = (id: string) => {
+    const targetIdStr = String(id).trim().toUpperCase();
+
+    // Optimistic removal from React state
+    setParticipants(prev => prev.filter(p => p && String(p.id).trim().toUpperCase() !== targetIdStr));
+    setTrees(prev => prev.filter(t => t && String(t.participantId).trim().toUpperCase() !== targetIdStr));
+    setLogs(prev => prev.filter(l => l && String(l.participantId).trim().toUpperCase() !== targetIdStr));
+
     fetch(`/api/greenhero/participants/${id}`, {
       method: 'DELETE'
     })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          const targetIdStr = String(id).trim().toUpperCase();
-
           const localPartsRaw = localStorage.getItem('ge_gh_participants');
           if (localPartsRaw) {
             try {

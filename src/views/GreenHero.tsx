@@ -203,28 +203,6 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         }
       }
 
-      // Merge local storage items that might not be on server yet
-      const savedPartsRaw = localStorage.getItem('ge_gh_participants');
-      let localParts: any[] = [];
-      try {
-        localParts = savedPartsRaw ? JSON.parse(savedPartsRaw) : [];
-        if (!Array.isArray(localParts)) localParts = [];
-      } catch {}
-
-      const unsyncedParts = localParts.filter(lp =>
-        lp && lp.id && !finalParts.some(sp => String(sp.id).trim().toUpperCase() === String(lp.id).trim().toUpperCase())
-      );
-
-      if (unsyncedParts.length > 0) {
-        // Sync unsynced local participants to server
-        fetch("/api/greenhero/participants", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(unsyncedParts)
-        }).catch(e => console.warn("Sync error:", e));
-        finalParts = [...finalParts, ...unsyncedParts];
-      }
-
       finalParts.sort((a, b) => {
         const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
         const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;

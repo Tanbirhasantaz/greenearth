@@ -662,30 +662,17 @@ async function startServer() {
 
   // Helper read/write methods
   const readData = async <T>(filename: string): Promise<T> => {
-    let localData: T | null = null;
-
-    // 1. Read from local filesystem
+    // 1. Read from local filesystem if file exists
     try {
       if (fs.existsSync(getFilePath(filename))) {
         const raw = fs.readFileSync(getFilePath(filename), "utf-8");
-        localData = JSON.parse(raw) as T;
+        return JSON.parse(raw) as T;
       }
     } catch (localErr) {
       console.warn(`Local read warning for ${filename}:`, localErr);
     }
 
-    const isNonEmpty = (data: any) => {
-      if (!data) return false;
-      if (Array.isArray(data)) return data.length > 0;
-      if (typeof data === 'object') return Object.keys(data).length > 0;
-      return true;
-    };
-
-    if (isNonEmpty(localData)) {
-      return localData as T;
-    }
-
-    // 2. Fallback to Supabase if local file is empty or missing
+    // 2. Fallback to Supabase ONLY if local file does NOT exist on disk
     if (supabase && isSupabaseDbAvailable) {
       try {
         const promise = supabase
@@ -699,7 +686,7 @@ async function startServer() {
         );
 
         const { data, error } = await Promise.race([promise, timeout]) as any;
-        if (!error && data && data.value && isNonEmpty(data.value)) {
+        if (!error && data && data.value !== undefined && data.value !== null) {
           try {
             fs.writeFileSync(getFilePath(filename), JSON.stringify(data.value, null, 2), "utf-8");
           } catch (e) {}
@@ -711,7 +698,7 @@ async function startServer() {
       }
     }
 
-    return (localData ?? (Array.isArray(localData) ? [] : {})) as T;
+    return [] as unknown as T;
   };
 
   const writeData = async <T>(filename: string, data: T): Promise<void> => {
@@ -722,23 +709,21 @@ async function startServer() {
       console.error(`Local write error for ${filename}:`, e);
     }
 
-    // Write to Supabase asynchronously in background so response is non-blocking
+    // Write to Supabase synchronously in writeData so storage stays strictly in sync
     if (supabase && isSupabaseDbAvailable) {
-      (async () => {
-        try {
-          const { error } = await supabase
-            .from("key_value_store")
-            .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
+      try {
+        const { error } = await supabase
+          .from("key_value_store")
+          .upsert({ key: filename, value: data, updated_at: new Date().toISOString() });
 
-          if (error) {
-            console.warn(`Supabase write warning for ${filename}:`, error.message || error);
-            isSupabaseDbAvailable = false;
-          }
-        } catch (err) {
-          console.warn(`Error writing ${filename} to Supabase:`, err);
+        if (error) {
+          console.warn(`Supabase write warning for ${filename}:`, error.message || error);
           isSupabaseDbAvailable = false;
         }
-      })();
+      } catch (err) {
+        console.warn(`Error writing ${filename} to Supabase:`, err);
+        isSupabaseDbAvailable = false;
+      }
     }
   };
 
