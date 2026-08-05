@@ -7,7 +7,6 @@ import {
   Clock, Calendar, RefreshCw
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
-import GreenHeroAdmin from '../components/GreenHeroAdmin';
 
 export function extractSubscriberInfo(sub: any): { email: string; date: string } {
   let email = '';
@@ -173,7 +172,7 @@ interface OrgSettings {
   aboutTeamTitleBn?: string;
 }
 
-type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones' | 'popup' | 'green-hero';
+type AdminTab = 'dashboard' | 'projects' | 'blogs' | 'volunteers' | 'donations' | 'team' | 'gallery' | 'testimonials' | 'subscribers' | 'contacts' | 'settings' | 'corevalues' | 'milestones' | 'popup';
 
 interface AdminProps {
   isBangla?: boolean;
@@ -1923,7 +1922,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               { tab: 'subscribers', label: 'Subscribers', icon: <Mail size={18} />, count: subscribers.length },
               { tab: 'contacts', label: 'Contact Inquiries', icon: <FileText size={18} />, count: contacts.length },
               { tab: 'popup', label: 'Announcement Popup', icon: <Megaphone size={18} /> },
-              { tab: 'green-hero', label: 'Green Hero Initiative', icon: <Award size={18} /> },
               { tab: 'settings', label: 'System Settings', icon: <Settings size={18} /> }
             ].map((item) => (
               <button
@@ -5248,13 +5246,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </button>
                   </div>
                 </form>
-              </div>
-            )}
-
-            {/* --- GREEN HERO MANAGEMENT TAB --- */}
-            {activeTab === 'green-hero' && (
-              <div id="green-hero-tab">
-                <GreenHeroAdmin isBangla={isBangla} />
               </div>
             )}
             </AdminTabErrorBoundary>
