@@ -662,17 +662,7 @@ async function startServer() {
 
   // Helper read/write methods
   const readData = async <T>(filename: string): Promise<T> => {
-    // 1. Read from local filesystem if file exists
-    try {
-      if (fs.existsSync(getFilePath(filename))) {
-        const raw = fs.readFileSync(getFilePath(filename), "utf-8");
-        return JSON.parse(raw) as T;
-      }
-    } catch (localErr) {
-      console.warn(`Local read warning for ${filename}:`, localErr);
-    }
-
-    // 2. Fallback to Supabase ONLY if local file does NOT exist on disk
+    // 1. Try reading from Supabase first so cross-device/browser sync works across Cloud Run instances
     if (supabase && isSupabaseDbAvailable) {
       try {
         const promise = supabase
@@ -693,23 +683,32 @@ async function startServer() {
           return data.value as T;
         }
       } catch (err) {
-        console.warn(`Supabase read fallback warning for ${filename}:`, err);
-        isSupabaseDbAvailable = false;
+        console.warn(`Supabase read warning for ${filename}:`, err);
       }
+    }
+
+    // 2. Fallback to local filesystem if Supabase is unavailable or key not found
+    try {
+      if (fs.existsSync(getFilePath(filename))) {
+        const raw = fs.readFileSync(getFilePath(filename), "utf-8");
+        return JSON.parse(raw) as T;
+      }
+    } catch (localErr) {
+      console.warn(`Local read warning for ${filename}:`, localErr);
     }
 
     return [] as unknown as T;
   };
 
   const writeData = async <T>(filename: string, data: T): Promise<void> => {
-    // Always write to local filesystem first to guarantee instant persistence
+    // Always write to local filesystem first
     try {
       fs.writeFileSync(getFilePath(filename), JSON.stringify(data, null, 2), "utf-8");
     } catch (e) {
       console.error(`Local write error for ${filename}:`, e);
     }
 
-    // Write to Supabase synchronously in writeData so storage stays strictly in sync
+    // Sync to Supabase so all devices/browsers see the updated data
     if (supabase && isSupabaseDbAvailable) {
       try {
         const { error } = await supabase
@@ -718,11 +717,9 @@ async function startServer() {
 
         if (error) {
           console.warn(`Supabase write warning for ${filename}:`, error.message || error);
-          isSupabaseDbAvailable = false;
         }
       } catch (err) {
         console.warn(`Error writing ${filename} to Supabase:`, err);
-        isSupabaseDbAvailable = false;
       }
     }
   };
