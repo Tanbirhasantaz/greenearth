@@ -95,12 +95,15 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       }
 
       // 2. Fetch Participants
+      console.log("🔍 [GreenHero Admin] Fetching participants list from /api/greenhero/participants...");
       const partsRes = await fetch("/api/greenhero/participants");
       let serverParts: any[] = [];
       if (partsRes.ok) {
         const partsData = await partsRes.json();
         serverParts = Array.isArray(partsData) ? partsData : [];
+        console.log(`✅ [GreenHero Admin] Successfully loaded ${serverParts.length} participants.`);
       } else {
+        console.warn(`⚠️ [GreenHero Admin] Participants fetch failed (status ${partsRes.status}). Reading local backup.`);
         const localPartsRaw = localStorage.getItem('ge_gh_participants');
         try {
           serverParts = localPartsRaw ? JSON.parse(localPartsRaw) : [];

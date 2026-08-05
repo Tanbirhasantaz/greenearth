@@ -643,10 +643,18 @@ async function startServer() {
   // Serve static files from public/uploads
   app.use("/uploads", express.static(uploadsDir));
 
-  // Initialize Supabase client if configured for server-side upload fallback
+  // Initialize Supabase client for persistent database & storage synchronization
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
   const supabaseBucket = process.env.SUPABASE_BUCKET || process.env.VITE_SUPABASE_BUCKET || "green-earth-images";
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("⚠️ SUPABASE CONFIG WARNING: SUPABASE_URL or SUPABASE_ANON_KEY is missing/empty.");
+    console.warn("Expected Environment Variables: SUPABASE_URL (or VITE_SUPABASE_URL) and SUPABASE_ANON_KEY (or VITE_SUPABASE_ANON_KEY)");
+  } else {
+    console.log("✅ Supabase client initialized successfully. Connecting to:", supabaseUrl);
+  }
+
   const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
   let isSupabaseDbAvailable = true;

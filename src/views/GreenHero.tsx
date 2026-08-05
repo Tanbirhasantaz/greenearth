@@ -657,6 +657,8 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
       password: regPassword
     };
 
+    console.log("📝 [GreenHero SignUp] Submitting form payload:", payload);
+
     const executeClientFallbackRegistration = () => {
       try {
         const savedParts = localStorage.getItem('ge_gh_participants');
@@ -693,7 +695,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         setCustomUpazila('');
         setIsOtherDistrict(false);
       } catch (fallbackErr) {
-        console.error("Client-side fallback registration failed:", fallbackErr);
+        console.error("❌ Client-side fallback registration failed:", fallbackErr);
         setRegError('Server connection error (সার্ভার সংযোগ ত্রুটি)');
       }
     };
@@ -705,12 +707,16 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
     })
       .then(async res => {
         const data = await res.json().catch(() => ({}));
+        console.log("📩 [GreenHero SignUp] Server response:", { status: res.status, ok: res.ok, data });
         if (!res.ok || data.error) {
-          setRegError(data.error || 'Registration failed. (নিবন্ধন ব্যর্থ হয়েছে)');
+          const errMsg = data.error || `Registration failed (HTTP ${res.status}).`;
+          console.error("❌ [GreenHero SignUp] Server error:", errMsg);
+          setRegError(errMsg);
           return;
         }
         if (data.success && data.participant) {
           const newP = data.participant;
+          console.log("✅ [GreenHero SignUp] Successfully registered participant ID:", newP.id);
 
           // Save to localStorage immediately
           const savedParts = localStorage.getItem('ge_gh_participants');
@@ -752,7 +758,7 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
         }
       })
       .catch(err => {
-        console.error("Server register error, falling back to client-side localStorage:", err);
+        console.error("❌ [GreenHero SignUp] Network/Server fetch error:", err);
         executeClientFallbackRegistration();
       });
   };
