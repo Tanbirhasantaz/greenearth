@@ -1061,7 +1061,42 @@ async function startServer() {
   app.get("/api/greenhero/participants", async (req, res) => {
     try {
       const raw = await readData<any[]>("ge_gh_participants.json");
-      const data = Array.isArray(raw) ? raw : [];
+      const data = Array.isArray(raw) ? [...raw] : [];
+
+      // Direct read from Supabase green_hero_signups table to ensure total cross-sync
+      if (supabase) {
+        try {
+          const { data: rows, error } = await supabase.from('green_hero_signups').select('*');
+          if (!error && Array.isArray(rows) && rows.length > 0) {
+            rows.forEach(r => {
+              const pId = String(r.participant_id || '').trim().toUpperCase();
+              if (pId) {
+                const existingIdx = data.findIndex(e => e && String(e.id).trim().toUpperCase() === pId);
+                const participantObj = {
+                  id: pId,
+                  name: r.full_name || r.name || '',
+                  mobile: r.mobile || '',
+                  type: r.type || 'student',
+                  institution: r.institution || '',
+                  district: r.district || '',
+                  upazila: r.upazila || '',
+                  password: r.password || '',
+                  status: r.status || 'Approved',
+                  regDate: r.reg_date || (r.created_at ? String(r.created_at).split('T')[0] : new Date().toISOString().split('T')[0])
+                };
+                if (existingIdx !== -1) {
+                  data[existingIdx] = { ...data[existingIdx], ...participantObj };
+                } else {
+                  data.push(participantObj);
+                }
+              }
+            });
+          }
+        } catch (dbReadErr) {
+          console.warn("Direct read from green_hero_signups warning:", dbReadErr);
+        }
+      }
+
       data.sort((a, b) => {
         const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
         const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
