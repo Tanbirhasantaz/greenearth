@@ -55,6 +55,21 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
   // Participant edit modal state
   const [editPartModal, setEditPartModal] = useState<any | null>(null);
 
+  // Manual Add Participant Modal State
+  const [addPartModal, setAddPartModal] = useState<boolean>(false);
+  const [newPartForm, setNewPartForm] = useState<any>({
+    name: '',
+    mobile: '',
+    type: 'student',
+    institution: '',
+    grade: '',
+    district: 'Bogura',
+    upazila: 'Adamdighi',
+    password: '',
+    status: 'Approved',
+    treeCount: 3
+  });
+
   // Tree edit modal state
   const [editTreeModal, setEditTreeModal] = useState<any | null>(null);
 
@@ -559,6 +574,46 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
       .catch(err => console.error(err));
   };
 
+  const handleAddParticipant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPartForm.name.trim() || !newPartForm.mobile.trim() || !newPartForm.password.trim()) {
+      alert('Please fill in Name, Mobile, and Password. (অনুগ্রহ করে নাম, মোবাইল নম্বর ও পাসওয়ার্ড লিখুন)');
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/greenhero/participants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPartForm)
+      });
+      const data = await res.json();
+      if (data.success && data.participant) {
+        setSuccessBanner(`New Participant added successfully! Assigned ID: ${data.participant.id}. (নতুন অংশগ্রহণকারী সফলভাবে যুক্ত হয়েছে! আইডি: ${data.participant.id})`);
+        setTimeout(() => setSuccessBanner(''), 5000);
+        setAddPartModal(false);
+        setNewPartForm({
+          name: '',
+          mobile: '',
+          type: 'student',
+          institution: '',
+          grade: '',
+          district: 'Bogura',
+          upazila: 'Adamdighi',
+          password: '',
+          status: 'Approved',
+          treeCount: 3
+        });
+        loadAllData();
+      } else {
+        alert(data.error || 'Failed to create participant');
+      }
+    } catch (err) {
+      console.error("Add participant error:", err);
+      alert('Network error while adding participant');
+    }
+  };
+
   const handleSaveTree = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTreeModal) return;
@@ -791,6 +846,166 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
               ✕ Close (বন্ধ করুন)
             </button>
             <img src={zoomImg} alt="Enlarged Progress Sapling" referrerPolicy="no-referrer" className="max-h-[80vh] mx-auto rounded-xl object-contain border border-gray-800" />
+          </div>
+        </div>
+      )}
+
+      {/* Manual Add Participant Modal */}
+      {addPartModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border-2 border-[#1F5E2E] rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden font-sans text-xs text-left my-8 max-h-[90vh] overflow-y-auto">
+            <div className="bg-[#1F5E2E] text-white p-5 flex justify-between items-center sticky top-0 z-10">
+              <div>
+                <h3 className="text-sm font-black flex items-center gap-2">
+                  <Users size={16} />
+                  <span>Add Participant Manually (ম্যানুয়ালি নতুন সদস্য যোগ)</span>
+                </h3>
+                <p className="text-[10px] text-emerald-100 font-semibold mt-0.5">
+                  Directly register a new Green Hero participant into the system & Supabase database.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setAddPartModal(false)}
+                className="text-white hover:text-red-200 text-lg font-bold px-2 py-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddParticipant} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Full Name (পূর্ণ নাম)*</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Sumaiya Akter"
+                    value={newPartForm.name}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, name: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Mobile Number (মোবাইল নম্বর)*</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 01700000000"
+                    value={newPartForm.mobile}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, mobile: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E] font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Type (ধরন)</label>
+                  <select
+                    value={newPartForm.type}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, type: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E]"
+                  >
+                    <option value="student">School Student (শিক্ষার্থী)</option>
+                    <option value="member">Community Member (কমিউনিটি সদস্য)</option>
+                    <option value="general">General Citizen (সাধারণ নাগরিক)</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Institution Name (প্রতিষ্ঠানের নাম)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bogura Zilla School"
+                    value={newPartForm.institution}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, institution: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">District (জেলা)</label>
+                  <input
+                    type="text"
+                    required
+                    value={newPartForm.district}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, district: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Upazila (উপজেলা)</label>
+                  <input
+                    type="text"
+                    required
+                    value={newPartForm.upazila}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, upazila: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Login Password (পাসওয়ার্ড)*</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. pass1234"
+                    value={newPartForm.password}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, password: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E] font-mono"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Account Status (অবস্থা)</label>
+                  <select
+                    value={newPartForm.status}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, status: e.target.value })}
+                    className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#1F5E2E]"
+                  >
+                    <option value="Approved">Approved (সচল / অনুমোদিত)</option>
+                    <option value="Pending">Pending (অপেক্ষমাণ)</option>
+                    <option value="Suspended">Suspended (স্থগিত)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                <label className="font-bold text-[#1F5E2E] uppercase tracking-wider text-[10px]">Initial Tree Allocation (গাছের সংখ্যা)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={newPartForm.treeCount}
+                  onChange={(e) => setNewPartForm({ ...newPartForm, treeCount: parseInt(e.target.value) || 3 })}
+                  className="bg-white border border-gray-200 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-[#1F5E2E] font-bold font-mono"
+                />
+                <span className="text-[10px] text-gray-500">Automatically creates initial tree entries for this student upon registration.</span>
+              </div>
+
+              <div className="pt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddPartModal(false)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-bold cursor-pointer transition-colors text-center"
+                >
+                  Cancel (বাতিল)
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#1F5E2E] hover:bg-emerald-800 text-white py-2.5 rounded-xl font-bold cursor-pointer transition-colors text-center font-sans shadow-md"
+                >
+                  Save Participant (সংরক্ষণ করুন)
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1179,7 +1394,15 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
               <h4 className="text-lg font-black text-gray-900 text-left">
                 Participants Registry (অংশগ্রহণকারী রেজিস্ট্রি)
               </h4>
-              <div className="flex items-center gap-2 max-w-sm w-full">
+              <div className="flex items-center gap-2 max-w-md w-full justify-end">
+                <button
+                  type="button"
+                  onClick={() => setAddPartModal(true)}
+                  className="bg-[#1F5E2E] hover:bg-emerald-800 text-white font-bold py-1.5 px-3 rounded-full text-xs cursor-pointer transition-all flex items-center gap-1 shrink-0 shadow-xs font-anek"
+                >
+                  <Users size={14} />
+                  <span>+ Add Participant (+ নতুন সদস্য)</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => loadAllData()}

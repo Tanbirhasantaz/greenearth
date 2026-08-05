@@ -458,6 +458,166 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
   const [appealError, setAppealError] = useState('');
   const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
 
+  // Public Certificate Search & Instant Download states
+  const [certCodeInput, setCertCodeInput] = useState('');
+  const [verifiedParticipant, setVerifiedParticipant] = useState<any | null>(null);
+  const [certSearchError, setCertSearchError] = useState('');
+  const [isVerifyingCert, setIsVerifyingCert] = useState(false);
+
+  const handleVerifyCertificateByCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!certCodeInput.trim()) return;
+    setIsVerifyingCert(true);
+    setCertSearchError('');
+    setVerifiedParticipant(null);
+
+    try {
+      const res = await fetch('/api/greenhero/participants');
+      const data = await res.json();
+      const allParticipants = data.participants || safeParticipants;
+      
+      const query = certCodeInput.trim().toUpperCase();
+      const found = allParticipants.find((p: any) => {
+        if (!p) return false;
+        const idMatch = String(p.id).trim().toUpperCase() === query;
+        const certCodeMatch = p.certCode && String(p.certCode).trim().toUpperCase() === query;
+        const mobileMatch = p.mobile && String(p.mobile).trim() === query;
+        return idMatch || certCodeMatch || mobileMatch;
+      });
+
+      if (found) {
+        setVerifiedParticipant(found);
+      } else {
+        setCertSearchError(`No verified record found matching code "${certCodeInput}". Please ensure Participant ID is correct or 3-month progress is uploaded. (কোনো নিবন্ধিত তথ্য পাওয়া যায়নি।)`);
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+      setCertSearchError("Error checking certificate record. Please try again.");
+    } finally {
+      setIsVerifyingCert(false);
+    }
+  };
+
+  const handleDownloadCertificateForParticipant = (p: any) => {
+    if (!p) return;
+    const customCertImage = localStorage.getItem('ge_gh_custom_cert_image');
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (customCertImage) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        canvas.width = img.width || 1200;
+        canvas.height = img.height || 850;
+
+        ctx.drawImage(img, 0, 0);
+
+        const xPct = Number(localStorage.getItem('ge_gh_custom_cert_name_x')) || 50;
+        const yPct = Number(localStorage.getItem('ge_gh_custom_cert_name_y')) || 53;
+        const fontSizePx = Number(localStorage.getItem('ge_gh_custom_cert_font_size')) || 36;
+        const fontColor = localStorage.getItem('ge_gh_custom_cert_color') || '#1b5e20';
+
+        const textX = (canvas.width * xPct) / 100;
+        const textY = (canvas.height * yPct) / 100;
+        const scaledFontSize = Math.round((fontSizePx / 800) * canvas.width);
+
+        ctx.font = `bold ${scaledFontSize}px sans-serif`;
+        ctx.fillStyle = fontColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(p.name || 'Green Hero Participant', textX, textY);
+
+        const url = canvas.toDataURL('image/jpeg', 0.92);
+        const link = document.createElement('a');
+        link.download = `Green_Hero_Certificate_${(p.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+      img.src = customCertImage;
+    } else {
+      canvas.width = 1200;
+      canvas.height = 850;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.lineWidth = 16;
+      ctx.strokeStyle = '#1B5E20';
+      ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#D4AF37';
+      ctx.strokeRect(48, 48, canvas.width - 96, canvas.height - 96);
+
+      ctx.fillStyle = '#1B5E20';
+      ctx.font = 'black 36px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('GREEN HERO CERTIFICATE OF APPRECIATION', canvas.width / 2, 140);
+
+      ctx.fillStyle = '#4CAF50';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('(গ্রিন হিরো পরিবেশ সুরক্ষা স্বীকৃতি সনদপত্র)', canvas.width / 2, 180);
+
+      ctx.fillStyle = '#555555';
+      ctx.font = 'italic 18px sans-serif';
+      ctx.fillText('This official certificate is proudly awarded to', canvas.width / 2, 250);
+
+      ctx.fillStyle = '#1B5E20';
+      ctx.font = 'black 48px sans-serif';
+      ctx.fillText(p.name || 'Green Hero Volunteer', canvas.width / 2, 330);
+
+      ctx.fillStyle = '#333333';
+      ctx.font = '16px sans-serif';
+      ctx.fillText('In recognition of dedicated environmental tree stewardship & 3-month survival care.', canvas.width / 2, 410);
+
+      ctx.fillStyle = '#F0FDF4';
+      ctx.fillRect(200, 470, 800, 120);
+      ctx.strokeStyle = '#BBF7D0';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(200, 470, 800, 120);
+
+      ctx.fillStyle = '#1B5E20';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Participant ID: ${p.id}`, 230, 510);
+      ctx.fillText(`Institution: ${p.institution || 'Green Earth Campaign'}`, 230, 550);
+      ctx.fillText(`District: ${p.district || 'Bogura'}`, 600, 510);
+      ctx.fillText(`Status: VERIFIED & APPROVED`, 600, 550);
+
+      ctx.strokeStyle = '#888888';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(250, 720);
+      ctx.lineTo(450, 720);
+      ctx.moveTo(750, 720);
+      ctx.lineTo(950, 720);
+      ctx.stroke();
+
+      ctx.fillStyle = '#333333';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Dr. Anisur Rahman', 350, 750);
+      ctx.fillText('Founder, Green Earth', 350, 775);
+
+      ctx.fillText('Green Earth Seal', 850, 750);
+      ctx.fillStyle = '#1B5E20';
+      ctx.fillText('● OFFICIAL VERIFIED ●', 850, 775);
+
+      const url = canvas.toDataURL('image/jpeg', 0.95);
+      const link = document.createElement('a');
+      link.download = `Green_Hero_Certificate_${(p.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   // --- ACTIVE TREE REGISTRATION REPEATER STATES ---
   const [treeRows, setTreeRows] = useState<any[]>([
     { id: 1, name: '', quantity: 1, type: 'Fruit Tree (ফলজ বৃক্ষ)', suggestions: [] }
@@ -2101,6 +2261,102 @@ function GreenHeroInner({ isBangla = false, settings }: GreenHeroProps) {
               className="space-y-12"
               id="subtab-portal-view"
             >
+              {/* --- PUBLIC CERTIFICATE CODE VERIFICATION & DOWNLOAD BOX --- */}
+              <div className="bg-gradient-to-br from-[#1B5E20] via-emerald-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-emerald-500/30 text-left space-y-6 font-sans" id="cert-code-verification-box">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-800/80 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-amber-400">
+                      <Award size={22} className="fill-amber-400/20 shrink-0" />
+                      <h3 className="text-xl font-black font-sans tracking-wide">
+                        Certificate Code Verification & Download (সনদপত্র কোড দিয়ে যাচাই ও ডাউনলোড)
+                      </h3>
+                    </div>
+                    <p className="text-xs text-emerald-100 font-semibold mt-1 font-anek leading-relaxed">
+                      Enter your Participant ID or Verification Code to verify your Green Hero badge & instantly download your official certificate!
+                      <span className="block text-amber-200 mt-0.5">(আপনার আইডি বা কোডটি লিখে আপনার সনদপত্র সরাসরি ডাউনলোড করুন।)</span>
+                    </p>
+                  </div>
+                  <div className="px-3.5 py-1.5 bg-amber-400/10 border border-amber-400/30 text-amber-300 rounded-full text-xs font-mono font-bold self-start sm:self-center shrink-0">
+                    Official Verification Portal
+                  </div>
+                </div>
+
+                <form onSubmit={handleVerifyCertificateByCode} className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-grow">
+                    <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Enter Participant ID or Code (e.g. GE-AT-000001 or 01700000000)"
+                      value={certCodeInput}
+                      onChange={(e) => setCertCodeInput(e.target.value)}
+                      className="w-full bg-black/40 border border-emerald-500/40 rounded-2xl py-3 pl-11 pr-4 text-white text-sm font-bold focus:ring-2 focus:ring-amber-400 focus:outline-none placeholder-gray-400 font-mono"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isVerifyingCert}
+                    className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black py-3 px-6 rounded-2xl text-xs shadow-lg transition-all cursor-pointer shrink-0 font-sans flex items-center justify-center gap-2"
+                  >
+                    <Award size={16} />
+                    <span>{isVerifyingCert ? 'Searching...' : 'Verify & View Certificate (সনদ যাচাই ও দেখুন)'}</span>
+                  </button>
+                </form>
+
+                {certSearchError && (
+                  <div className="p-4 bg-red-950/80 border border-red-500/50 rounded-2xl text-red-200 text-xs font-bold flex items-center gap-2 font-anek">
+                    <AlertTriangle size={16} className="text-red-400 shrink-0" />
+                    <span>{certSearchError}</span>
+                  </div>
+                )}
+
+                {verifiedParticipant && (
+                  <div className="bg-black/60 border-2 border-amber-400/70 rounded-2xl p-6 text-white space-y-4 shadow-2xl animate-fadeIn font-sans">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-emerald-800/80 pb-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={22} className="text-emerald-400 shrink-0" />
+                        <h4 className="font-black text-lg text-amber-300 font-sans">
+                          Verified Official Green Hero Record! (যাচাইকৃত অফিসিয়াল সনদ রেকর্ড)
+                        </h4>
+                      </div>
+                      <span className="py-1 px-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-black rounded-full uppercase">
+                        Status: VERIFIED & APPROVED
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-anek">
+                      <div className="bg-emerald-950/80 p-3.5 rounded-xl border border-emerald-800/50">
+                        <span className="text-gray-400 text-[10px] block font-mono uppercase">Participant Name (নাম):</span>
+                        <span className="font-black text-amber-200 text-sm">{verifiedParticipant.name}</span>
+                      </div>
+                      <div className="bg-emerald-950/80 p-3.5 rounded-xl border border-emerald-800/50">
+                        <span className="text-gray-400 text-[10px] block font-mono uppercase">Participant ID (আইডি):</span>
+                        <span className="font-black text-emerald-300 text-sm font-mono">{verifiedParticipant.id}</span>
+                      </div>
+                      <div className="bg-emerald-950/80 p-3.5 rounded-xl border border-emerald-800/50">
+                        <span className="text-gray-400 text-[10px] block font-mono uppercase">Institution / District:</span>
+                        <span className="font-bold text-gray-200">{verifiedParticipant.institution || 'Green Hero Volunteer'} ({verifiedParticipant.district})</span>
+                      </div>
+                      <div className="bg-emerald-950/80 p-3.5 rounded-xl border border-emerald-800/50">
+                        <span className="text-gray-400 text-[10px] block font-mono uppercase">Registered Trees:</span>
+                        <span className="font-black text-emerald-400 text-sm font-mono">{verifiedParticipant.treeCount || 3} Trees</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                      <span className="text-xs text-amber-200 font-semibold font-anek">
+                        ✨ Certificate verified for successful environmental tree stewardship.
+                      </span>
+                      <button
+                        onClick={() => handleDownloadCertificateForParticipant(verifiedParticipant)}
+                        className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-slate-950 font-black py-3 px-6 rounded-xl text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 font-sans"
+                      >
+                        <Award size={16} />
+                        <span>Download Certificate JPEG (সনদপত্র ডাউনলোড করুন)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {/* Case 1: Participant NOT logged in */}
               {!loggedInUser ? (
