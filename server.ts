@@ -1152,6 +1152,32 @@ async function startServer() {
 
       await writeData("ge_gh_participants.json", participants);
 
+      // 2. Direct Sync into Supabase green_hero_signups relational table
+      if (supabase && processedParticipants.length > 0) {
+        try {
+          const rowsToUpsert = processedParticipants.map(p => ({
+            participant_id: p.id,
+            full_name: p.name || '',
+            mobile: p.mobile || '',
+            type: p.type || '',
+            institution: p.institution || '',
+            district: p.district || '',
+            upazila: p.upazila || '',
+            password: p.password || '',
+            status: p.status || 'Approved',
+            reg_date: p.regDate || new Date().toISOString().split('T')[0]
+          }));
+          const { error: dbErr } = await supabase.from('green_hero_signups').upsert(rowsToUpsert, { onConflict: 'participant_id' });
+          if (dbErr) {
+            console.warn("⚠️ [Supabase green_hero_signups] Row sync warning (run SQL in Supabase SQL Editor if table is missing):", dbErr.message);
+          } else {
+            console.log(`✅ [Supabase green_hero_signups] Successfully synced ${rowsToUpsert.length} row(s) directly to Supabase Table Editor.`);
+          }
+        } catch (err: any) {
+          console.warn("⚠️ [Supabase green_hero_signups] Sync catch warning:", err.message || err);
+        }
+      }
+
       if (Array.isArray(rawPayload)) {
         res.json({ success: true, participants: processedParticipants });
       } else {
@@ -1189,6 +1215,14 @@ async function startServer() {
       const targetPart = participants.find(p => p && String(p.id).trim().toUpperCase() === targetId);
       const filteredParticipants = participants.filter(p => p && String(p.id).trim().toUpperCase() !== targetId);
       await writeData("ge_gh_participants.json", filteredParticipants);
+
+      if (supabase) {
+        try {
+          await supabase.from("green_hero_signups").delete().eq("participant_id", targetId);
+        } catch (delErr) {
+          console.warn("Delete from green_hero_signups error:", delErr);
+        }
+      }
 
       // 2. Cascade delete trees
       const trees = await readData<any[]>("ge_gh_trees.json");
