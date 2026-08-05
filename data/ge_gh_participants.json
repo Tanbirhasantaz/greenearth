@@ -1,14 +1,1 @@
-[
-  {
-    "id": "GE-AT-000001",
-    "name": "Test Hero",
-    "type": "general",
-    "mobile": "01700000001",
-    "status": "Approved",
-    "regDate": "2026-07-22",
-    "upazila": "Adamdighi",
-    "district": "Bogura",
-    "password": "123",
-    "institution": "Test School"
-  }
-]
+[]

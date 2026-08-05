@@ -587,8 +587,15 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newPartForm)
       });
-      const data = await res.json();
-      if (data.success && data.participant) {
+      
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jErr) {
+        console.error("JSON parse error:", jErr);
+      }
+
+      if (res.ok && data.success && data.participant) {
         setSuccessBanner(`New Participant added successfully! Assigned ID: ${data.participant.id}. (নতুন অংশগ্রহণকারী সফলভাবে যুক্ত হয়েছে! আইডি: ${data.participant.id})`);
         setTimeout(() => setSuccessBanner(''), 5000);
         setAddPartModal(false);
@@ -606,11 +613,11 @@ export default function GreenHeroAdmin({ isBangla = false }: GreenHeroAdminProps
         });
         loadAllData();
       } else {
-        alert(data.error || 'Failed to create participant');
+        alert(data.error || data.message || `Failed to create participant (Server error ${res.status})`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Add participant error:", err);
-      alert('Network error while adding participant');
+      alert(`Network error: ${err?.message || 'Could not connect to server'}`);
     }
   };
 
