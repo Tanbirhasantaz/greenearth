@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Globe, Heart } from 'lucide-react';
+import { Menu, X, Globe, Heart, ExternalLink } from 'lucide-react';
 import Logo from './Logo';
 import { Page } from '../types';
 
@@ -43,7 +43,7 @@ export default function Header({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
+  const navLinks: Array<{ id: string; label: string; labelBn: string; isExternal?: boolean; href?: string }> = [
     { id: 'home', label: 'Home', labelBn: 'হোম' },
     { id: 'about', label: 'About Us', labelBn: 'আমাদের সম্পর্কে' },
     { id: 'projects', label: 'Projects', labelBn: 'প্রকল্পসমূহ' },
@@ -54,13 +54,14 @@ export default function Header({
     { id: 'contact', label: 'Contact', labelBn: 'যোগাযোগ' }
   ];
 
-  const handleNavClick = (link: { id: string; isExternal?: boolean; href?: string }) => {
-    if (link.isExternal && link.href) {
-      window.open(link.href, '_blank', 'noopener,noreferrer');
+  const handleNavClick = (target: Page | { id: string; isExternal?: boolean; href?: string }) => {
+    if (typeof target === 'object' && target.isExternal && target.href) {
+      window.open(target.href, '_blank', 'noopener,noreferrer');
       setMobileMenuOpen(false);
       return;
     }
-    setCurrentPage(link.id as Page);
+    const pageId = typeof target === 'string' ? target : target.id;
+    setCurrentPage(pageId as Page);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -94,15 +95,20 @@ export default function Header({
           {navLinks.map((link) => (
             <button
               key={link.id}
-              onClick={() => handleNavClick(link.id as Page)}
+              onClick={() => handleNavClick(link)}
               className={`px-3 py-1.5 rounded-full text-sm font-sans font-semibold tracking-wide transition-all cursor-pointer relative flex items-center gap-1.5 ${
-                currentPage === link.id
-                  ? 'text-[#1F5E2E] font-bold'
-                  : 'text-gray-600 hover:text-[#1F5E2E] hover:bg-[#6BBF3A]/5'
+                link.isExternal
+                  ? 'text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100/90 border border-emerald-300/60 font-bold'
+                  : currentPage === link.id
+                    ? 'text-[#1F5E2E] font-bold'
+                    : 'text-gray-600 hover:text-[#1F5E2E] hover:bg-[#6BBF3A]/5'
               }`}
             >
               <span>{isBangla ? link.labelBn : link.label}</span>
-              {currentPage === link.id && (
+              {link.isExternal && (
+                <ExternalLink size={12} className="text-emerald-600 shrink-0" />
+              )}
+              {currentPage === link.id && !link.isExternal && (
                 <motion.span
                   layoutId="activeNavIndicator"
                   className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 rounded-full bg-[#6BBF3A]"
@@ -200,14 +206,19 @@ export default function Header({
                 {navLinks.map((link) => (
                   <button
                     key={link.id}
-                    onClick={() => handleNavClick(link.id as Page)}
+                    onClick={() => handleNavClick(link)}
                     className={`w-full text-left py-3 px-4 rounded-xl font-sans font-bold text-base transition-all cursor-pointer flex items-center justify-between ${
-                      currentPage === link.id
-                        ? 'bg-[#1F5E2E] text-white'
-                        : 'text-gray-700 hover:bg-[#6BBF3A]/10 hover:text-[#1F5E2E]'
+                      link.isExternal
+                        ? 'bg-emerald-50 text-emerald-900 border border-emerald-300 font-black'
+                        : currentPage === link.id
+                          ? 'bg-[#1F5E2E] text-white'
+                          : 'text-gray-700 hover:bg-[#6BBF3A]/10 hover:text-[#1F5E2E]'
                     }`}
                   >
                     <span>{isBangla ? link.labelBn : link.label}</span>
+                    {link.isExternal && (
+                      <ExternalLink size={16} className="text-emerald-700 shrink-0" />
+                    )}
                   </button>
                 ))}
               </div>

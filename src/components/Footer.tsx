@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Leaf, Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Youtube, ArrowRight } from 'lucide-react';
+import { Leaf, Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Youtube, ArrowRight, ExternalLink } from 'lucide-react';
 import Logo from './Logo';
 import { Page } from '../types';
 
@@ -24,8 +24,13 @@ export default function Footer({
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
-  const handleNavClick = (pageId: Page) => {
-    setCurrentPage(pageId);
+  const handleNavClick = (target: Page | { id: string; isExternal?: boolean; href?: string }) => {
+    if (typeof target === 'object' && target.isExternal && target.href) {
+      window.open(target.href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const pageId = typeof target === 'string' ? target : target.id;
+    setCurrentPage(pageId as Page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -94,10 +99,11 @@ export default function Footer({
       });
   };
 
-  const quickLinks = [
+  const quickLinks: Array<{ id: string; label: string; labelBn: string; isExternal?: boolean; href?: string }> = [
     { id: 'home', label: 'Home', labelBn: 'হোম' },
     { id: 'about', label: 'About Us', labelBn: 'আমাদের সম্পর্কে' },
     { id: 'projects', label: 'Projects & Campaigns', labelBn: 'প্রকল্প ও অভিযানসমূহ' },
+    { id: 'green-hero', label: 'Green Hero (গ্রিন হিরো)', labelBn: 'গ্রিন হিরো ইনিশিয়েটিভ', isExternal: true, href: 'https://green-hero.vercel.app/' },
     { id: 'involved', label: 'Join as Volunteer', labelBn: 'স্বেচ্ছাসেবী হোন' },
     { id: 'blog', label: 'Blog & Articles', labelBn: 'নিবন্ধ ও ব্লগ' },
     { id: 'gallery', label: 'Photo Gallery', labelBn: 'ছবি গ্যালারি' },
@@ -169,11 +175,16 @@ export default function Footer({
             {quickLinks.map((link) => (
               <li key={link.id}>
                 <button
-                  onClick={() => handleNavClick(link.id as Page)}
-                  className="hover:text-green-300 transition-colors flex items-center gap-1.5 cursor-pointer text-left w-full"
+                  onClick={() => handleNavClick(link)}
+                  className="hover:text-green-300 transition-colors flex items-center justify-between gap-1.5 cursor-pointer text-left w-full"
                 >
-                  <Leaf size={12} className="text-[#6BBF3A]" />
-                  <span>{isBangla ? link.labelBn : link.label}</span>
+                  <span className="flex items-center gap-1.5">
+                    <Leaf size={12} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? link.labelBn : link.label}</span>
+                  </span>
+                  {link.isExternal && (
+                    <ExternalLink size={12} className="text-green-300 shrink-0 opacity-80" />
+                  )}
                 </button>
               </li>
             ))}
