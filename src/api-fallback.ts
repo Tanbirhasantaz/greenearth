@@ -314,17 +314,36 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
         id: body?.id || 'vol-' + Date.now(),
         date: body?.date || new Date().toISOString()
       };
-      const idx = volunteers.findIndex((v: any) => v.id === volunteer.id);
+      const idx = volunteers.findIndex((v: any) => String(v.id) === String(volunteer.id));
       if (idx !== -1) {
         volunteers[idx] = volunteer;
       } else {
         volunteers.unshift(volunteer);
       }
       await cloudWrite('volunteers.json', 'ge_db_volunteers', volunteers);
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('volunteers', JSON.stringify(volunteers)); } catch {}
+      }
       responseData = { success: true, volunteer };
+    } else if ((method === 'PATCH' || method === 'PUT') && id && id !== 'volunteers') {
+      const idx = volunteers.findIndex((v: any) => String(v.id) === String(id));
+      if (idx !== -1) {
+        volunteers[idx] = { ...volunteers[idx], ...body };
+        await cloudWrite('volunteers.json', 'ge_db_volunteers', volunteers);
+        if (typeof window !== 'undefined') {
+          try { localStorage.setItem('volunteers', JSON.stringify(volunteers)); } catch {}
+        }
+        responseData = { success: true, volunteer: volunteers[idx] };
+      } else {
+        status = 404;
+        responseData = { success: false, error: 'Volunteer not found' };
+      }
     } else if (method === 'DELETE' && id && id !== 'volunteers') {
-      const updated = volunteers.filter((v: any) => v.id !== id);
+      const updated = volunteers.filter((v: any) => String(v.id) !== String(id));
       await cloudWrite('volunteers.json', 'ge_db_volunteers', updated);
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('volunteers', JSON.stringify(updated)); } catch {}
+      }
       responseData = { success: true };
     }
   }
@@ -342,17 +361,36 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
         id: body?.id || 'don-' + Date.now(),
         date: body?.date || new Date().toISOString()
       };
-      const idx = donations.findIndex((d: any) => d.id === donation.id);
+      const idx = donations.findIndex((d: any) => String(d.id) === String(donation.id));
       if (idx !== -1) {
         donations[idx] = donation;
       } else {
         donations.unshift(donation);
       }
       await cloudWrite('donations.json', 'ge_db_donations', donations);
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('donations', JSON.stringify(donations)); } catch {}
+      }
       responseData = { success: true, donation };
+    } else if ((method === 'PATCH' || method === 'PUT') && id && id !== 'donations') {
+      const idx = donations.findIndex((d: any) => String(d.id) === String(id));
+      if (idx !== -1) {
+        donations[idx] = { ...donations[idx], ...body };
+        await cloudWrite('donations.json', 'ge_db_donations', donations);
+        if (typeof window !== 'undefined') {
+          try { localStorage.setItem('donations', JSON.stringify(donations)); } catch {}
+        }
+        responseData = { success: true, donation: donations[idx] };
+      } else {
+        status = 404;
+        responseData = { success: false, error: 'Donation not found' };
+      }
     } else if (method === 'DELETE' && id && id !== 'donations') {
-      const updated = donations.filter((d: any) => d.id !== id);
+      const updated = donations.filter((d: any) => String(d.id) !== String(id));
       await cloudWrite('donations.json', 'ge_db_donations', updated);
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('donations', JSON.stringify(updated)); } catch {}
+      }
       responseData = { success: true };
     }
   }
@@ -596,6 +634,42 @@ function syncLocalCache(url: string, method: string, data: any) {
 
     if (matchingKey && method === 'GET') {
       localStorage.setItem(matchingKey, JSON.stringify(data));
+    } else if (matchingKey === 'ge_db_volunteers' && (method === 'DELETE' || method === 'PATCH' || method === 'PUT')) {
+      const id = path.split('/').pop();
+      if (id && id !== 'volunteers') {
+        try {
+          const raw = localStorage.getItem('ge_db_volunteers');
+          const list = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(list)) {
+            let updatedList: any[] = list;
+            if (method === 'DELETE') {
+              updatedList = list.filter((v: any) => String(v.id) !== String(id));
+            } else if (data?.volunteer) {
+              updatedList = list.map((v: any) => String(v.id) === String(id) ? { ...v, ...data.volunteer } : v);
+            }
+            localStorage.setItem('ge_db_volunteers', JSON.stringify(updatedList));
+            localStorage.setItem('volunteers', JSON.stringify(updatedList));
+          }
+        } catch {}
+      }
+    } else if (matchingKey === 'ge_db_donations' && (method === 'DELETE' || method === 'PATCH' || method === 'PUT')) {
+      const id = path.split('/').pop();
+      if (id && id !== 'donations') {
+        try {
+          const raw = localStorage.getItem('ge_db_donations');
+          const list = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(list)) {
+            let updatedList: any[] = list;
+            if (method === 'DELETE') {
+              updatedList = list.filter((d: any) => String(d.id) !== String(id));
+            } else if (data?.donation) {
+              updatedList = list.map((d: any) => String(d.id) === String(id) ? { ...d, ...data.donation } : d);
+            }
+            localStorage.setItem('ge_db_donations', JSON.stringify(updatedList));
+            localStorage.setItem('donations', JSON.stringify(updatedList));
+          }
+        } catch {}
+      }
     }
   } catch (e) {
     console.warn('Error during syncLocalCache:', e);

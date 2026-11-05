@@ -213,6 +213,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [donSearchTerm, setDonSearchTerm] = useState('');
   const [donFilterStatus, setDonFilterStatus] = useState<'all' | 'verified' | 'pending' | 'rejected'>('all');
   const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
+  const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
+  const [isSavingVolunteer, setIsSavingVolunteer] = useState(false);
 
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -582,14 +584,18 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         const currentVols = savedVols ? JSON.parse(savedVols) : [];
         if (Array.isArray(currentVols)) {
           const localOnly = currentVols.filter(v => v && String(v.id).startsWith('VOL-LOCAL-'));
-          await Promise.all(localOnly.map(vol => {
-            const { id, ...cleanVol } = vol;
-            return fetch('/api/volunteers', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(cleanVol)
-            }).catch(() => {});
-          }));
+          if (localOnly.length > 0) {
+            await Promise.all(localOnly.map(vol => {
+              const { id, ...cleanVol } = vol;
+              return fetch('/api/volunteers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cleanVol)
+              }).catch(() => {});
+            }));
+            const remaining = currentVols.filter(v => v && !String(v.id).startsWith('VOL-LOCAL-'));
+            localStorage.setItem('volunteers', JSON.stringify(remaining));
+          }
         }
       } catch (e) {}
 
@@ -684,24 +690,26 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         if (Array.isArray(resFocusAreas)) localStorage.setItem('admin_cache_focusareas', JSON.stringify(resFocusAreas));
       } catch (e) {}
 
-      // Merge Volunteers
+      // Merge Volunteers (Authoritative list from server/fallback, keeping only unsynced local offline ones)
+      const validVols = Array.isArray(resVols) ? resVols : [];
       const localVolsRaw = localStorage.getItem('volunteers');
       let localVols: any[] = [];
       try {
         localVols = localVolsRaw ? JSON.parse(localVolsRaw) : [];
         if (!Array.isArray(localVols)) localVols = [];
       } catch {}
+      const pendingOfflineVols = localVols.filter(v => v && String(v.id).startsWith('VOL-LOCAL-'));
       const mergedVolsMap = new Map();
-      localVols.forEach(v => {
-        if (v && (v.email || v.phone)) mergedVolsMap.set(v.email || v.phone, v);
-      });
-      const validVols = Array.isArray(resVols) ? resVols : [];
       validVols.forEach(v => {
-        if (v && (v.email || v.phone)) mergedVolsMap.set(v.email || v.phone, v);
+        if (v && v.id) mergedVolsMap.set(String(v.id), v);
+      });
+      pendingOfflineVols.forEach(v => {
+        if (v && v.id && !mergedVolsMap.has(String(v.id))) mergedVolsMap.set(String(v.id), v);
       });
       const finalVols = Array.from(mergedVolsMap.values());
       setVolunteers(finalVols);
       localStorage.setItem('volunteers', JSON.stringify(finalVols));
+      localStorage.setItem('ge_db_volunteers', JSON.stringify(finalVols));
 
       // Merge Donations
       const localDonsRaw = localStorage.getItem('donations');
@@ -1372,34 +1380,138 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         ? 'আপনি কি নিশ্চিতভাবে এই স্বেচ্ছাসেবী আবেদনটি মুছে ফেলতে চান? এটি পুনরায় ফিরিয়ে আনা সম্ভব নয়।' 
         : 'Are you sure you want to delete this volunteer registration? This action cannot be undone.',
       onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/volunteers/${id}`, { method: 'DELETE' });
-          if (res.ok) fetchAllData();
-        } catch (err) {
-          console.error(err);
+        // 1. Immediate optimistic UI updates
+        setVolunteers(prev => prev.filter(v => String(v.id) !== String(id)));
+        if (selectedVolunteer && String(selectedVolunteer.id) === String(id)) {
+          setSelectedVolunteer(null);
         }
-          setConfirmModal(null);
+        if (editingVolunteer && String(editingVolunteer.id) === String(id)) {
+          setEditingVolunteer(null);
+        }
+
+        // 2. Clear from local storage caches immediately
+        try {
+          const v1 = localStorage.getItem('volunteers');
+          if (v1) {
+            const list = JSON.parse(v1);
+            if (Array.isArray(list)) {
+              localStorage.setItem('volunteers', JSON.stringify(list.filter((v: any) => String(v.id) !== String(id))));
+            }
+          }
+          const v2 = localStorage.getItem('ge_db_volunteers');
+          if (v2) {
+            const list = JSON.parse(v2);
+            if (Array.isArray(list)) {
+              localStorage.setItem('ge_db_volunteers', JSON.stringify(list.filter((v: any) => String(v.id) !== String(id))));
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to update local storage caches on delete:', e);
+        }
+
+        // 3. Server DELETE request
+        try {
+          const token = localStorage.getItem('green-earth-admin-token-2026');
+          await fetch(`/api/volunteers/${id}`, {
+            method: 'DELETE',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+        } catch (err) {
+          console.error('Error deleting volunteer:', err);
+        }
+
+        setConfirmModal(null);
       }
     });
   };
 
   const handleUpdateVolunteerStatus = async (id: string, newMembership: string) => {
+    // 1. Immediate optimistic UI update
+    setVolunteers(prev => prev.map(v => String(v.id) === String(id) ? { ...v, membership: newMembership, membershipStatus: newMembership } : v));
+    if (selectedVolunteer && String(selectedVolunteer.id) === String(id)) {
+      setSelectedVolunteer(prev => prev ? { ...prev, membership: newMembership, membershipStatus: newMembership } : null);
+    }
+
+    // 2. Update local storage caches
     try {
-      const res = await fetch(`/api/volunteers/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ membership: newMembership, membershipStatus: newMembership }),
-      });
-      if (res.ok) {
-        // Update local state
-        setVolunteers(prev => prev.map(v => v.id === id ? { ...v, membership: newMembership, membershipStatus: newMembership } : v));
-        // Update selected volunteer
-        if (selectedVolunteer && selectedVolunteer.id === id) {
-          setSelectedVolunteer(prev => prev ? { ...prev, membership: newMembership, membershipStatus: newMembership } : null);
+      const v1 = localStorage.getItem('volunteers');
+      if (v1) {
+        const list = JSON.parse(v1);
+        if (Array.isArray(list)) {
+          localStorage.setItem('volunteers', JSON.stringify(list.map((v: any) => String(v.id) === String(id) ? { ...v, membership: newMembership, membershipStatus: newMembership } : v)));
         }
       }
+      const v2 = localStorage.getItem('ge_db_volunteers');
+      if (v2) {
+        const list = JSON.parse(v2);
+        if (Array.isArray(list)) {
+          localStorage.setItem('ge_db_volunteers', JSON.stringify(list.map((v: any) => String(v.id) === String(id) ? { ...v, membership: newMembership, membershipStatus: newMembership } : v)));
+        }
+      }
+    } catch (e) {}
+
+    // 3. API PATCH call
+    try {
+      const token = localStorage.getItem('green-earth-admin-token-2026');
+      await fetch(`/api/volunteers/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ membership: newMembership, membershipStatus: newMembership }),
+      });
     } catch (err) {
-      console.error(err);
+      console.error('Error updating volunteer status:', err);
+    }
+  };
+
+  const handleSaveVolunteerInfo = async (updatedVol: Volunteer) => {
+    setIsSavingVolunteer(true);
+    try {
+      // 1. Optimistic UI update
+      setVolunteers(prev => prev.map(v => String(v.id) === String(updatedVol.id) ? { ...v, ...updatedVol } : v));
+      if (selectedVolunteer && String(selectedVolunteer.id) === String(updatedVol.id)) {
+        setSelectedVolunteer({ ...selectedVolunteer, ...updatedVol });
+      }
+
+      // 2. Update local storage caches
+      try {
+        const v1 = localStorage.getItem('volunteers');
+        if (v1) {
+          const list = JSON.parse(v1);
+          if (Array.isArray(list)) {
+            localStorage.setItem('volunteers', JSON.stringify(list.map((v: any) => String(v.id) === String(updatedVol.id) ? { ...v, ...updatedVol } : v)));
+          }
+        }
+        const v2 = localStorage.getItem('ge_db_volunteers');
+        if (v2) {
+          const list = JSON.parse(v2);
+          if (Array.isArray(list)) {
+            localStorage.setItem('ge_db_volunteers', JSON.stringify(list.map((v: any) => String(v.id) === String(updatedVol.id) ? { ...v, ...updatedVol } : v)));
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to update local cache on volunteer edit:', e);
+      }
+
+      // 3. Server PATCH call
+      const token = localStorage.getItem('green-earth-admin-token-2026');
+      await fetch(`/api/volunteers/${updatedVol.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(updatedVol)
+      });
+
+      setEditingVolunteer(null);
+    } catch (err) {
+      console.error('Failed to update volunteer:', err);
+      alert(isBangla ? 'স্বেচ্ছাসেবীর তথ্য আপডেট করতে সমস্যা হয়েছে।' : 'Failed to update volunteer information.');
+    } finally {
+      setIsSavingVolunteer(false);
     }
   };
 
@@ -2959,6 +3071,13 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                                     <Eye size={15} className="stroke-[2.5]" />
                                   </button>
                                   <button
+                                    onClick={() => setEditingVolunteer({ ...vol })}
+                                    className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl cursor-pointer transition-colors"
+                                    title={isBangla ? 'তথ্য সম্পাদনা করুন' : 'Edit Information'}
+                                  >
+                                    <Edit size={15} />
+                                  </button>
+                                  <button
                                     onClick={() => handleVolunteerDelete(vol.id)}
                                     className="p-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl cursor-pointer transition-colors"
                                     title={isBangla ? 'আবেদনটি মুছে ফেলুন' : 'Delete Application'}
@@ -3170,7 +3289,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                   )}
                 </div>
               </div>
-            )}
+            );
+          })()}
 
             {/* --- TEAM MEMBERS TAB --- */}
             {activeTab === 'team' && (
@@ -5460,12 +5580,25 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelectedVolunteer(null)}
-                  className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white cursor-pointer"
-                >
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingVolunteer({ ...selectedVolunteer });
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                    title={isBangla ? 'সম্পূর্ণ তথ্য সম্পাদনা' : 'Edit Full Info'}
+                  >
+                    <Edit size={13} />
+                    <span>{isBangla ? 'তথ্য সম্পাদনা' : 'Edit Info'}</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedVolunteer(null)}
+                    className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white cursor-pointer"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
               {/* Scrollable Content */}
@@ -5686,6 +5819,262 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                   {isBangla ? 'বন্ধ করুন' : 'Close Details'}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+        {/* Edit Volunteer Modal */}
+        {editingVolunteer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                if (!isSavingVolunteer) setEditingVolunteer(null);
+              }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="relative w-full max-w-2xl bg-white border border-gray-100 rounded-3xl shadow-2xl z-10 text-left font-sans flex flex-col overflow-hidden max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-[#1F5E2E] to-[#2E7D32] text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 text-white rounded-full flex items-center justify-center font-bold">
+                    <Edit size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black leading-tight">
+                      {isBangla ? 'স্বেচ্ছাসেবকের তথ্য সম্পাদনা' : 'Edit Volunteer Information'}
+                    </h4>
+                    <p className="text-[10px] text-emerald-100 font-medium tracking-wider">
+                      ID: {editingVolunteer.id}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  disabled={isSavingVolunteer}
+                  onClick={() => setEditingVolunteer(null)}
+                  className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (editingVolunteer) {
+                    handleSaveVolunteerInfo(editingVolunteer);
+                  }
+                }}
+                className="p-6 overflow-y-auto space-y-4 flex-1 text-xs"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Name */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'পূর্ণ নাম' : 'Full Name'} *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingVolunteer.name || ''}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, name: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'ইমেইল' : 'Email Address'} *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={editingVolunteer.email || ''}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, email: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'মোবাইল নম্বর' : 'Phone Number'} *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingVolunteer.phone || ''}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, phone: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'এলাকা / জেলা' : 'Location / District'}
+                    </label>
+                    <input
+                      type="text"
+                      value={editingVolunteer.location || ''}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, location: e.target.value })}
+                      placeholder={isBangla ? 'যেমন: ঢাকা, খুলনা' : 'e.g. Dhaka, Khulna'}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Profession */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'পেশা' : 'Profession'}
+                    </label>
+                    <select
+                      value={editingVolunteer.profession || 'student'}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, profession: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all select-hand"
+                    >
+                      <option value="student">{isBangla ? 'ছাত্র / শিক্ষার্থী' : 'Student'}</option>
+                      <option value="govt_service">{isBangla ? 'সরকারি চাকরিজীবী' : 'Government Service'}</option>
+                      <option value="private_service">{isBangla ? 'বেসরকারি চাকরিজীবী' : 'Private Sector'}</option>
+                      <option value="business">{isBangla ? 'ব্যবসায়ী' : 'Business'}</option>
+                      <option value="teacher">{isBangla ? 'শিক্ষক / শিক্ষিকা' : 'Teacher / Educator'}</option>
+                      <option value="doctor">{isBangla ? 'চিকিৎসক' : 'Doctor / Healthcare'}</option>
+                      <option value="engineer">{isBangla ? 'প্রকৌশলী' : 'Engineer / Tech'}</option>
+                      <option value="ngo">{isBangla ? 'এনজিও কর্মী' : 'Development / NGO'}</option>
+                      <option value="freelancer">{isBangla ? 'ফ্রিল্যান্সার' : 'Freelancer'}</option>
+                      <option value="other">{isBangla ? 'অন্যান্য' : 'Other'}</option>
+                    </select>
+                  </div>
+
+                  {/* Blood Group */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'রক্তের গ্রুপ' : 'Blood Group'}
+                    </label>
+                    <select
+                      value={editingVolunteer.bloodGroup || 'Unknown'}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, bloodGroup: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all select-hand"
+                    >
+                      <option value="Unknown">{isBangla ? 'অজানা (Unknown)' : 'Unknown'}</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+
+                  {/* Interest */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'ক্যাম্পেইন আগ্রহ' : 'Campaign Interest'}
+                    </label>
+                    <select
+                      value={editingVolunteer.interest || 'plantation'}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, interest: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all select-hand"
+                    >
+                      <option value="plantation">{isBangla ? 'বৃক্ষরোপণ কর্মসূচি' : 'Mangrove Plantation'}</option>
+                      <option value="renewable">{isBangla ? 'নবায়নযোগ্য জ্বালানি' : 'Solar Micro-Grids'}</option>
+                      <option value="water">{isBangla ? 'বিশুদ্ধ পানি সরবরাহ' : 'Safe Water Plants'}</option>
+                      <option value="waste">{isBangla ? 'বর্জ্য ও রিসাইক্লিং' : 'Waste & Cleanup'}</option>
+                      <option value="awareness">{isBangla ? 'সচেতনতা ক্যাম্পেইন' : 'School Campaigns'}</option>
+                    </select>
+                  </div>
+
+                  {/* Membership Status */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'সদস্যপদ স্ট্যাটাস' : 'Membership Status'}
+                    </label>
+                    <select
+                      value={editingVolunteer.membership || 'no_intent'}
+                      onChange={(e) => setEditingVolunteer({
+                        ...editingVolunteer,
+                        membership: e.target.value,
+                        membershipStatus: e.target.value
+                      })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all select-hand"
+                    >
+                      <option value="no_intent">{isBangla ? 'মাঠ ভলান্টিয়ার (Field Volunteer Only)' : 'Field Volunteer Only'}</option>
+                      <option value="submitted_pending">{isBangla ? 'আবেদন পেন্ডিং (Submitted Form)' : 'Submitted Form'}</option>
+                      <option value="already_member">{isBangla ? 'আজীবন সদস্য (Lifetime Member)' : 'Lifetime Member'}</option>
+                    </select>
+                  </div>
+
+                  {/* Availability */}
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'কাজের সময় ও প্রাপ্যতা' : 'Availability'}
+                    </label>
+                    <select
+                      value={editingVolunteer.availability || 'flexible'}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, availability: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all select-hand"
+                    >
+                      <option value="flexible">{isBangla ? 'প্রকল্প অনুযায়ী যেকোনো সময় (ফ্লেক্সিবল)' : 'Flexible / As needed'}</option>
+                      <option value="weekends">{isBangla ? 'শুধুমাত্র সাপ্তাহিক ছুটি (শুক্রবার ও শনিবার)' : 'Weekends Only (Fri & Sat)'}</option>
+                      <option value="weekdays">{isBangla ? 'সাপ্তাহিক কর্মদিবস (রবি থেকে বৃহস্পতিবার)' : 'Weekdays (Sun - Thu)'}</option>
+                      <option value="fulltime">{isBangla ? 'ফুল-টাইম স্বেচ্ছাসেবী' : 'Full-time commitment'}</option>
+                    </select>
+                  </div>
+
+                  {/* Message */}
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="font-bold text-gray-700">
+                      {isBangla ? 'বার্তা বা বিশেষ নোট' : 'Motivation Message / Notes'}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editingVolunteer.message || ''}
+                      onChange={(e) => setEditingVolunteer({ ...editingVolunteer, message: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer buttons */}
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={isSavingVolunteer}
+                    onClick={() => setEditingVolunteer(null)}
+                    className="py-2 px-5 border border-gray-200 hover:bg-gray-100 text-gray-700 bg-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                  >
+                    {isBangla ? 'বাতিল' : 'Cancel'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingVolunteer}
+                    className="py-2 px-6 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow flex items-center gap-1.5"
+                  >
+                    {isSavingVolunteer ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        <span>{isBangla ? 'সংরক্ষণ হচ্ছে...' : 'Saving...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        <span>{isBangla ? 'পরিবর্তন সংরক্ষণ করুন' : 'Save Changes'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

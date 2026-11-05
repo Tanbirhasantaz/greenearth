@@ -1137,14 +1137,26 @@ async function startServer() {
 
   app.delete("/api/volunteers/:id", requireAdminAuth, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
-    const filtered = volunteers.filter((v) => v.id !== req.params.id);
+    const filtered = volunteers.filter((v) => String(v.id) !== String(req.params.id));
     await writeData("volunteers.json", filtered);
     res.json({ success: true });
   });
 
   app.patch("/api/volunteers/:id", requireAdminAuth, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
-    const index = volunteers.findIndex((v) => v.id === req.params.id);
+    const index = volunteers.findIndex((v) => String(v.id) === String(req.params.id));
+    if (index !== -1) {
+      volunteers[index] = { ...volunteers[index], ...req.body };
+      await writeData("volunteers.json", volunteers);
+      res.json({ success: true, volunteer: volunteers[index] });
+    } else {
+      res.status(404).json({ error: "Volunteer not found" });
+    }
+  });
+
+  app.put("/api/volunteers/:id", requireAdminAuth, async (req, res) => {
+    const volunteers = await readData<any[]>("volunteers.json");
+    const index = volunteers.findIndex((v) => String(v.id) === String(req.params.id));
     if (index !== -1) {
       volunteers[index] = { ...volunteers[index], ...req.body };
       await writeData("volunteers.json", volunteers);
@@ -1173,14 +1185,26 @@ async function startServer() {
 
   app.delete("/api/donations/:id", requireAdminAuth, async (req, res) => {
     const donations = await readData<any[]>("donations.json");
-    const filtered = donations.filter((d) => d.id !== req.params.id);
+    const filtered = donations.filter((d) => String(d.id) !== String(req.params.id));
     await writeData("donations.json", filtered);
     res.json({ success: true });
   });
 
   app.patch("/api/donations/:id", requireAdminAuth, async (req, res) => {
     const donations = await readData<any[]>("donations.json");
-    const index = donations.findIndex((d) => d.id === req.params.id);
+    const index = donations.findIndex((d) => String(d.id) === String(req.params.id));
+    if (index !== -1) {
+      donations[index] = { ...donations[index], ...req.body };
+      await writeData("donations.json", donations);
+      res.json({ success: true, donation: donations[index] });
+    } else {
+      res.status(404).json({ error: "Donation not found" });
+    }
+  });
+
+  app.put("/api/donations/:id", requireAdminAuth, async (req, res) => {
+    const donations = await readData<any[]>("donations.json");
+    const index = donations.findIndex((d) => String(d.id) === String(req.params.id));
     if (index !== -1) {
       donations[index] = { ...donations[index], ...req.body };
       await writeData("donations.json", donations);
