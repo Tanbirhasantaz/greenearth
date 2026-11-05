@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, MapPin, Award, CheckCircle, Clock, Heart, ArrowRight } from 'lucide-react';
 import { Project, GalleryItem } from '../types';
-import ProjectFundingProgress from './ProjectFundingProgress';
 
 interface ProjectDetailsModalProps {
   isOpen: boolean;
@@ -194,8 +193,7 @@ export default function ProjectDetailsModal({
                   </div>
                 </div>
 
-                <ProjectFundingProgress project={project} isBangla={isBangla} />
-
+                
                 {/* Support action block */}
                 <div className="border-t border-gray-200/60 pt-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                   <button

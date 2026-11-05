@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { Page, Project, BlogPost, Testimonial } from '../types';
 import { PROJECTS, BLOG_POSTS, TESTIMONIALS, IMAGES } from '../data';
-import ProjectFundingProgress from '../components/ProjectFundingProgress';
 
 // Stat Counter component to handle incremental numbers cleanly on load
 function StatCounter({ target, suffix = '', label, isBangla }: { target: number, suffix: string, label: string, isBangla: boolean }) {

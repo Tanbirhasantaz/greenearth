@@ -7,7 +7,6 @@ import React, { useState, useEffect } from 'react';
 import { Filter, Clock, CheckCircle, MapPin, ArrowRight, ChevronDown } from 'lucide-react';
 import { Project } from '../types';
 import { PROJECTS } from '../data';
-import ProjectFundingProgress from '../components/ProjectFundingProgress';
 
 interface ProjectsProps {
   isBangla: boolean;
@@ -228,8 +227,7 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
                     </p>
                   </div>
 
-                  <ProjectFundingProgress project={project} isBangla={isBangla} compact={true} />
-
+                  
                   {/* Footer actions */}
                   <div className="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
                     {/* Tiny impact highlight */}
