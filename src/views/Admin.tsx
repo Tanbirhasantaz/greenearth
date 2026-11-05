@@ -4,7 +4,7 @@ import {
   Lock, LayoutDashboard, Trees, BookOpen, Users, Heart, Image as ImageIcon, 
   Mail, Settings, Plus, Edit, Trash2, LogOut, Search, Check, X, Phone, MapPin, 
   Eye, FileText, Download, ShieldCheck, Globe, MessageSquare, Award, Flag, Megaphone,
-  Clock, Calendar, RefreshCw
+  Clock, Calendar, RefreshCw, MessageCircle, Sun, Moon, BarChart3
 } from 'lucide-react';
 import { Project, BlogPost, TeamMember, GalleryItem, Testimonial } from '../types';
 
@@ -78,6 +78,9 @@ class AdminTabErrorBoundary extends Component<
   }
 }
 import ImageUploadInput from '../components/ImageUploadInput';
+import VolunteerIdCardModal from '../components/VolunteerIdCardModal';
+import AdminInteractiveAnalytics from '../components/AdminInteractiveAnalytics';
+import VolunteerSlideOverDrawer from '../components/VolunteerSlideOverDrawer';
 
 interface Volunteer {
   id: string;
@@ -215,6 +218,13 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
   const [editingVolunteer, setEditingVolunteer] = useState<Volunteer | null>(null);
   const [isSavingVolunteer, setIsSavingVolunteer] = useState(false);
+  const [idCardVolunteer, setIdCardVolunteer] = useState<Volunteer | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('green_earth_admin_theme') === 'dark';
+    }
+    return false;
+  });
 
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -1720,6 +1730,27 @@ ${orgName} Bangladesh`;
     }
   };
 
+  // Helper to generate direct WhatsApp chat link (wa.me) with pre-filled message
+  const getVolunteerWhatsAppUrl = (vol?: Volunteer | null) => {
+    if (!vol || !vol.phone) return '#';
+    try {
+      let rawPhone = vol.phone.replace(/[^0-9]/g, '');
+      if (rawPhone.startsWith('0')) {
+        rawPhone = '880' + rawPhone.slice(1);
+      } else if (!rawPhone.startsWith('880') && rawPhone.length === 10) {
+        rawPhone = '880' + rawPhone;
+      }
+      const orgName = settings?.orgName || 'Green Earth';
+      const interestName = getVolunteerInterestName(vol.interest);
+      const text = isBangla
+        ? `আসসালামু আলাইকুম ${vol.name || 'স্বেচ্ছাসেবী বন্ধু'}! 🌿\n\n${orgName}-এ স্বেচ্ছাসেবী হিসেবে যুক্ত হওয়ায় আপনাকে আন্তরিক ধন্যবাদ।\n\n• ভলান্টিয়ার আইডি: ${vol.id}\n• ক্যাম্পেইন: ${interestName}\n• জেলা/এলাকা: ${vol.location || 'অনুল্লিখিত'}\n\nআপনার আবেদনটি সফলভাবে সিস্টেমে নিবন্ধিত হয়েছে। খুব শীঘ্রই আমাদের টিম আপনার সাথে পরবর্তী কার্যক্রমে যুক্ত হবে।\n\n- ${orgName} সেন্ট্রাল টিম`
+        : `Hello ${vol.name || 'Volunteer'}! 🌿\n\nThank you for signing up to volunteer with ${orgName}.\n\n• Volunteer ID: ${vol.id}\n• Campaign: ${interestName}\n• Location: ${vol.location || 'N/A'}\n\nYour application has been received and reviewed. Our team will contact you shortly.\n\n- ${orgName} Volunteer Team`;
+      return `https://wa.me/${rawPhone}?text=${encodeURIComponent(text)}`;
+    } catch (e) {
+      return '#';
+    }
+  };
+
   const downloadVolunteersCSV = () => {
     if (!Array.isArray(volunteers) || volunteers.length === 0) return;
 
@@ -2217,9 +2248,9 @@ ${orgName} Bangladesh`;
     .reduce((sum, d) => sum + d.amount, 0);
 
   return (
-    <div className="min-h-screen flex bg-gray-50 pt-20" id="admin-dashboard-view">
+    <div className={`min-h-screen flex pt-20 transition-colors duration-200 ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-gray-50 text-gray-800'}`} id="admin-dashboard-view">
       {/* 1. Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between hidden md:flex shrink-0 font-sans">
+      <aside className={`w-64 border-r flex flex-col justify-between hidden md:flex shrink-0 font-sans transition-colors duration-200 ${isDarkMode ? 'bg-slate-800/90 border-slate-700 text-slate-100' : 'bg-white border-gray-200 text-gray-800'}`}>
         <div className="p-6 flex flex-col gap-1.5">
           <div className="text-xs font-mono font-black text-gray-400 uppercase tracking-widest mb-4">
             Command Center
@@ -2251,8 +2282,8 @@ ${orgName} Bangladesh`;
                 }}
                 className={`w-full text-left py-3 px-4 rounded-xl flex items-center justify-between font-bold text-sm transition-all cursor-pointer ${
                   activeTab === item.tab
-                    ? 'bg-[#1F5E2E]/10 text-[#1F5E2E]'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    ? (isDarkMode ? 'bg-emerald-500/20 text-emerald-400 font-extrabold' : 'bg-[#1F5E2E]/10 text-[#1F5E2E]')
+                    : (isDarkMode ? 'text-slate-300 hover:bg-slate-700/60 hover:text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -2269,7 +2300,7 @@ ${orgName} Bangladesh`;
           </nav>
         </div>
 
-        <div className="p-6 border-t border-gray-200">
+        <div className={`p-6 border-t ${isDarkMode ? 'border-slate-700' : 'border-gray-200'}`}>
           <button
             onClick={handleLogout}
             className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer text-sm"
@@ -2283,23 +2314,23 @@ ${orgName} Bangladesh`;
       {/* 2. Main Workspace */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto max-w-7xl mx-auto w-full font-sans">
         {/* Header bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 border-b border-gray-200 pb-5">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 border-b pb-5 transition-colors ${isDarkMode ? 'border-slate-800' : 'border-gray-200'}`}>
           <div>
-            <h2 className="text-2xl font-black text-gray-900 capitalize flex items-center gap-2">
+            <h2 className={`text-2xl font-black capitalize flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               <ShieldCheck className="text-[#6BBF3A]" size={28} />
               <span>Admin / {activeTab}</span>
             </h2>
-            <p className="text-xs text-gray-500 font-medium">
+            <p className={`text-xs font-medium ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`}>
               Manage Bangladesh environmental grassroots operations, write content, and audit donations.
             </p>
           </div>
 
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0 items-center">
             {/* Mobile Nav Trigger placeholder helper */}
             <select
               value={activeTab}
               onChange={(e) => setActiveTab(e.target.value as AdminTab)}
-              className="md:hidden bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 focus:outline-none"
+              className={`md:hidden border rounded-xl px-4 py-2 text-sm font-bold focus:outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-gray-200 text-gray-700'}`}
             >
               <option value="dashboard">Dashboard</option>
               <option value="projects">Projects</option>
@@ -2317,13 +2348,39 @@ ${orgName} Bangladesh`;
               <option value="settings">Settings</option>
             </select>
 
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={() => {
+                setIsDarkMode(prev => {
+                  const next = !prev;
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('green_earth_admin_theme', next ? 'dark' : 'light');
+                  }
+                  return next;
+                });
+              }}
+              className={`border font-bold py-2 px-3 sm:px-3.5 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                isDarkMode 
+                  ? 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700 hover:border-slate-600' 
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+              title={isBangla ? 'ডার্ক / লাইট মোড পরিবর্তন' : 'Toggle Dark / Light Theme'}
+            >
+              {isDarkMode ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-slate-600" />}
+              <span className="hidden sm:inline font-mono">{isDarkMode ? (isBangla ? 'লাইট' : 'Light') : (isBangla ? 'ডার্ক' : 'Dark')}</span>
+            </button>
+
             <button
               onClick={() => fetchAllData(false)}
               disabled={isRefreshing}
-              className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-bold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
+              className={`border font-bold py-2 px-3 sm:px-4 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60 shadow-sm ${
+                isDarkMode 
+                  ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' 
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+              }`}
             >
-              <RefreshCw size={14} className={isRefreshing ? "animate-spin text-[#1F5E2E]" : ""} />
-              <span>{isRefreshing ? (isBangla ? 'আপডেট হচ্ছে...' : 'Refreshing...') : (isBangla ? 'ডাটা রিফ্রেশ' : 'Refresh Data')}</span>
+              <RefreshCw size={14} className={isRefreshing ? "animate-spin text-[#6BBF3A]" : ""} />
+              <span className="hidden xs:inline">{isRefreshing ? (isBangla ? 'আপডেট হচ্ছে...' : 'Refreshing...') : (isBangla ? 'ডাটা রিফ্রেশ' : 'Refresh Data')}</span>
             </button>
           </div>
         </div>
@@ -2342,46 +2399,58 @@ ${orgName} Bangladesh`;
                 {/* 4 Stats Block */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Stat 1 */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-5">
-                    <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl">
+                  <div className={`border rounded-2xl p-6 shadow-sm flex items-center gap-5 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                    <div className="p-4 bg-emerald-500/10 text-emerald-500 rounded-2xl">
                       <Trees size={24} />
                     </div>
                     <div>
-                      <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider block">Initiatives</span>
-                      <span className="text-2xl font-black text-[#1F5E2E]">{projects.length}</span>
+                      <span className={`text-xs font-mono font-bold uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-gray-400'}`}>Initiatives</span>
+                      <span className={`text-2xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-[#1F5E2E]'}`}>{projects.length}</span>
                     </div>
                   </div>
                   {/* Stat 2 */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-5">
-                    <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl">
+                  <div className={`border rounded-2xl p-6 shadow-sm flex items-center gap-5 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                    <div className="p-4 bg-blue-500/10 text-blue-500 rounded-2xl">
                       <Users size={24} />
                     </div>
                     <div>
-                      <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider block">Volunteers</span>
-                      <span className="text-2xl font-black text-[#1F5E2E]">{volunteers.length}</span>
+                      <span className={`text-xs font-mono font-bold uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-gray-400'}`}>Volunteers</span>
+                      <span className={`text-2xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-[#1F5E2E]'}`}>{volunteers.length}</span>
                     </div>
                   </div>
                   {/* Stat 3 */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-5">
-                    <div className="p-4 bg-red-50 text-red-500 rounded-2xl">
+                  <div className={`border rounded-2xl p-6 shadow-sm flex items-center gap-5 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                    <div className="p-4 bg-red-500/10 text-red-500 rounded-2xl">
                       <Heart size={24} fill="currentColor" />
                     </div>
                     <div>
-                      <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider block">Total Donations</span>
-                      <span className="text-2xl font-black text-[#1F5E2E]">৳{totalVerifiedDonationAmount.toLocaleString()}</span>
+                      <span className={`text-xs font-mono font-bold uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-gray-400'}`}>Total Donations</span>
+                      <span className={`text-2xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-[#1F5E2E]'}`}>৳{totalVerifiedDonationAmount.toLocaleString()}</span>
                     </div>
                   </div>
                   {/* Stat 4 */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-5">
-                    <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl">
+                  <div className={`border rounded-2xl p-6 shadow-sm flex items-center gap-5 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                    <div className="p-4 bg-purple-500/10 text-purple-500 rounded-2xl">
                       <Mail size={24} />
                     </div>
                     <div>
-                      <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider block">Eco-Subscribers</span>
-                      <span className="text-2xl font-black text-[#1F5E2E]">{subscribers.length}</span>
+                      <span className={`text-xs font-mono font-bold uppercase tracking-wider block ${isDarkMode ? 'text-slate-400' : 'text-gray-400'}`}>Eco-Subscribers</span>
+                      <span className={`text-2xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-[#1F5E2E]'}`}>{subscribers.length}</span>
                     </div>
                   </div>
                 </div>
+
+                {/* Interactive Analytics & Trends Charts */}
+                <AdminInteractiveAnalytics
+                  volunteers={volunteers}
+                  donations={donations}
+                  isBangla={isBangla}
+                  isDarkMode={isDarkMode}
+                  onSelectInterest={(interest) => {
+                    setVolFilterInterest(interest);
+                    setActiveTab('volunteers');
+                  }}
+                />
 
                 {/* Grid Lists */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -3278,32 +3347,55 @@ ${orgName} Bangladesh`;
                               {/* Action buttons */}
                               <td className="py-4 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
+                                  {/* 1-Click WhatsApp */}
+                                  <a
+                                    href={getVolunteerWhatsAppUrl(vol)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 bg-green-50 hover:bg-green-100 text-green-600 rounded-xl cursor-pointer transition-colors inline-flex items-center justify-center shadow-xs"
+                                    title={isBangla ? 'WhatsApp-এ বার্তা পাঠান' : 'Direct WhatsApp Chat'}
+                                  >
+                                    <MessageCircle size={15} />
+                                  </a>
+
+                                  {/* Auto Gmail Draft */}
                                   <a
                                     href={getVolunteerGmailUrl(vol)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#1F5E2E] rounded-xl cursor-pointer transition-colors inline-flex items-center justify-center"
+                                    className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#1F5E2E] rounded-xl cursor-pointer transition-colors inline-flex items-center justify-center shadow-xs"
                                     title={isBangla ? 'Gmail-এ স্বীকৃতিপত্র ইমেল ড্রাফট করুন' : 'Draft Acknowledgment in Gmail'}
                                   >
                                     <Mail size={15} />
                                   </a>
+
+                                  {/* Volunteer Digital ID Badge */}
+                                  <button
+                                    onClick={() => setIdCardVolunteer(vol)}
+                                    className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl cursor-pointer transition-colors inline-flex items-center justify-center shadow-xs"
+                                    title={isBangla ? 'ডিজিটাল আইডি কার্ড তৈরি ও প্রিন্ট করুন' : 'Generate Printable Volunteer ID Badge'}
+                                  >
+                                    <Award size={15} />
+                                  </button>
+
+                                  {/* Slide-over details view */}
                                   <button
                                     onClick={() => setSelectedVolunteer(vol)}
-                                    className="p-1.5 bg-[#1F5E2E]/10 hover:bg-[#1F5E2E]/20 text-[#1F5E2E] rounded-xl cursor-pointer transition-colors"
-                                    title={isBangla ? 'বিস্তারিত বিবরণ দেখুন' : 'View Full Details'}
+                                    className="p-1.5 bg-[#1F5E2E]/10 hover:bg-[#1F5E2E]/20 text-[#1F5E2E] rounded-xl cursor-pointer transition-colors shadow-xs"
+                                    title={isBangla ? 'স্লাইড-ওভার ড্রয়ারে বিস্তারিত দেখুন' : 'Slide-Over Drawer Details'}
                                   >
                                     <Eye size={15} className="stroke-[2.5]" />
                                   </button>
                                   <button
                                     onClick={() => setEditingVolunteer({ ...vol, _originalId: vol.id } as any)}
-                                    className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl cursor-pointer transition-colors"
+                                    className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl cursor-pointer transition-colors shadow-xs"
                                     title={isBangla ? 'তথ্য সম্পাদনা করুন' : 'Edit Information'}
                                   >
                                     <Edit size={15} />
                                   </button>
                                   <button
                                     onClick={() => handleVolunteerDelete(vol.id)}
-                                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl cursor-pointer transition-colors"
+                                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl cursor-pointer transition-colors shadow-xs"
                                     title={isBangla ? 'আবেদনটি মুছে ফেলুন' : 'Delete Application'}
                                   >
                                     <Trash2 size={15} />
@@ -5772,283 +5864,37 @@ ${orgName} Bangladesh`;
           </div>
         )}
 
-        {/* Volunteer Details Modal */}
-        {selectedVolunteer && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedVolunteer(null)}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            />
-            {/* Modal Box */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="relative w-full max-w-2xl bg-white border border-gray-100 rounded-3xl shadow-2xl z-10 text-left font-sans flex flex-col overflow-hidden max-h-[90vh]"
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-[#1F5E2E] to-[#2E7D32] text-white flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 text-white rounded-full flex items-center justify-center font-black text-sm">
-                    {selectedVolunteer.name ? selectedVolunteer.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'V'}
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-black leading-tight">{selectedVolunteer.name}</h4>
-                    <p className="text-[10px] text-emerald-100 font-medium uppercase tracking-wider">
-                      {isBangla ? 'স্বেচ্ছাসেবক আবেদনপত্র' : 'Volunteer Application Details'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingVolunteer({ ...selectedVolunteer, _originalId: selectedVolunteer.id } as any);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
-                    title={isBangla ? 'সম্পূর্ণ তথ্য সম্পাদনা' : 'Edit Full Info'}
-                  >
-                    <Edit size={13} />
-                    <span>{isBangla ? 'তথ্য সম্পাদনা' : 'Edit Info'}</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedVolunteer(null)}
-                    className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white cursor-pointer"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
+        {/* Volunteer Slide-Over Drawer View */}
+        <VolunteerSlideOverDrawer
+          volunteer={selectedVolunteer}
+          onClose={() => setSelectedVolunteer(null)}
+          onEdit={(vol) => {
+            setSelectedVolunteer(null);
+            setEditingVolunteer({ ...vol, _originalId: vol.id } as any);
+          }}
+          onDelete={(id) => {
+            setSelectedVolunteer(null);
+            handleVolunteerDelete(id);
+          }}
+          onGenerateIdCard={(vol) => {
+            setIdCardVolunteer(vol);
+          }}
+          onUpdateStatus={handleUpdateVolunteerStatus}
+          getGmailUrl={getVolunteerGmailUrl}
+          getWhatsAppUrl={getVolunteerWhatsAppUrl}
+          formatFullDateTime={formatFullDateTime}
+          isBangla={isBangla}
+          isDarkMode={isDarkMode}
+        />
 
-              {/* Scrollable Content */}
-              <div className="p-6 overflow-y-auto space-y-6">
-                
-                {/* Section 1: Key Metadata badging */}
-                <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-100">
-                  {/* Status badge */}
-                  {selectedVolunteer.membership === 'submitted_pending' && (
-                    <span className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                      {isBangla ? 'আবেদন পেন্ডিং' : 'Submitted & Pending'}
-                    </span>
-                  )}
-                  {selectedVolunteer.membership === 'already_member' && (
-                    <span className="bg-emerald-50 border border-emerald-200 text-[#1F5E2E] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#6BBF3A]"></span>
-                      {isBangla ? 'আজীবন সদস্য' : 'Lifetime Member'}
-                    </span>
-                  )}
-                  {(selectedVolunteer.membership === 'no_intent' || !selectedVolunteer.membership) && (
-                    <span className="bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                      {isBangla ? 'মাঠ ভলান্টিয়ার' : 'Field Volunteer Only'}
-                    </span>
-                  )}
+        {/* Volunteer Digital Identity Card Generator Modal */}
+        <VolunteerIdCardModal
+          volunteer={idCardVolunteer}
+          onClose={() => setIdCardVolunteer(null)}
+          isBangla={isBangla}
+          settings={settings}
+        />
 
-                  {/* Campaign Interest */}
-                  <span className="bg-[#1F5E2E]/10 border border-[#1F5E2E]/20 text-[#1F5E2E] text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 uppercase font-mono">
-                    🎯 {(() => {
-                      switch (selectedVolunteer.interest) {
-                        case 'plantation': return isBangla ? 'ম্যানগ্রোভ রোপণ' : 'Mangrove Plantation';
-                        case 'renewable': return isBangla ? 'সৌর বিদ্যুৎ' : 'Solar Micro-Grids';
-                        case 'water': return isBangla ? 'বিশুদ্ধ পানি' : 'Safe Water Plants';
-                        case 'waste': return isBangla ? 'বর্জ্য অপসারণ' : 'Waste & Cleanup';
-                        case 'awareness': return isBangla ? 'সচেতনতা প্রচার' : 'School Campaigns';
-                        default: return selectedVolunteer.interest;
-                      }
-                    })()}
-                  </span>
-
-                  {/* Blood Group */}
-                  {selectedVolunteer.bloodGroup && selectedVolunteer.bloodGroup !== 'Unknown' && (
-                    <span className="bg-red-50 border border-red-100 text-red-600 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                      🩸 {isBangla ? `রক্তের গ্রুপ: ${selectedVolunteer.bloodGroup}` : `Blood Group: ${selectedVolunteer.bloodGroup}`}
-                    </span>
-                  )}
-                </div>
-
-                {/* Grid Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  {/* Column Left: Contact & Profile */}
-                  <div className="space-y-4">
-                    <h5 className="text-xs font-black text-gray-400 uppercase tracking-wider font-mono">
-                      {isBangla ? 'যোগাযোগ ও পরিচিতি' : 'Contact & Profile'}
-                    </h5>
-                    
-                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
-                      {/* Email */}
-                      <div className="flex items-start gap-2.5">
-                        <Mail size={14} className="text-gray-400 mt-0.5" />
-                        <div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'ইমেল' : 'Email Address'}</div>
-                          <a href={`mailto:${selectedVolunteer.email}`} className="text-xs font-semibold text-[#1F5E2E] hover:underline break-all">
-                            {selectedVolunteer.email}
-                          </a>
-                        </div>
-                      </div>
-
-                      {/* Phone */}
-                      <div className="flex items-start gap-2.5">
-                        <Phone size={14} className="text-gray-400 mt-0.5" />
-                        <div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'মোবাইল নম্বর' : 'Phone Number'}</div>
-                          <a href={`tel:${selectedVolunteer.phone}`} className="text-xs font-semibold text-gray-700 hover:underline">
-                            {selectedVolunteer.phone}
-                          </a>
-                        </div>
-                      </div>
-
-                      {/* Location */}
-                      <div className="flex items-start gap-2.5">
-                        <MapPin size={14} className="text-gray-400 mt-0.5" />
-                        <div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'জেলা / এলাকা' : 'Location / Area'}</div>
-                          <div className="text-xs font-semibold text-gray-700">
-                            {selectedVolunteer.location || '—'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Column Right: Engagement Details */}
-                  <div className="space-y-4">
-                    <h5 className="text-xs font-black text-gray-400 uppercase tracking-wider font-mono">
-                      {isBangla ? 'সংযুক্তি ও সময়সূচী' : 'Engagement & Availability'}
-                    </h5>
-
-                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
-                      {/* Profession */}
-                      <div className="flex items-start gap-2.5">
-                        <Award size={14} className="text-gray-400 mt-0.5" />
-                        <div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'পেশা' : 'Profession'}</div>
-                          <div className="text-xs font-semibold text-gray-700">
-                            {(() => {
-                              switch (selectedVolunteer.profession) {
-                                case 'student': return isBangla ? 'শিক্ষার্থী' : 'Student';
-                                case 'job_holder': return isBangla ? 'চাকুরীজীবী' : 'Job Holder / Professional';
-                                case 'academician': return isBangla ? 'শিক্ষক / গবেষক' : 'Teacher / Researcher';
-                                case 'business': return isBangla ? 'ব্যবসায়ী' : 'Business Owner';
-                                case 'other': return isBangla ? 'অন্যান্য' : 'Other';
-                                default: return selectedVolunteer.profession || '—';
-                              }
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Availability */}
-                      <div className="flex items-start gap-2.5">
-                        <Clock size={14} className="text-gray-400 mt-0.5" />
-                        <div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'কাজের সময়' : 'Time Availability'}</div>
-                          <div className="text-xs font-semibold text-gray-700">
-                            {(() => {
-                              switch (selectedVolunteer.availability) {
-                                case 'flexible': return isBangla ? 'ফ্লেক্সিবল / প্রজেক্ট ভিত্তিক' : 'Flexible / Project Based';
-                                case 'weekends': return isBangla ? 'শুধু সাপ্তাহিক ছুটির দিন' : 'Weekends Only';
-                                case 'weekdays': return isBangla ? 'कर्मदिवस সমূহে' : 'Weekdays Only';
-                                case 'fulltime': return isBangla ? 'ফুল-টাইম ডেডিকেশন' : 'Full-time Dedication';
-                                default: return selectedVolunteer.availability || '—';
-                              }
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Submitted Date & Exact Time */}
-                      <div className="flex items-start gap-2.5">
-                        <Clock size={15} className="text-[#1F5E2E] mt-0.5 shrink-0" />
-                        <div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{isBangla ? 'আবেদনের সঠিক তারিখ ও সময়' : 'Exact Submission Date & Time'}</div>
-                          <div className="text-xs font-bold text-gray-800 font-mono">
-                            {formatFullDateTime(selectedVolunteer.date)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Section: Admin Actions */}
-                <div className="bg-gray-50 border border-gray-200/80 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-gray-500 uppercase tracking-wider font-mono">
-                    <ShieldCheck size={14} className="text-[#1F5E2E]" />
-                    <span>{isBangla ? 'অ্যাডমিন কন্ট্রোল: সদস্যপদ আপডেট' : 'Admin Action: Update Membership Status'}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <select
-                      value={selectedVolunteer.membership || 'no_intent'}
-                      onChange={(e) => handleUpdateVolunteerStatus(selectedVolunteer.id, e.target.value)}
-                      className="flex-1 bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] transition-all outline-none"
-                    >
-                      <option value="no_intent">{isBangla ? 'মাঠ ভলান্টিয়ার (Field Volunteer Only)' : 'Field Volunteer Only'}</option>
-                      <option value="submitted_pending">{isBangla ? 'আবেদন পেন্ডিং (Submitted Form)' : 'Submitted Form'}</option>
-                      <option value="already_member">{isBangla ? 'আজীবন সদস্য (Lifetime Member)' : 'Lifetime Member'}</option>
-                    </select>
-                    
-                    <span className="text-[10px] text-[#1F5E2E] font-bold font-mono text-center sm:text-right bg-[#6BBF3A]/10 px-2.5 py-1.5 rounded-lg border border-[#6BBF3A]/20">
-                      {isBangla ? 'তাত্ক্ষণিক আপডেট হবে' : 'Saves Instantly'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Section: Motivation / Intro Message */}
-                <div className="space-y-3">
-                  <h5 className="text-xs font-black text-gray-400 uppercase tracking-wider font-mono">
-                    {isBangla ? 'স্বেচ্ছাসেবক হওয়ার মূল প্রেরণা ও বার্তা' : 'Motivation Message & Message Details'}
-                  </h5>
-                  <div className="bg-[#1F5E2E]/5 border border-[#1F5E2E]/10 rounded-2xl p-5 relative">
-                    <span className="absolute right-5 top-4 text-[#1F5E2E]/15 font-serif text-6xl leading-none select-none">“</span>
-                    <p className="text-gray-700 text-xs leading-relaxed font-sans font-medium whitespace-pre-wrap relative z-10">
-                      {selectedVolunteer.message || (isBangla ? 'কোনো বার্তা প্রদান করা হয়নি।' : 'No custom message was submitted.')}
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <a
-                    href={getVolunteerGmailUrl(selectedVolunteer)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow"
-                    title={isBangla ? 'Gmail-এ স্বীকৃতিপত্র ইমেল অটো-ড্রাফট করুন' : 'Auto-draft acknowledgment email in Gmail'}
-                  >
-                    <Mail size={14} />
-                    <span>{isBangla ? 'Gmail-এ ইমেল ড্রাফট' : 'Send via Gmail'}</span>
-                  </a>
-                  <a
-                    href={`tel:${selectedVolunteer.phone}`}
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-100 text-[#1F5E2E] border border-gray-200 py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
-                  >
-                    <Phone size={13} />
-                    <span>{isBangla ? 'কল করুন' : 'Call Mobile'}</span>
-                  </a>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedVolunteer(null)}
-                  className="w-full sm:w-auto py-2 px-5 border border-gray-200 hover:bg-gray-100 text-gray-700 bg-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
-                >
-                  {isBangla ? 'বন্ধ করুন' : 'Close Details'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
         {/* Edit Volunteer Modal */}
         {editingVolunteer && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
