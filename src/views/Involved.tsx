@@ -46,6 +46,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
   const [transactionId, setTransactionId] = useState('');
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
+  const [donorPhone, setDonorPhone] = useState('');
   const [donationError, setDonationError] = useState('');
 
   // Validate Step 1 (Personal & Contact)
@@ -203,6 +204,11 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       return;
     }
 
+    if (!donorPhone.trim()) {
+      setDonationError(isBangla ? 'অনুগ্রহ করে টাকা পাঠানোর মোবাইল নম্বর দিন' : 'Please enter sender mobile number');
+      return;
+    }
+
     if (!donorEmail.trim()) {
       setDonationError(isBangla ? 'অনুগ্রহ করে আপনার ইমেইল দিন' : 'Please enter your email');
       return;
@@ -238,6 +244,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       const payload = {
         name: donorName,
         email: donorEmail,
+        phone: donorPhone,
         amount: finalAmount,
         method: paymentMethod,
         paymentMethod: paymentMethod,
@@ -262,6 +269,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
           
           setDonorName('');
           setDonorEmail('');
+          setDonorPhone('');
           onFormSuccess(
             isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
             isBangla
@@ -288,6 +296,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         .then((data) => {
           setDonorName('');
           setDonorEmail('');
+          setDonorPhone('');
           onFormSuccess(
             isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
             isBangla
@@ -304,6 +313,10 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
 
   const handleVerifyTransaction = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!donorPhone.trim()) {
+      alert(isBangla ? 'অনুগ্রহ করে টাকা পাঠানোর মোবাইল নম্বর দিন' : 'Please enter sender mobile number');
+      return;
+    }
     if (!transactionId.trim()) {
       alert(isBangla ? 'অনুগ্রহ করে ট্রানজেকশন আইডি দিন' : 'Please enter the transaction ID');
       return;
@@ -314,6 +327,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
     const payload = {
       name: donorName,
       email: donorEmail,
+      phone: donorPhone,
       amount: finalAmount,
       method: paymentMethod,
       paymentMethod: paymentMethod,
@@ -340,6 +354,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         setTransactionId('');
         setDonorName('');
         setDonorEmail('');
+        setDonorPhone('');
 
         onFormSuccess(
           isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
@@ -369,6 +384,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         setTransactionId('');
         setDonorName('');
         setDonorEmail('');
+        setDonorPhone('');
 
         onFormSuccess(
           isBangla ? 'অনুদান যাচাইাধীন রয়েছে (Under Review)!' : 'Donation Under Review!',
@@ -1369,11 +1385,12 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
               )}
 
               {/* Donor Contact Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans">
+              <div className="space-y-4 font-sans">
+                {/* Donor Full Name */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                     <User size={12} className="text-[#6BBF3A]" />
-                    <span>{isBangla ? 'আপনার নাম' : 'Your Name'} *</span>
+                    <span>{isBangla ? 'আপনার পূর্ণ নাম' : 'Your Full Name'} *</span>
                   </label>
                   <input
                     type="text"
@@ -1388,22 +1405,49 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                    <Mail size={12} className="text-[#6BBF3A]" />
-                    <span>{isBangla ? 'ইমেইল ঠিকানা' : 'Email Address'} *</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={donorEmail}
-                    onChange={(e) => {
-                      setDonorEmail(e.target.value);
-                      setDonationError('');
-                    }}
-                    placeholder={isBangla ? 'যেমন: name@example.com' : 'e.g. name@example.com'}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 transition-all font-semibold"
-                    required
-                  />
+                {/* Sender Mobile Number & Email side by side */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                      <Phone size={12} className="text-[#6BBF3A]" />
+                      <span>{isBangla ? 'টাকা পাঠানোর মোবাইল নম্বর' : 'Sender Mobile Number'} *</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={donorPhone}
+                      onChange={(e) => {
+                        setDonorPhone(e.target.value);
+                        setDonationError('');
+                      }}
+                      placeholder="017XXXXXXXX"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 transition-all font-semibold font-mono"
+                      required
+                    />
+                    <p className="text-[10px] text-gray-400 pl-0.5">
+                      {isBangla ? 'যে বিকাশ/নগদ নম্বর থেকে টাকা পাঠাবেন/পাঠিয়েছেন' : 'Number from which money is sent'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                      <Mail size={12} className="text-[#6BBF3A]" />
+                      <span>{isBangla ? 'ইমেইল ঠিকানা' : 'Email Address'} *</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={donorEmail}
+                      onChange={(e) => {
+                        setDonorEmail(e.target.value);
+                        setDonationError('');
+                      }}
+                      placeholder={isBangla ? 'যেমন: name@example.com' : 'e.g. name@example.com'}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 transition-all font-semibold"
+                      required
+                    />
+                    <p className="text-[10px] text-gray-400 pl-0.5">
+                      {isBangla ? 'প্রাপ্তিস্বীকার ও অডিট আপডেটের জন্য' : 'For acknowledgment and tax receipts'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1571,6 +1615,26 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
 
               {/* Submit ID Form */}
               <form onSubmit={handleVerifyTransaction} className="space-y-4">
+                {/* Sender Mobile Number */}
+                <div className="flex flex-col gap-1 font-sans">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Phone size={12} className="text-[#6BBF3A]" />
+                    <span>{isBangla ? 'টাকা পাঠানোর মোবাইল নম্বর (Sender Number)' : 'Sender Mobile Number'} *</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={donorPhone}
+                    onChange={(e) => setDonorPhone(e.target.value)}
+                    placeholder="017XXXXXXXX"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-bold font-mono"
+                    required
+                  />
+                  <p className="text-[10px] text-gray-400">
+                    {isBangla ? 'যে বিকাশ/নগদ নম্বর থেকে সেন্ড মানি করেছেন' : 'The wallet number you used to send money'}
+                  </p>
+                </div>
+
+                {/* Trans ID */}
                 <div className="flex flex-col gap-1 font-sans">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                     <Lock size={12} className="text-[#6BBF3A]" />
@@ -1581,7 +1645,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
                     value={transactionId}
                     onChange={(e) => setTransactionId(e.target.value)}
                     placeholder="e.g. A9B8C7D6E5"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-bold"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-[#6BBF3A] text-sm text-gray-800 font-bold uppercase font-mono"
                     required
                   />
                 </div>

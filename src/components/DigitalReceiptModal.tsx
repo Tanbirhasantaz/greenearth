@@ -5,6 +5,7 @@ import { X, Award, Printer, Download, CheckCircle, ShieldCheck, Leaf } from 'luc
 export interface ReceiptData {
   type: 'volunteer' | 'donation';
   recipientName: string;
+  phone?: string;
   amount?: string | number;
   paymentMethod?: string;
   projectOrInterest?: string;
@@ -135,6 +136,12 @@ export default function DigitalReceiptModal({
                   <div>
                     <span className="text-gray-400 block text-[10px] uppercase font-bold">{isBangla ? 'ট্রানজেকশন আইডি' : 'Trx ID'}</span>
                     <span className="font-mono text-gray-800 font-semibold">{data.transactionId}</span>
+                  </div>
+                )}
+                {data.phone && (
+                  <div>
+                    <span className="text-gray-400 block text-[10px] uppercase font-bold">{isBangla ? 'প্রেরক মোবাইল' : 'Sender Phone'}</span>
+                    <span className="font-mono text-gray-800 font-semibold">{data.phone}</span>
                   </div>
                 )}
                 {data.projectOrInterest && (

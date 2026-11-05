@@ -101,6 +101,7 @@ interface Donation {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   amount: number;
   paymentMethod: string;
   method?: string;
@@ -3433,6 +3434,7 @@ ${orgName} Bangladesh`;
                 const matchesSearch = !term ||
                   (don.name && don.name.toLowerCase().includes(term)) ||
                   (don.email && don.email.toLowerCase().includes(term)) ||
+                  (don.phone && String(don.phone).toLowerCase().includes(term)) ||
                   ((don.transId || don.transactionId) && (don.transId || don.transactionId).toLowerCase().includes(term));
 
                 const status = (don.status || 'pending').toLowerCase();
@@ -3511,7 +3513,7 @@ ${orgName} Bangladesh`;
                       type="text"
                       value={donSearchTerm}
                       onChange={(e) => setDonSearchTerm(e.target.value)}
-                      placeholder={isBangla ? 'নাম, ইমেইল অথবা ট্রানজেকশন আইডি দিয়ে খুঁজুন...' : 'Search contributor, email, or transaction ID...'}
+                      placeholder={isBangla ? 'নাম, মোবাইল নম্বর, ইমেইল অথবা ট্রানজেকশন আইডি দিয়ে খুঁজুন...' : 'Search contributor, sender phone, email, or transaction ID...'}
                       className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] transition-all outline-none"
                     />
                   </div>
@@ -3547,7 +3549,15 @@ ${orgName} Bangladesh`;
                         const trans = don.transId || don.transactionId || '—';
                         return (
                           <tr key={don.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-4 px-4 font-bold text-gray-900">{don.name || 'Anonymous'}</td>
+                            <td className="py-4 px-4">
+                              <div className="font-bold text-gray-900">{don.name || 'Anonymous'}</div>
+                              {don.phone && (
+                                <div className="text-[11px] text-emerald-700 font-mono flex items-center gap-1 mt-0.5" title={isBangla ? 'টাকা পাঠানোর মোবাইল নম্বর' : 'Sender Mobile Number'}>
+                                  <Phone size={11} className="text-[#6BBF3A]" />
+                                  <span>{don.phone}</span>
+                                </div>
+                              )}
+                            </td>
                             <td className="py-4 px-4 text-xs text-gray-600">{don.email || '—'}</td>
                             <td className="py-4 px-4 font-black text-[#1F5E2E]">৳{(don.amount || 0).toLocaleString()}</td>
                             <td className="py-4 px-4">
