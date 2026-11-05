@@ -312,7 +312,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       const volunteer = {
         ...body,
         id: body?.id || 'vol-' + Date.now(),
-        date: body?.date || new Date().toISOString()
+        date: (body?.date && (body.date.includes('T') || body.date.includes(':'))) ? body.date : new Date().toISOString()
       };
       const idx = volunteers.findIndex((v: any) => String(v.id) === String(volunteer.id));
       if (idx !== -1) {
@@ -359,7 +359,7 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       const donation = {
         ...body,
         id: body?.id || 'don-' + Date.now(),
-        date: body?.date || new Date().toISOString()
+        date: (body?.date && (body.date.includes('T') || body.date.includes(':'))) ? body.date : new Date().toISOString()
       };
       const idx = donations.findIndex((d: any) => String(d.id) === String(donation.id));
       if (idx !== -1) {

@@ -87,7 +87,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       bloodGroup: volBloodGroup,
       availability: volAvailability,
       message: volMessage,
-      date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+      date: new Date().toISOString()
     };
 
     const executeClientFallbackVolunteer = () => {
@@ -212,7 +212,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
         transactionId: txnId,
         transId: txnId,
         status: 'verified',
-        date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+        date: new Date().toISOString()
       };
 
       const executeClientFallbackDirectDonation = () => {
@@ -288,7 +288,7 @@ export default function Involved({ isBangla, onFormSuccess, settings }: Involved
       transactionId: transactionId,
       transId: transactionId,
       status: 'pending',
-      date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+      date: new Date().toISOString()
     };
 
     const executeClientFallbackVerifyDonation = () => {

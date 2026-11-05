@@ -1546,6 +1546,34 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     document.body.removeChild(link);
   };
 
+  // Format exact date and time helper
+  const formatFullDateTime = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const hasTime = dateStr.includes('T') || dateStr.includes(':');
+      if (!hasTime) {
+        return d.toLocaleDateString(isBangla ? 'bn-BD' : 'en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
+      return d.toLocaleString(isBangla ? 'bn-BD' : 'en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   const downloadVolunteersCSV = () => {
     if (!Array.isArray(volunteers) || volunteers.length === 0) return;
 
@@ -1617,7 +1645,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       getAvailabilityLabel(vol.availability),
       getMembershipLabel((vol as any).membershipStatus || vol.membership),
       vol.message || '',
-      vol.date || ''
+      formatFullDateTime(vol.date)
     ]);
 
     // Format into standard CSV row structure with quotes and escaped characters
@@ -3026,7 +3054,10 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                                   </div>
                                   <div className="space-y-0.5">
                                     <div className="font-extrabold text-gray-900 text-sm leading-tight hover:text-[#1F5E2E] transition-colors">{vol.name}</div>
-                                    <div className="text-gray-400 font-mono text-[10px]">{new Date(vol.date).toLocaleDateString()}</div>
+                                    <div className="text-gray-500 font-mono text-[10px] flex items-center gap-1" title={formatFullDateTime(vol.date)}>
+                                      <Clock size={11} className="text-[#1F5E2E] shrink-0" />
+                                      <span>{formatFullDateTime(vol.date)}</span>
+                                    </div>
                                   </div>
                                 </div>
                               </td>
@@ -3268,7 +3299,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                               </select>
                             </td>
                             <td className="py-4 px-4 text-xs text-gray-400 font-mono">
-                              {don.date ? (don.date.includes('-') && don.date.length > 10 ? new Date(don.date).toLocaleDateString() : don.date) : 'N/A'}
+                              {don.date ? formatFullDateTime(don.date) : 'N/A'}
                             </td>
                             <td className="py-4 px-4">
                               <button
@@ -5739,13 +5770,13 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                         </div>
                       </div>
 
-                      {/* Submitted Date */}
+                      {/* Submitted Date & Exact Time */}
                       <div className="flex items-start gap-2.5">
-                        <Calendar size={14} className="text-gray-400 mt-0.5" />
+                        <Clock size={15} className="text-[#1F5E2E] mt-0.5 shrink-0" />
                         <div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase">{isBangla ? 'আবেদনের তারিখ' : 'Application Date'}</div>
-                          <div className="text-xs font-semibold text-gray-700">
-                            {new Date(selectedVolunteer.date).toLocaleString()}
+                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{isBangla ? 'আবেদনের সঠিক তারিখ ও সময়' : 'Exact Submission Date & Time'}</div>
+                          <div className="text-xs font-bold text-gray-800 font-mono">
+                            {formatFullDateTime(selectedVolunteer.date)}
                           </div>
                         </div>
                       </div>
@@ -5851,8 +5882,11 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                     <h4 className="text-lg font-black leading-tight">
                       {isBangla ? 'স্বেচ্ছাসেবকের তথ্য সম্পাদনা' : 'Edit Volunteer Information'}
                     </h4>
-                    <p className="text-[10px] text-emerald-100 font-medium tracking-wider">
-                      ID: {editingVolunteer.id}
+                    <p className="text-[10px] text-emerald-100 font-medium tracking-wider flex items-center gap-1.5">
+                      <span>ID: {editingVolunteer.id}</span>
+                      <span>•</span>
+                      <Clock size={10} className="shrink-0" />
+                      <span>{formatFullDateTime(editingVolunteer.date)}</span>
                     </p>
                   </div>
                 </div>
