@@ -1574,6 +1574,86 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     }
   };
 
+  const getVolunteerInterestName = (interest?: string) => {
+    switch (interest) {
+      case 'plantation': return isBangla ? 'ম্যানগ্রোভ বৃক্ষরোপণ কর্মসূচি' : 'Mangrove Tree Plantation';
+      case 'renewable': return isBangla ? 'সৌর বিদ্যুৎ ও নবায়নযোগ্য জ্বালানি' : 'Solar Micro-Grid Electrification';
+      case 'water': return isBangla ? 'বিশুদ্ধ পানি সরবরাহ ও আর্সেনিক প্রতিকার' : 'Safe Water Supply & Well Drilling';
+      case 'waste': return isBangla ? 'নদী ও প্লাস্টিক বর্জ্য অপসারণ' : 'River Cleanup & Waste Recycling';
+      case 'awareness': return isBangla ? 'পরিবেশ সচেতনতা ক্যাম্পেইন' : 'Environmental School Campaigns';
+      default: return interest || (isBangla ? 'সাধারণ স্বেচ্ছাসেবা' : 'General Volunteering');
+    }
+  };
+
+  // Helper to generate direct Gmail Compose URL with pre-filled acknowledgment template
+  const getVolunteerGmailUrl = (vol?: Volunteer | null) => {
+    if (!vol || !vol.email) return '#';
+    const interestName = getVolunteerInterestName(vol.interest);
+    const dateFormatted = formatFullDateTime(vol.date);
+
+    const subject = isBangla
+      ? `গ্রিন আর্থ - আপনার স্বেচ্ছাসেবী আবেদন গৃহীত হয়েছে (রেফারেন্স: ${vol.id})`
+      : `Green Earth - Volunteer Application Received (Ref: ${vol.id})`;
+
+    const body = isBangla
+      ? `প্রিয় ${vol.name || 'স্বেচ্ছাসেবী বন্ধু'},
+
+গ্রিন আর্থ (Green Earth)-এ স্বেচ্ছাসেবী হিসেবে যুক্ত হওয়ার আগ্রহ প্রকাশ করায় আপনাকে আন্তরিক ধন্যবাদ!
+
+আপনার স্বেচ্ছাসেবী আবেদনপত্রটি সফলভাবে আমাদের সিস্টেমে গৃহীত হয়েছে।
+
+আবেদনের বিবরণ:
+----------------------------------------
+• রেফারেন্স আইডি: ${vol.id}
+• ক্যাম্পেইন / আগ্রহ: ${interestName}
+• জেলা / এলাকা: ${vol.location || 'উল্লেখ নেই'}
+• মোবাইল নম্বর: ${vol.phone || 'উল্লেখ নেই'}
+• আবেদনের সময়: ${dateFormatted}
+----------------------------------------
+
+আমাদের কেন্দ্রীয় স্বেচ্ছাসেবী সমন্বয়ক টিম আপনার আবেদনটি পর্যালোচনা করছে। খুব শীঘ্রই আপনার সাথে পরবর্তী কার্যক্রম ও ওরিয়েন্টেশন সেশন সম্পর্কে যোগাযোগ করা হবে।
+
+যেকোনো তথ্য বা প্রয়োজনে আমাদের সাথে যোগাযোগ করতে পারেন:
+• হটলাইন: +880 1712-345678
+• ইমেইল: info@greenearth.org
+• ওয়েবসাইট: greenearth.org
+
+সবুজ ও সুন্দর বাংলাদেশ বিনির্মাণে আমাদের সাথে থাকার জন্য ধন্যবাদ!
+
+বিনীত,
+স্বেচ্ছাসেবী সমন্বয়ক দল
+গ্রিন আর্থ বাংলাদেশ`
+      : `Dear ${vol.name || 'Volunteer'},
+
+Thank you for your interest in volunteering with Green Earth!
+
+We are pleased to inform you that your volunteer application has been successfully received by our coordination team.
+
+Application Summary:
+----------------------------------------
+• Reference ID: ${vol.id}
+• Campaign Interest: ${interestName}
+• Location / District: ${vol.location || 'Not Specified'}
+• Contact Phone: ${vol.phone || 'Not Specified'}
+• Submitted On: ${dateFormatted}
+----------------------------------------
+
+Our volunteer coordinators are currently reviewing your profile and will connect with you shortly regarding upcoming orientation sessions and field activations.
+
+If you have any urgent queries, feel free to reply directly to this email or reach us:
+• Hotline: +880 1712-345678
+• Email: info@greenearth.org
+• Website: greenearth.org
+
+Together for a greener, cleaner Bangladesh!
+
+Warm regards,
+Volunteer Coordination Team
+Green Earth Bangladesh`;
+
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(vol.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   const downloadVolunteersCSV = () => {
     if (!Array.isArray(volunteers) || volunteers.length === 0) return;
 
@@ -3094,6 +3174,15 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                               {/* Action buttons */}
                               <td className="py-4 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
+                                  <a
+                                    href={getVolunteerGmailUrl(vol)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#1F5E2E] rounded-xl cursor-pointer transition-colors inline-flex items-center justify-center"
+                                    title={isBangla ? 'Gmail-এ স্বীকৃতিপত্র ইমেল ড্রাফট করুন' : 'Draft Acknowledgment in Gmail'}
+                                  >
+                                    <Mail size={15} />
+                                  </a>
                                   <button
                                     onClick={() => setSelectedVolunteer(vol)}
                                     className="p-1.5 bg-[#1F5E2E]/10 hover:bg-[#1F5E2E]/20 text-[#1F5E2E] rounded-xl cursor-pointer transition-colors"
@@ -5827,11 +5916,14 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               <div className="p-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <a
-                    href={`mailto:${selectedVolunteer.email}`}
+                    href={getVolunteerGmailUrl(selectedVolunteer)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow"
+                    title={isBangla ? 'Gmail-এ স্বীকৃতিপত্র ইমেল অটো-ড্রাফট করুন' : 'Auto-draft acknowledgment email in Gmail'}
                   >
-                    <Mail size={13} />
-                    <span>{isBangla ? 'ইমেল পাঠান' : 'Send Email'}</span>
+                    <Mail size={14} />
+                    <span>{isBangla ? 'Gmail-এ ইমেল ড্রাফট' : 'Send via Gmail'}</span>
                   </a>
                   <a
                     href={`tel:${selectedVolunteer.phone}`}
