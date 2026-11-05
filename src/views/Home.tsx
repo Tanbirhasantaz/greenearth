@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Page, Project, BlogPost, Testimonial } from '../types';
 import { PROJECTS, BLOG_POSTS, TESTIMONIALS, IMAGES } from '../data';
+import ProjectFundingProgress from '../components/ProjectFundingProgress';
 
 // Stat Counter component to handle incremental numbers cleanly on load
 function StatCounter({ target, suffix = '', label, isBangla }: { target: number, suffix: string, label: string, isBangla: boolean }) {
@@ -534,7 +535,7 @@ export default function Home({
         </div>
       </section>
 
-      {/* 5. GET INVOLVED BANNER */}
+{/* 5. GET INVOLVED BANNER */}
       <section className="relative py-20 bg-[#1F5E2E] overflow-hidden" id="get-involved-cta">
         {/* Background blobs / circles */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-[#6BBF3A]/10 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3" />

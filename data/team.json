@@ -1,0 +1,42 @@
+[
+  {
+    "id": "team-1",
+    "name": "Dr. Anisur Rahman",
+    "nameBn": "ড. আনিসুর রহমান",
+    "role": "Founder & Executive Director",
+    "roleBn": "প্রতিষ্ঠাতা ও নির্বাহী পরিচালক",
+    "bio": "Ph.D. in Environmental Science from DU, passionate about coastal mangrove restoration and sustainable climate action in Bangladesh.",
+    "bioBn": "ঢাকা বিশ্ববিদ্যালয় থেকে পরিবেশ বিজ্ঞানে পিএইচডি। উপকূলীয় ম্যানগ্রোভ পুনরুদ্ধার এবং বাংলাদেশে টেকসই জলবায়ু কার্যক্রম সম্পর্কে অত্যন্ত উত্সাহী।",
+    "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "team-2",
+    "name": "Sumaiya Chowdhury",
+    "nameBn": "সুরাইয়া চৌধুরী",
+    "role": "Lead Climate Engineer & Hydrologist",
+    "roleBn": "প্রধান জলবায়ু প্রকৌশলী ও জলবিদ",
+    "bio": "Specialist in groundwater mapping and solar pumping grids. Keeps remote filtration units and water tube wells clean and running.",
+    "bioBn": "ভূগর্ভস্থ পানি ম্যাপিং এবং সৌর পাম্পিং গ্রিডের বিশেষজ্ঞ। প্রত্যন্ত অঞ্চলের ফিল্টার এবং নলকূপ সচল রাখতে কাজ করেন।",
+    "image": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "team-3",
+    "name": "Faisal Ahmed Tanvir",
+    "nameBn": "ফয়সাল আহমেদ তানভীর",
+    "role": "Director of Community Engagement",
+    "roleBn": "স্থানীয় অংশীদারিত্ব বিষয়ক পরিচালক",
+    "bio": "An activist working on grassroots campaigns. Unites schools, village elders, and student groups for green action drives.",
+    "bioBn": "তৃণমূল অভিযানের একজন কর্মী। পরিবেশবান্ধব কার্যক্রমের জন্য বিদ্যালয়, গ্রামের মুরুব্বি ও ছাত্রদলকে একত্রিত করেন।",
+    "image": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "team-4",
+    "name": "Farhana Akter Lila",
+    "nameBn": "ফারহানা আক্তার লিলা",
+    "role": "Chief Conservation Biologist",
+    "roleBn": "প্রধান জীববৈচিত্র্য বিজ্ঞানী",
+    "bio": "Researches biodiversity in the Sundarbans. Develops native species planting guidelines and tests river ecological health.",
+    "bioBn": "সুন্দরবনের জীববৈচিত্র্য নিয়ে গবেষণা করেন। দেশীয় গাছ রোপণের গাইডলাইন তৈরি করেন এবং নদীর পরিবেশগত স্বাস্থ্য পরীক্ষা করেন।",
+    "image": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80"
+  }
+]

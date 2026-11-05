@@ -1,0 +1,34 @@
+[
+  {
+    "id": "val-1",
+    "title": "Sustainability First",
+    "titleBn": "স্থায়িত্বই প্রধান",
+    "description": "Every project we model aims for long-term ecological balance and locally independent operational self-sufficiency.",
+    "descriptionBn": "আমাদের প্রতিটি প্রকল্পের লক্ষ্য দীর্ঘমেয়াদী পরিবেশগত ভারসাম্য এবং স্থানীয়ভাবে স্বাবলম্বী পরিচালনা নিশ্চিত করা।",
+    "iconName": "Leaf"
+  },
+  {
+    "id": "val-2",
+    "title": "Community Driven",
+    "titleBn": "জনগণের অংশীদারিত্ব",
+    "description": "We believe real change starts bottom-up. Local villagers own, manage, and scale all eco-solutions we launch together.",
+    "descriptionBn": "আমরা বিশ্বাস করি প্রকৃত পরিবর্তন তৃণমূল থেকে শুরু হয়। স্থানীয় গ্রামবাসীরা আমাদের সমস্ত পরিবেশ-বান্ধব সমাধান পরিচালনা করেন।",
+    "iconName": "Users"
+  },
+  {
+    "id": "val-3",
+    "title": "Radical Transparency",
+    "titleBn": "চরম স্বচ্ছতা",
+    "description": "Every Taka donated is logged, tracked, and visible on demand. Financial files and impact measurements are fully open.",
+    "descriptionBn": "অনুদানকৃত প্রতিটি টাকার হিসাব রাখা হয় এবং জনসমক্ষে প্রকাশ করা হয়। আর্থিক বিবরণী ও প্রভাব পরিমাপ সকলের জন্য উন্মুক্ত।",
+    "iconName": "TrendingUp"
+  },
+  {
+    "id": "val-4",
+    "title": "Eco-Innovation",
+    "titleBn": "পরিবেশগত উদ্ভাবন",
+    "description": "Blending traditional Bengali soil wisdom with modern scientific monitoring tools, satellite mapping, and clean energy tech.",
+    "descriptionBn": "ঐতিহ্যবাহী বাঙালি মাটির চাষবাসের জ্ঞানের সাথে আধুনিক বৈজ্ঞানিক পর্যবেক্ষণ, স্যাটেলাইট ম্যাপিং এবং নবায়নযোগ্য জ্বালানির সমন্বয়।",
+    "iconName": "Award"
+  }
+]

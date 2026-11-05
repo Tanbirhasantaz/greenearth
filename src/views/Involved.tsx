@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import DigitalReceiptModal, { ReceiptData } from '../components/DigitalReceiptModal';
 import { Award, Heart, CheckCircle, Info, Lock, ArrowRight, User, Mail, Phone, Calendar, MapPin, Clipboard, Briefcase, Clock, Droplet, Users } from 'lucide-react';
 
 interface InvolvedProps {
@@ -15,6 +16,8 @@ interface InvolvedProps {
 
 export default function Involved({ isBangla, onFormSuccess, settings }: InvolvedProps) {
   // Volunteer Form State
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [volName, setVolName] = useState('');
   const [volEmail, setVolEmail] = useState('');
   const [volPhone, setVolPhone] = useState('');

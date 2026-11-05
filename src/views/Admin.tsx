@@ -210,6 +210,8 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const [volSearchTerm, setVolSearchTerm] = useState('');
   const [volFilterInterest, setVolFilterInterest] = useState('all');
   const [volFilterMembership, setVolFilterMembership] = useState('all');
+  const [donSearchTerm, setDonSearchTerm] = useState('');
+  const [donFilterStatus, setDonFilterStatus] = useState<'all' | 'verified' | 'pending' | 'rejected'>('all');
   const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
 
   // Loading states
@@ -1402,6 +1404,36 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   };
 
   // Download Volunteer list as CSV
+  const downloadDonationsCSV = () => {
+    if (!Array.isArray(donations) || donations.length === 0) return;
+    const headers = [
+      'Contributor Name',
+      'Email',
+      'Amount (BDT)',
+      'Payment Channel',
+      'Transaction ID',
+      'Status',
+      'Submission Date'
+    ];
+    const rows = donations.map((d) => [
+      `"${(d.name || 'Anonymous').replace(/"/g, '""')}"`,
+      `"${(d.email || '').replace(/"/g, '""')}"`,
+      d.amount || 0,
+      `"${(d.paymentMethod || d.method || 'Direct').replace(/"/g, '""')}"`,
+      `"${(d.transId || d.transactionId || '').replace(/"/g, '""')}"`,
+      `"${(d.status || 'pending').replace(/"/g, '""')}"`,
+      `"${(d.date ? new Date(d.date).toLocaleString() : '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `green_earth_donations_audit_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const downloadVolunteersCSV = () => {
     if (!Array.isArray(volunteers) || volunteers.length === 0) return;
 
@@ -2955,20 +2987,109 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
             })()}
 
             {/* --- DONATIONS TAB --- */}
-            {activeTab === 'donations' && (
-              <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-4" id="donations-tab">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <div>
-                    <h3 className="text-lg font-black text-[#1F5E2E] text-left">
+            {activeTab === 'donations' && (() => {
+              const totalRaised = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+              const verifiedDonations = donations.filter(d => d.status === 'verified' || d.status === 'approved' || d.status === 'received');
+              const verifiedTotal = verifiedDonations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+              const pendingCount = donations.filter(d => !d.status || d.status === 'pending').length;
+
+              const filteredDonations = donations.filter((don) => {
+                const term = donSearchTerm.toLowerCase();
+                const matchesSearch = !term ||
+                  (don.name && don.name.toLowerCase().includes(term)) ||
+                  (don.email && don.email.toLowerCase().includes(term)) ||
+                  ((don.transId || don.transactionId) && (don.transId || don.transactionId).toLowerCase().includes(term));
+
+                const status = (don.status || 'pending').toLowerCase();
+                let matchesStatus = true;
+                if (donFilterStatus === 'verified') {
+                  matchesStatus = status === 'verified' || status === 'approved' || status === 'received';
+                } else if (donFilterStatus === 'pending') {
+                  matchesStatus = status === 'pending';
+                } else if (donFilterStatus === 'rejected') {
+                  matchesStatus = status === 'rejected';
+                }
+                return matchesSearch && matchesStatus;
+              });
+
+              return (
+              <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6" id="donations-tab">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                  <div className="text-left">
+                    <h3 className="text-lg font-black text-[#1F5E2E]">
                       {isBangla ? 'অনুদান ও লেনদেন অডিট লেজার' : 'Donations Audit Ledger'}
                     </h3>
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider font-mono mt-0.5">
-                      {isBangla ? 'গ্রাসরুট ফান্ডিং ও মোবাইল পেমেন্ট ট্র্যাকিং' : 'Grassroots funding & mobile transfer validation'}
+                      {isBangla ? `মোট অনুদান রেকর্ড: ${donations.length} টি` : `Total Records: ${donations.length}`}
                     </p>
                   </div>
-                  <span className="text-[10px] text-[#1F5E2E] font-bold font-mono bg-[#6BBF3A]/10 px-3 py-1.5 rounded-lg border border-[#6BBF3A]/20">
-                    {isBangla ? 'তাত্ক্ষণিক ড্রপডাউন আপডেট' : 'Dropdown Saves Instantly'}
-                  </span>
+
+                  {donations.length > 0 && (
+                    <button
+                      onClick={downloadDonationsCSV}
+                      className="inline-flex items-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2.5 px-5 rounded-full text-xs font-black cursor-pointer shadow hover:shadow-md transition-all uppercase tracking-wider self-start md:self-center"
+                    >
+                      <Download size={14} className="stroke-[2.5]" />
+                      <span>{isBangla ? 'অনুদান লেজার ডাউনলোড (CSV)' : 'Export Donations CSV'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* KPI Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-emerald-50/50 border border-emerald-100/80 p-4 rounded-2xl flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-100 text-[#1F5E2E] rounded-xl font-bold text-lg">৳</div>
+                    <div>
+                      <div className="text-lg font-extrabold text-[#1F5E2E]">৳{verifiedTotal.toLocaleString()}</div>
+                      <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                        {isBangla ? 'যাচাইকৃত প্রাপ্ত তহবিল' : 'Verified Funds Received'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50/50 border border-amber-100/80 p-4 rounded-2xl flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl font-bold">⏳</div>
+                    <div>
+                      <div className="text-lg font-extrabold text-amber-800">{pendingCount}</div>
+                      <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                        {isBangla ? 'যাচাইাধীন অনুদান' : 'Pending Verifications'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50/50 border border-blue-100/80 p-4 rounded-2xl flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl font-bold">📋</div>
+                    <div>
+                      <div className="text-lg font-extrabold text-blue-800">{donations.length}</div>
+                      <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                        {isBangla ? 'মোট অনুদান সংখ্যা' : 'Total Donation Submissions'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search & Filter Bar */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3.5 top-3.5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={donSearchTerm}
+                      onChange={(e) => setDonSearchTerm(e.target.value)}
+                      placeholder={isBangla ? 'নাম, ইমেইল অথবা ট্রানজেকশন আইডি দিয়ে খুঁজুন...' : 'Search contributor, email, or transaction ID...'}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] transition-all outline-none"
+                    />
+                  </div>
+                  <select
+                    value={donFilterStatus}
+                    onChange={(e) => setDonFilterStatus(e.target.value as any)}
+                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-700 focus:outline-none"
+                  >
+                    <option value="all">{isBangla ? 'সব স্ট্যাটাস (All)' : 'All Statuses'}</option>
+                    <option value="verified">{isBangla ? 'যাচাইকৃত (Verified)' : 'Verified / Received'}</option>
+                    <option value="pending">{isBangla ? 'যাচাইাধীন (Pending)' : 'Pending Review'}</option>
+                    <option value="rejected">{isBangla ? 'বাতিলকৃত (Rejected)' : 'Rejected'}</option>
+                  </select>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -2986,7 +3107,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {donations.map((don) => {
+                      {filteredDonations.map((don) => {
                         const channel = (don.paymentMethod || don.method || 'Direct').toUpperCase();
                         const trans = don.transId || don.transactionId || '—';
                         return (

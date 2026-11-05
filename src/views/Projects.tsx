@@ -227,6 +227,8 @@ export default function Projects({ isBangla, onProjectClick }: ProjectsProps) {
                     </p>
                   </div>
 
+                  <ProjectFundingProgress project={project} isBangla={isBangla} compact={true} />
+
                   {/* Footer actions */}
                   <div className="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
                     {/* Tiny impact highlight */}

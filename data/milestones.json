@@ -1,0 +1,29 @@
+[
+  {
+    "id": "mile-1",
+    "year": "2024",
+    "yearBn": "২০২৪",
+    "title": "The Seed is Planted",
+    "titleBn": "যাত্রার সূচনা",
+    "description": "Green Earth was founded by a passionate group of environmental scientists and student volunteers in Dhaka to tackle urban pollution and local tree loss.",
+    "descriptionBn": "শহরের পরিবেশ দূষণ ও সবুজ গাছপালার ঘাটতি মোকাবিলায় ঢাকা বিশ্ববিদ্যালয় থেকে একদল পরিবেশ বিজ্ঞানী ও ছাত্র স্বেচ্ছাসেবীর উদ্যোগে গ্রিন আর্থ প্রতিষ্ঠিত হয়।"
+  },
+  {
+    "id": "mile-2",
+    "year": "2025",
+    "yearBn": "২০২৫",
+    "title": "Coastal Shields Project",
+    "titleBn": "উপকূলীয় সুরক্ষা প্রকল্প",
+    "description": "Launched our first mega coastal mangrove plantation in Satkhira, placing 10,000+ Keora and Gewa saplings alongside local coastal guardians.",
+    "descriptionBn": "সাতক্ষীরায় প্রথম বৃহৎ উপকূলীয় ম্যানগ্রোভ রোপণ শুরু হয়, যেখানে স্থানীয়দের অংশীদারিত্বে ১০,০০০টিরও বেশি চারা রোপণ করা হয়।"
+  },
+  {
+    "id": "mile-3",
+    "year": "2026",
+    "yearBn": "২০২৬",
+    "title": "Solar Power for Education",
+    "titleBn": "শিক্ষায় সৌরবিদ্যুৎ",
+    "description": "Successfully expanded our renewable initiative to power 15 remote char schools with sustainable, off-grid clean solar micro-grids.",
+    "descriptionBn": "চরাঞ্চলের ১৫টি প্রত্যন্ত প্রাথমিক বিদ্যালয়কে সম্পূর্ণ টেকসই, অফ-গ্রিড সৌর মাইক্রো-গ্রিডের আওতাহীন সফলভাবে আনা হয়েছে।"
+  }
+]

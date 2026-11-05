@@ -609,6 +609,54 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Security Headers Middleware
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    next();
+  });
+
+  // Lightweight In-Memory Rate Limiter
+  const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+  const createRateLimiter = (maxRequests: number, windowMs: number, message: string) => {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const ip = (req.ip || req.socket.remoteAddress || "unknown_ip") as string;
+      const key = `${req.baseUrl || req.path}_${ip}`;
+      const now = Date.now();
+      const record = rateLimitStore.get(key);
+
+      if (!record || now > record.resetTime) {
+        rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+        return next();
+      }
+
+      if (record.count >= maxRequests) {
+        const retrySec = Math.ceil((record.resetTime - now) / 1000);
+        return res.status(429).json({
+          success: false,
+          error: `${message} Please try again in ${retrySec} seconds.`
+        });
+      }
+
+      record.count += 1;
+      next();
+    };
+  };
+
+  const loginRateLimiter = createRateLimiter(5, 15 * 60 * 1000, "Too many login attempts.");
+  const submissionRateLimiter = createRateLimiter(15, 60 * 60 * 1000, "Too many submissions from this network.");
+
+  // Admin Notification Dispatcher Helper
+  const notifyAdmin = (subject: string, details: Record<string, any>) => {
+    const timestamp = new Date().toLocaleString();
+    console.log(`\n🔔 [ADMIN ALERT - ${timestamp}]`);
+    console.log(`📌 Event: ${subject}`);
+    console.log("📝 Details:", JSON.stringify(details, null, 2));
+    console.log("--------------------------------------------------\n");
+  };
+
   // Set up uploads directory
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
   if (!fs.existsSync(uploadsDir)) {
@@ -783,7 +831,7 @@ async function startServer() {
      ============================================== */
 
   // Auth: Secure Admin Login validation
-  app.post("/api/admin/login", async (req, res) => {
+  app.post("/api/admin/login", loginRateLimiter, async (req, res) => {
     const { email, password } = req.body;
     console.log("LOGIN REQUEST RECEIVED:", { email });
     const settings = await readData<{ username?: string; password?: string }>("settings.json");
@@ -1076,7 +1124,7 @@ async function startServer() {
     res.json(await readData("volunteers.json"));
   });
 
-  app.post("/api/volunteers", async (req, res) => {
+  app.post("/api/volunteers", submissionRateLimiter, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
     const newVol = req.body;
     newVol.id = "vol-" + Date.now();
@@ -1111,7 +1159,7 @@ async function startServer() {
     res.json(await readData("donations.json"));
   });
 
-  app.post("/api/donations", async (req, res) => {
+  app.post("/api/donations", submissionRateLimiter, async (req, res) => {
     const donations = await readData<any[]>("donations.json");
     const newDon = req.body;
     newDon.id = "don-" + Date.now();
@@ -1185,7 +1233,7 @@ async function startServer() {
     res.json(cleanedList);
   });
 
-  app.post("/api/subscribers", async (req, res) => {
+  app.post("/api/subscribers", submissionRateLimiter, async (req, res) => {
     const rawSubs = await readData<any[]>("subscribers.json");
     const subscribers = Array.isArray(rawSubs) ? rawSubs : [];
     const email = extractCleanEmail(req.body?.email || req.body);
@@ -1216,7 +1264,7 @@ async function startServer() {
     res.json(await readData("contacts.json"));
   });
 
-  app.post("/api/contacts", async (req, res) => {
+  app.post("/api/contacts", submissionRateLimiter, async (req, res) => {
     const contacts = await readData<any[]>("contacts.json");
     const newContact = req.body;
     newContact.id = "cont-" + Date.now();

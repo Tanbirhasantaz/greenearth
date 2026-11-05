@@ -1,0 +1,62 @@
+[
+  {
+    "id": "gal-1",
+    "title": "Coastal Mangrove Plantation Satkhira",
+    "titleBn": "উপকূলীয় ম্যানগ্রোভ রোপণ, সাতক্ষীরা",
+    "category": "plantation",
+    "categoryLabel": "Plantation",
+    "categoryLabelBn": "বৃক্ষরোপণ",
+    "image": "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&auto=format&fit=crop&q=80",
+    "date": "2025"
+  },
+  {
+    "id": "gal-2",
+    "title": "Solar Panel System on Char Primary School",
+    "titleBn": "চরাঞ্চল প্রাথমিক বিদ্যালয়ে সৌরবিদ্যুৎ সিস্টেম",
+    "category": "renewable",
+    "categoryLabel": "Solar Power",
+    "categoryLabelBn": "সৌর শক্তি",
+    "image": "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&auto=format&fit=crop&q=80",
+    "date": "2026"
+  },
+  {
+    "id": "gal-3",
+    "title": "Deep Tube Well Installation",
+    "titleBn": "গভীর নলকূপ স্থাপন কার্যক্রম",
+    "category": "water",
+    "categoryLabel": "Clean Water",
+    "categoryLabelBn": "বিশুদ্ধ পানি",
+    "image": "https://images.unsplash.com/photo-1495908333425-29a1e0918c5f?w=800&auto=format&fit=crop&q=80",
+    "date": "2026"
+  },
+  {
+    "id": "gal-4",
+    "title": "Youth Environment Training Workshop",
+    "titleBn": "তরুণ পরিবেশ সচেতনতা কর্মশালা",
+    "category": "campaign",
+    "categoryLabel": "Campaigns",
+    "categoryLabelBn": "সচেতনতা অভিযান",
+    "image": "https://images.unsplash.com/photo-1544531516-a5e857b2a590?w=800&auto=format&fit=crop&q=80",
+    "date": "2025"
+  },
+  {
+    "id": "gal-5",
+    "title": "Community Tree Sapling Nursery",
+    "titleBn": "স্থানীয় চারাগাছ নার্সারি",
+    "category": "plantation",
+    "categoryLabel": "Plantation",
+    "categoryLabelBn": "বৃক্ষরোপণ",
+    "image": "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&auto=format&fit=crop&q=80",
+    "date": "2025"
+  },
+  {
+    "id": "gal-6",
+    "title": "Clean Buriganga River Campaign",
+    "titleBn": "বুড়িগঙ্গা নদী পরিচ্ছন্নতা অভিযান",
+    "category": "waste",
+    "categoryLabel": "Waste Cleanups",
+    "categoryLabelBn": "বর্জ্য অপসারণ",
+    "image": "https://images.unsplash.com/photo-1618477388954-7852f32655ec?w=800&auto=format&fit=crop&q=80",
+    "date": "2026"
+  }
+]

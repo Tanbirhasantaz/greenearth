@@ -1,0 +1,38 @@
+[
+  {
+    "id": "focus-1",
+    "iconName": "Trees",
+    "title": "Tree Plantation",
+    "titleBn": "বৃক্ষরোপণ কর্মসূচি",
+    "description": "Planting native trees and coastal mangroves in erosion-prone belts of Sundarbans and northern riverbanks.",
+    "descriptionBn": "সুন্দরবন উপকূল এবং উত্তরাঞ্চলের নদীভাঙন কবলিত এলাকায় দেশীয় চারা রোপণ ও ম্যানগ্রোভ বনায়ন তৈরি করা।",
+    "color": "emerald"
+  },
+  {
+    "id": "focus-2",
+    "iconName": "Sun",
+    "title": "Renewable Energy",
+    "titleBn": "নবায়নযোগ্য জ্বালানি",
+    "description": "Sponsoring reliable off-grid solar micro-grids for isolated schools and homes in northern river chars.",
+    "descriptionBn": "চরাঞ্চলের গ্রিডহীন প্রত্যন্ত এলাকায় সৌর প্যানেল ও হোম সিস্টেমের মাধ্যমে বিদ্যুৎ ও আলোর ব্যবস্থা করা।",
+    "color": "amber"
+  },
+  {
+    "id": "focus-3",
+    "iconName": "Droplet",
+    "title": "Water Conservation",
+    "titleBn": "বিশুদ্ধ পানি সরবরাহ",
+    "description": "Drilling deep, arsenic-free tube wells and setting rainwater purification structures in contaminated hubs.",
+    "descriptionBn": "আর্সেনিক ও স্যালাইন কবলিত এলাকায় গভীর বিশুদ্ধ নলকূপ এবং বৃষ্টির পানি ফিল্টারিং প্ল্যান্ট স্থাপন করা।",
+    "color": "sky"
+  },
+  {
+    "id": "focus-4",
+    "iconName": "Trash2",
+    "title": "Waste & Recycling",
+    "titleBn": "বর্জ্য ও রিসাইক্লিং",
+    "description": "Organizing riverbank plastic cleanups and teaching households smart eco-friendly recycling habits.",
+    "descriptionBn": "বুড়িগঙ্গাসহ বিভিন্ন নদী তীরবর্তী প্লাস্টিক অপসারণ এবং বাসাবাড়ির রিসাইক্লিং অভ্যাসের প্রশিক্ষণ দেওয়া।",
+    "color": "purple"
+  }
+]
