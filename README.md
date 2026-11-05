@@ -13,7 +13,7 @@
 
 ## 📖 Overview
 
-**Green Earth** is a non-profit environmental organization platform designed to showcase environmental conservation projects, recruit and coordinate volunteers, accept donation pledges, and run the **Green Hero Initiative** (tree adoption and monthly growth tracking).
+**Green Earth** is a non-profit environmental organization platform designed to showcase environmental conservation projects, recruit and coordinate volunteers, accept donation pledges.
 
 ### Key Highlights
 - **Dual Language Support:** Full native bilingual support in **English** and **বাংলা (Bangla)** across all public views and admin controls.

@@ -28,11 +28,7 @@ function initializeDataFiles() {
     testimonials: path.join(DATA_DIR, "testimonials.json"),
     milestones: path.join(DATA_DIR, "milestones.json"),
     corevalues: path.join(DATA_DIR, "corevalues.json"),
-    focusareas: path.join(DATA_DIR, "focusareas.json"),
-    ge_gh_participants: path.join(DATA_DIR, "ge_gh_participants.json"),
-    ge_gh_trees: path.join(DATA_DIR, "ge_gh_trees.json"),
-    ge_gh_logs: path.join(DATA_DIR, "ge_gh_logs.json"),
-    ge_gh_overview: path.join(DATA_DIR, "ge_gh_overview.json")
+    focusareas: path.join(DATA_DIR, "focusareas.json")
   };
 
   // 1. Initial Projects
@@ -599,28 +595,6 @@ function initializeDataFiles() {
       }
     ];
     fs.writeFileSync(filePaths.focusareas, JSON.stringify(initialFocusAreas, null, 2));
-  }
-
-  // 14. Initial Green Hero Files
-  if (!fs.existsSync(filePaths.ge_gh_participants)) {
-    fs.writeFileSync(filePaths.ge_gh_participants, JSON.stringify([], null, 2));
-  }
-  if (!fs.existsSync(filePaths.ge_gh_trees)) {
-    fs.writeFileSync(filePaths.ge_gh_trees, JSON.stringify([], null, 2));
-  }
-  if (!fs.existsSync(filePaths.ge_gh_logs)) {
-    fs.writeFileSync(filePaths.ge_gh_logs, JSON.stringify([], null, 2));
-  }
-  if (!fs.existsSync(filePaths.ge_gh_overview)) {
-    const defaultOverview = {
-      titleEn: "Green Hero Initiative (Adapt a Tree)",
-      titleBn: "গ্রিন হিরো ইনিশিয়েティブ - একটি গাছ দত্তক নিন",
-      subtitleEn: "Plant Trees Today, Protect Tomorrow",
-      subtitleBn: "আজই বৃক্ষরোপণ করুন, আগামীকে সুরক্ষিত রাখুন",
-      descriptionEn: "Become a proud 'Green Hero' by planting and nurturing trees in your local community. Join our collective movement to combat rising heatwaves, increase urban green canopy, and foster climate resilience across Bangladesh. Register your trees, upload monthly growth logs, and earn your official certificate and badge.",
-      descriptionBn: "নিজের এলাকায় গাছ রোপণ ও পরিচর্যা করে একজন গর্বিত 'গ্রিন হিরো' হয়ে উঠুন। ক্রমবর্ধমান দাবদাহ মোকাবিলা, শহরের সবুজ আচ্ছাদন বৃদ্ধি এবং জলবায়ু সহনশীল বাংলাদেশ গড়তে আমাদের সম্মিলিত আন্দোলনে যোগ দিন। আপনার রোপণ করা গাছের নিবন্ধন করুন, প্রতিমাসে বৃদ্ধির ছবি আপলোড করুন এবং অর্জন করুন অফিশিয়াল সার্টিফিকেট ও ব্যাজ।"
-    };
-    fs.writeFileSync(filePaths.ge_gh_overview, JSON.stringify(defaultOverview, null, 2));
   }
 }
 

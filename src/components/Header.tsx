@@ -47,7 +47,6 @@ export default function Header({
     { id: 'home', label: 'Home', labelBn: 'হোম' },
     { id: 'about', label: 'About Us', labelBn: 'আমাদের সম্পর্কে' },
     { id: 'projects', label: 'Projects', labelBn: 'প্রকল্পসমূহ' },
-    { id: 'green-hero', label: 'Green Hero', labelBn: 'গ্রিন হিরো', isExternal: true, href: 'https://green-hero.vercel.app/' },
     { id: 'involved', label: 'Get Involved', labelBn: 'অংশ নিন' },
     { id: 'blog', label: 'Blog & News', labelBn: 'ব্লগ ও খবর' },
     { id: 'gallery', label: 'Gallery', labelBn: 'গ্যালারি' },

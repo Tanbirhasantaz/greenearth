@@ -103,7 +103,6 @@ export default function Footer({
     { id: 'home', label: 'Home', labelBn: 'হোম' },
     { id: 'about', label: 'About Us', labelBn: 'আমাদের সম্পর্কে' },
     { id: 'projects', label: 'Projects & Campaigns', labelBn: 'প্রকল্প ও অভিযানসমূহ' },
-    { id: 'green-hero', label: 'Green Hero (গ্রিন হিরো)', labelBn: 'গ্রিন হিরো ইনিশিয়েটিভ', isExternal: true, href: 'https://green-hero.vercel.app/' },
     { id: 'involved', label: 'Join as Volunteer', labelBn: 'স্বেচ্ছাসেবী হোন' },
     { id: 'blog', label: 'Blog & Articles', labelBn: 'নিবন্ধ ও ব্লগ' },
     { id: 'gallery', label: 'Photo Gallery', labelBn: 'ছবি গ্যালারি' },

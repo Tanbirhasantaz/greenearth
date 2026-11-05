@@ -1996,7 +1996,6 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
               <option value="subscribers">Subscribers</option>
               <option value="contacts">Contact submissions</option>
               <option value="popup">Announcement Popup</option>
-              <option value="green-hero">Green Hero Initiative</option>
               <option value="settings">Settings</option>
             </select>
 
