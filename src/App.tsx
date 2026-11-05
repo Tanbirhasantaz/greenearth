@@ -26,7 +26,7 @@ import Involved from './views/Involved';
 import Blog from './views/Blog';
 import Gallery from './views/Gallery';
 import Contact from './views/Contact';
-const Admin = React.lazy(() => import('./views/Admin'));
+import Admin from './views/Admin';
 
 // Types & Data
 import { Page, Project, BlogPost, GalleryItem } from './types';
@@ -277,18 +277,7 @@ export default function App() {
       case 'contact':
         return <Contact isBangla={isBangla} onFormSuccess={handleSuccessTrigger} settings={settings} />;
       case 'admin':
-        return (
-          <React.Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-[#FAFAF7] pt-24 pb-12">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-10 h-10 border-4 border-[#1F5E2E]/20 border-t-[#1F5E2E] rounded-full animate-spin" />
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{isBangla ? 'অ্যাডমিন প্যানেল লোড হচ্ছে...' : 'Loading Admin Portal...'}</p>
-              </div>
-            </div>
-          }>
-            <Admin isBangla={isBangla} settings={settings} onSettingsSaved={fetchSettings} />
-          </React.Suspense>
-        );
+        return <Admin isBangla={isBangla} settings={settings} onSettingsSaved={fetchSettings} />;
       default:
         return (
           <Home

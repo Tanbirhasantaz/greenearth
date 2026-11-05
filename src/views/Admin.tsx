@@ -1584,13 +1584,14 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     document.body.removeChild(link);
   };
 
-  // Format exact date and time helper
-  const formatFullDateTime = (dateStr?: string) => {
+  // Format exact date and time helper with full type and null safety
+  const formatFullDateTime = (dateStr?: string | number | null) => {
     if (!dateStr) return '—';
     try {
+      const str = String(dateStr);
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      const hasTime = dateStr.includes('T') || dateStr.includes(':');
+      if (isNaN(d.getTime())) return str;
+      const hasTime = str.includes('T') || str.includes(':');
       if (!hasTime) {
         return d.toLocaleDateString(isBangla ? 'bn-BD' : 'en-US', {
           day: 'numeric',
@@ -1608,7 +1609,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
         hour12: true
       });
     } catch {
-      return dateStr;
+      return String(dateStr || '—');
     }
   };
 
@@ -1626,6 +1627,7 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   // Helper to generate direct Gmail Compose URL with REAL website & volunteer data
   const getVolunteerGmailUrl = (vol?: Volunteer | null) => {
     if (!vol || !vol.email) return '#';
+    try {
 
     // Real Organization settings from database
     const orgName = settings?.orgName || 'Green Earth';
@@ -1712,6 +1714,10 @@ Volunteer Coordination Team
 ${orgName} Bangladesh`;
 
     return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(vol.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    } catch (e) {
+      console.warn('Failed to construct Gmail compose URL:', e);
+      return `mailto:${vol.email}`;
+    }
   };
 
   const downloadVolunteersCSV = () => {
@@ -2961,19 +2967,30 @@ ${orgName} Bangladesh`;
 
             {/* --- VOLUNTEERS TAB --- */}
             {activeTab === 'volunteers' && (() => {
-              const totalVols = volunteers.length;
-              const pendingVols = volunteers.filter(v => v.membership === 'submitted_pending').length;
-              const lifetimeMembers = volunteers.filter(v => v.membership === 'already_member').length;
-              const fieldOnlyVols = volunteers.filter(v => v.membership === 'no_intent' || !v.membership).length;
+              const volsList = Array.isArray(volunteers) ? volunteers.filter(Boolean) : [];
+              const totalVols = volsList.length;
+              const pendingVols = volsList.filter(v => v && v.membership === 'submitted_pending').length;
+              const lifetimeMembers = volsList.filter(v => v && v.membership === 'already_member').length;
+              const fieldOnlyVols = volsList.filter(v => v && (v.membership === 'no_intent' || !v.membership)).length;
 
-              const filteredVolunteers = volunteers.filter((vol) => {
+              const filteredVolunteers = volsList.filter((vol) => {
+                if (!vol) return false;
+                const sTerm = (volSearchTerm || '').toLowerCase().trim();
+                const vName = (vol.name || '').toLowerCase();
+                const vEmail = (vol.email || '').toLowerCase();
+                const vPhone = String(vol.phone || '');
+                const vLoc = (vol.location || '').toLowerCase();
+                const vMsg = (vol.message || '').toLowerCase();
+                const vId = String(vol.id || '').toLowerCase();
+
                 const matchesSearch = 
-                  !volSearchTerm ||
-                  vol.name.toLowerCase().includes(volSearchTerm.toLowerCase()) ||
-                  vol.email.toLowerCase().includes(volSearchTerm.toLowerCase()) ||
-                  vol.phone.includes(volSearchTerm) ||
-                  (vol.location && vol.location.toLowerCase().includes(volSearchTerm.toLowerCase())) ||
-                  (vol.message && vol.message.toLowerCase().includes(volSearchTerm.toLowerCase()));
+                  !sTerm ||
+                  vName.includes(sTerm) ||
+                  vEmail.includes(sTerm) ||
+                  vPhone.includes(sTerm) ||
+                  vLoc.includes(sTerm) ||
+                  vMsg.includes(sTerm) ||
+                  vId.includes(sTerm);
 
                 const matchesInterest = volFilterInterest === 'all' || vol.interest === volFilterInterest;
                 const matchesMembership = volFilterMembership === 'all' || vol.membership === volFilterMembership;
