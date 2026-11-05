@@ -833,18 +833,23 @@ async function startServer() {
   // Auth: Secure Admin Login validation
   app.post("/api/admin/login", loginRateLimiter, async (req, res) => {
     const { email, password } = req.body;
-    console.log("LOGIN REQUEST RECEIVED:", { email });
-    const settings = await readData<{ username?: string; password?: string }>("settings.json");
-
-    const dbUsername = (settings.username || "admin").trim().toLowerCase();
-    const storedPassword = settings.password || ADMIN_DEFAULT_PASSWORD;
     const normalizedEmail = (email || "").trim().toLowerCase();
 
-    const isUserMatch = normalizedEmail === ADMIN_EMAIL || normalizedEmail === dbUsername || normalizedEmail === "admin";
+    // STRICT CHECK: Only authorized admin email can log in
+    if (normalizedEmail !== ADMIN_EMAIL) {
+      console.log("LOGIN REJECTED: Unauthorized email attempt:", normalizedEmail);
+      return res.status(403).json({ 
+        success: false, 
+        error: `Only ${ADMIN_EMAIL} is authorized to access the Admin Portal.` 
+      });
+    }
+
+    const settings = await readData<{ username?: string; password?: string }>("settings.json");
+    const storedPassword = settings.password || ADMIN_DEFAULT_PASSWORD;
     const isPassMatch = verifyPassword(password || "", storedPassword);
 
-    if (isUserMatch && isPassMatch) {
-      console.log("LOGIN SUCCESSFUL");
+    if (isPassMatch) {
+      console.log("LOGIN SUCCESSFUL for", ADMIN_EMAIL);
       if (settings.password && !settings.password.includes(":")) {
         settings.password = hashPassword(password);
         writeData("settings.json", settings).catch(() => {});
@@ -852,8 +857,8 @@ async function startServer() {
       const token = generateAdminToken(normalizedEmail);
       res.json({ success: true, token });
     } else {
-      console.log("LOGIN FAILED: Invalid credentials");
-      res.status(401).json({ success: false, error: "Invalid email or password" });
+      console.log("LOGIN FAILED: Invalid password for", ADMIN_EMAIL);
+      res.status(401).json({ success: false, error: "Invalid password for administrator account." });
     }
   });
 
@@ -861,11 +866,11 @@ async function startServer() {
   app.post("/api/admin/signup", async (req, res) => {
     try {
       const { email, password } = req.body;
-      console.log("SIGNUP REQUEST RECEIVED:", { email });
       const normalizedEmail = (email || "").trim().toLowerCase();
 
+      // STRICT CHECK: Only authorized admin email can sign up
       if (normalizedEmail !== ADMIN_EMAIL) {
-        console.log("SIGNUP FAILED: Unauthorized email");
+        console.log("SIGNUP REJECTED: Unauthorized email attempt:", normalizedEmail);
         return res.status(403).json({ 
           success: false, 
           error: `Only ${ADMIN_EMAIL} is authorized to register as administrator.`
@@ -873,33 +878,31 @@ async function startServer() {
       }
 
       if (!password || password.length < 6) {
-        console.log("SIGNUP FAILED: Password too short");
         return res.status(400).json({ 
           success: false, 
           error: "Password must be at least 6 characters long." 
         });
       }
 
-      const settings = await readData<{ password?: string; registered?: boolean }>("settings.json");
-
-      if (settings.registered) {
-        console.log("SIGNUP FAILED: Admin already registered");
-        return res.status(400).json({ 
-          success: false, 
-          error: "Admin is already registered. Please log in with your credentials." 
-        });
-      }
-
+      const settings = await readData<any>("settings.json");
       const updatedSettings = {
         ...settings,
+        username: ADMIN_EMAIL,
+        email: ADMIN_EMAIL,
         password: hashPassword(password),
-        registered: true
+        registered: true,
+        registeredAt: new Date().toISOString()
       };
 
       await writeData("settings.json", updatedSettings);
-      console.log("SIGNUP SUCCESSFUL");
+      console.log("SIGNUP SUCCESSFUL for", ADMIN_EMAIL);
 
-      res.json({ success: true, message: "Admin registration successful! You can now log in." });
+      const token = generateAdminToken(ADMIN_EMAIL);
+      res.json({ 
+        success: true, 
+        token, 
+        message: `Admin account registered successfully for ${ADMIN_EMAIL}! Access granted.` 
+      });
     } catch (err: any) {
       console.error("Signup error:", err);
       res.status(500).json({ success: false, error: "Internal server error during registration." });

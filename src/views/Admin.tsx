@@ -186,11 +186,11 @@ interface AdminProps {
 
 export default function Admin({ isBangla = false, settings: parentSettings, onSettingsSaved }: AdminProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginEmail, setLoginEmail] = useState('greenearthbd.25@gmail.com');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpEmail, setSignUpEmail] = useState('greenearthbd.25@gmail.com');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
   const [signUpError, setSignUpError] = useState('');
@@ -810,6 +810,17 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+
+    const authorizedEmail = "greenearthbd.25@gmail.com";
+    if (loginEmail.trim().toLowerCase() !== authorizedEmail) {
+      setLoginError(
+        isBangla
+          ? 'শুধুমাত্র greenearthbd.25@gmail.com ইমেইলটি দিয়ে অ্যাডমিন হিসেবে প্রবেশ করা যাবে।'
+          : 'Only greenearthbd.25@gmail.com is authorized to access the Admin Portal.'
+      );
+      return;
+    }
+
     try {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
@@ -893,20 +904,24 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
       }
 
       if (data.success) {
-        setSignUpSuccess(
-          isBangla
-            ? 'অ্যাডমিন অ্যাকাউন্ট সফলভাবে নিবন্ধিত হয়েছে! এখন লগইন করুন।'
-            : 'Administrator registered successfully! Please log in.'
-        );
-        // Clear sign up fields
-        setSignUpEmail('');
-        setSignUpPassword('');
-        setSignUpConfirmPassword('');
-        // Automatically switch to login after 3 seconds
-        setTimeout(() => {
-          setIsSignUp(false);
-          setSignUpSuccess('');
-        }, 3000);
+        if (data.token) {
+          localStorage.setItem('green-earth-admin-token-2026', data.token);
+          setIsAuthenticated(true);
+          const cached = loadFromLocalCache();
+          fetchAllData(!cached);
+        } else {
+          setSignUpSuccess(
+            isBangla
+              ? 'অ্যাডমিন অ্যাকাউন্ট সফলভাবে নিবন্ধিত হয়েছে! এখন লগইন করুন।'
+              : 'Administrator registered successfully! Please log in.'
+          );
+          setSignUpPassword('');
+          setSignUpConfirmPassword('');
+          setTimeout(() => {
+            setIsSignUp(false);
+            setSignUpSuccess('');
+          }, 2000);
+        }
       } else {
         setSignUpError(data.error || 'Registration failed');
       }
@@ -2055,12 +2070,25 @@ ${orgName} Bangladesh`;
           animate={{ opacity: 1, scale: 1 }}
           className="bg-white rounded-3xl border border-gray-200/80 shadow-2xl p-8 sm:p-10 w-full max-w-md text-left"
         >
-          <div className="flex flex-col items-center text-center gap-2 mb-8">
+          <div className="flex flex-col items-center text-center gap-2 mb-6">
             <div className="p-4 bg-[#6BBF3A]/10 text-[#1F5E2E] rounded-3xl mb-1">
               <Lock size={32} className="stroke-[2.5]" />
             </div>
-            <h1 className="font-sans text-2xl font-black text-[#1F5E2E]">{isBangla ? 'গ্রিন আর্থ পোর্টাল' : 'Green Earth Portal'}</h1>
-            <p className="font-mono text-xs text-gray-400 font-bold uppercase tracking-wider">{isBangla ? 'প্রশাসনিক প্রবেশাধিকার' : 'Administrative Access'}</p>
+            <h1 className="font-sans text-2xl font-black text-[#1F5E2E]">{isBangla ? 'গ্রিন আর্থ অ্যাডমিন পোর্টাল' : 'Green Earth Admin Portal'}</h1>
+            <p className="font-mono text-xs text-gray-400 font-bold uppercase tracking-wider">{isBangla ? 'প্রশাসনিক প্রবেশাধিকার ও নিরাপত্তা' : 'Administrative Access & Security'}</p>
+          </div>
+
+          {/* Authorized Admin Email Security Notice */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-6 flex items-center gap-2.5 text-left">
+            <ShieldCheck size={20} className="text-[#1F5E2E] shrink-0" />
+            <div>
+              <span className="text-[10px] text-gray-400 font-bold uppercase font-mono block">
+                {isBangla ? 'অনুমোদিত অ্যাডমিন ইমেইল' : 'Authorized Admin Account'}
+              </span>
+              <span className="text-xs font-black text-[#1F5E2E] font-mono">
+                greenearthbd.25@gmail.com
+              </span>
+            </div>
           </div>
 
           {/* Tab Selection */}
