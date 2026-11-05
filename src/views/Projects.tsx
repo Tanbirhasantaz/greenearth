@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Filter, Clock, CheckCircle, MapPin, ArrowRight, ChevronDown } from 'lucide-react';
 import { Project } from '../types';
 import { PROJECTS } from '../data';
+import ProjectFundingProgress from '../components/ProjectFundingProgress';
 
 interface ProjectsProps {
   isBangla: boolean;

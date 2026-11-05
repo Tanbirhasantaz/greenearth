@@ -8,6 +8,7 @@ interface Props {
 }
 
 export default function ProjectFundingProgress({ project, isBangla, compact = false }: Props) {
+  if (!project) return null;
   // Compute target and collected sums with realistic fallback values
   const defaultGoals: Record<string, { goal: number; raised: number }> = {
     'proj-1': { goal: 500000, raised: 385000 },
