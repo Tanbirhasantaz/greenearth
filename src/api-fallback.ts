@@ -612,8 +612,18 @@ if (typeof window !== 'undefined') {
     const urlStr = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
     
     if (urlStr.includes('/api/')) {
+      const token = localStorage.getItem('green-earth-admin-token-2026');
+      let effectiveInit: RequestInit = init ? { ...init } : {};
+      if (token) {
+        const headers = new Headers(effectiveInit.headers || (input instanceof Request ? input.headers : {}));
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        effectiveInit.headers = headers;
+      }
+
       try {
-        const response = await originalFetch(input, init);
+        const response = await originalFetch(input, effectiveInit);
         const contentType = response.headers.get('content-type') || '';
         
         // If the server fails, returned a 404, or returned an HTML fallback (Vercel SPA routing)

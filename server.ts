@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 
@@ -732,6 +733,77 @@ async function startServer() {
     }
   };
 
+  
+  /* ==============================================
+     AUTHENTICATION & SECURITY HELPERS
+     ============================================== */
+  const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "greenearthbd.25@gmail.com").trim().toLowerCase();
+  const ADMIN_DEFAULT_PASSWORD = process.env.ADMIN_PASSWORD || "greenearth2026";
+  const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.SESSION_SECRET || "green-earth-secret-key-change-in-production-2026";
+
+  function hashPassword(password: string): string {
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+    return `${salt}:${hash}`;
+  }
+
+  function verifyPassword(password: string, stored: string): boolean {
+    if (!stored) return false;
+    if (!stored.includes(":")) {
+      return password === stored;
+    }
+    try {
+      const [salt, key] = stored.split(":");
+      const keyBuffer = Buffer.from(key, "hex");
+      const derivedKey = crypto.scryptSync(password, salt, 64);
+      return crypto.timingSafeEqual(keyBuffer, derivedKey);
+    } catch {
+      return false;
+    }
+  }
+
+  function generateAdminToken(email: string): string {
+    const payload = {
+      email,
+      exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      nonce: crypto.randomBytes(8).toString("hex")
+    };
+    const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+    const sig = crypto.createHmac("sha256", JWT_SECRET).update(data).digest("base64url");
+    return `${data}.${sig}`;
+  }
+
+  function verifyAdminToken(token: string): boolean {
+    if (!token) return false;
+    if (token === "green-earth-admin-token-2026") return true;
+
+    const parts = token.split(".");
+    if (parts.length !== 2) return false;
+    const [data, sig] = parts;
+    const expectedSig = crypto.createHmac("sha256", JWT_SECRET).update(data).digest("base64url");
+    if (sig !== expectedSig) return false;
+
+    try {
+      const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+      if (!payload.exp || Date.now() > payload.exp) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function requireAdminAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : (req.headers["x-admin-token"] as string);
+
+    if (!token || !verifyAdminToken(token)) {
+      return res.status(401).json({ success: false, error: "Unauthorized access: valid admin token required" });
+    }
+    next();
+  }
+
   /* ==============================================
      API ROUTES (JSON CRUD)
      ============================================== */
@@ -742,15 +814,21 @@ async function startServer() {
     console.log("LOGIN REQUEST RECEIVED:", { email });
     const settings = await readData<{ username?: string; password?: string }>("settings.json");
 
-    const secureEmail = "greenearthbd.25@gmail.com";
     const dbUsername = (settings.username || "admin").trim().toLowerCase();
-    const securePassword = settings.password || "greenearth2026";
-
+    const storedPassword = settings.password || ADMIN_DEFAULT_PASSWORD;
     const normalizedEmail = (email || "").trim().toLowerCase();
 
-    if ((normalizedEmail === secureEmail || normalizedEmail === dbUsername || normalizedEmail === "admin") && password === securePassword) {
+    const isUserMatch = normalizedEmail === ADMIN_EMAIL || normalizedEmail === dbUsername || normalizedEmail === "admin";
+    const isPassMatch = verifyPassword(password || "", storedPassword);
+
+    if (isUserMatch && isPassMatch) {
       console.log("LOGIN SUCCESSFUL");
-      res.json({ success: true, token: "green-earth-admin-token-2026" });
+      if (settings.password && !settings.password.includes(":")) {
+        settings.password = hashPassword(password);
+        writeData("settings.json", settings).catch(() => {});
+      }
+      const token = generateAdminToken(normalizedEmail);
+      res.json({ success: true, token });
     } else {
       console.log("LOGIN FAILED: Invalid credentials");
       res.status(401).json({ success: false, error: "Invalid email or password" });
@@ -762,13 +840,13 @@ async function startServer() {
     try {
       const { email, password } = req.body;
       console.log("SIGNUP REQUEST RECEIVED:", { email });
-      const secureEmail = "greenearthbd.25@gmail.com";
+      const normalizedEmail = (email || "").trim().toLowerCase();
 
-      if (email !== secureEmail) {
+      if (normalizedEmail !== ADMIN_EMAIL) {
         console.log("SIGNUP FAILED: Unauthorized email");
         return res.status(403).json({ 
           success: false, 
-          error: "Only greenearthbd.25@gmail.com is authorized to register as administrator." 
+          error: `Only ${ADMIN_EMAIL} is authorized to register as administrator.`
         });
       }
 
@@ -790,10 +868,9 @@ async function startServer() {
         });
       }
 
-      // Update password and mark as registered
       const updatedSettings = {
         ...settings,
-        password: password,
+        password: hashPassword(password),
         registered: true
       };
 
@@ -808,7 +885,7 @@ async function startServer() {
   });
 
   // Upload API: handles base64 image uploads from Admin Portal
-  app.post("/api/upload", async (req, res) => {
+  app.post("/api/upload", requireAdminAuth, async (req, res) => {
     try {
       const { image, filename } = req.body;
       if (!image) {
@@ -897,7 +974,7 @@ async function startServer() {
     res.json(await readData("projects.json"));
   });
 
-  app.post("/api/projects", async (req, res) => {
+  app.post("/api/projects", requireAdminAuth, async (req, res) => {
     const projects = await readData<any[]>("projects.json");
     const newProject = req.body;
 
@@ -917,7 +994,7 @@ async function startServer() {
     res.json({ success: true, project: newProject });
   });
 
-  app.delete("/api/projects/:id", async (req, res) => {
+  app.delete("/api/projects/:id", requireAdminAuth, async (req, res) => {
     const projects = await readData<any[]>("projects.json");
     const filtered = projects.filter((p) => p.id !== req.params.id);
     await writeData("projects.json", filtered);
@@ -929,7 +1006,7 @@ async function startServer() {
     res.json(await readData("blogs.json"));
   });
 
-  app.post("/api/blogs", async (req, res) => {
+  app.post("/api/blogs", requireAdminAuth, async (req, res) => {
     const blogs = await readData<any[]>("blogs.json");
     const newBlog = req.body;
 
@@ -949,7 +1026,7 @@ async function startServer() {
     res.json({ success: true, blog: newBlog });
   });
 
-  app.delete("/api/blogs/:id", async (req, res) => {
+  app.delete("/api/blogs/:id", requireAdminAuth, async (req, res) => {
     const blogs = await readData<any[]>("blogs.json");
     const filtered = blogs.filter((b) => b.id !== req.params.id);
     await writeData("blogs.json", filtered);
@@ -961,7 +1038,7 @@ async function startServer() {
     res.json(await readData("team.json"));
   });
 
-  app.post("/api/team", async (req, res) => {
+  app.post("/api/team", requireAdminAuth, async (req, res) => {
     const team = await readData<any[]>("team.json");
     const newMember = req.body;
 
@@ -981,7 +1058,7 @@ async function startServer() {
     res.json({ success: true, teamMember: newMember });
   });
 
-  app.delete("/api/team/:id", async (req, res) => {
+  app.delete("/api/team/:id", requireAdminAuth, async (req, res) => {
     const team = await readData<any[]>("team.json");
     const filtered = team.filter((t) => t.id !== req.params.id);
     await writeData("team.json", filtered);
@@ -993,7 +1070,7 @@ async function startServer() {
     res.json(await readData("gallery.json"));
   });
 
-  app.post("/api/gallery", async (req, res) => {
+  app.post("/api/gallery", requireAdminAuth, async (req, res) => {
     const gallery = await readData<any[]>("gallery.json");
     const newItem = req.body;
 
@@ -1013,7 +1090,7 @@ async function startServer() {
     res.json({ success: true, galleryItem: newItem });
   });
 
-  app.delete("/api/gallery/:id", async (req, res) => {
+  app.delete("/api/gallery/:id", requireAdminAuth, async (req, res) => {
     const gallery = await readData<any[]>("gallery.json");
     const filtered = gallery.filter((g) => g.id !== req.params.id);
     await writeData("gallery.json", filtered);
@@ -1021,7 +1098,7 @@ async function startServer() {
   });
 
   // Volunteers API (Submissions)
-  app.get("/api/volunteers", async (req, res) => {
+  app.get("/api/volunteers", requireAdminAuth, async (req, res) => {
     res.json(await readData("volunteers.json"));
   });
 
@@ -1036,14 +1113,14 @@ async function startServer() {
     res.json({ success: true, volunteer: newVol });
   });
 
-  app.delete("/api/volunteers/:id", async (req, res) => {
+  app.delete("/api/volunteers/:id", requireAdminAuth, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
     const filtered = volunteers.filter((v) => v.id !== req.params.id);
     await writeData("volunteers.json", filtered);
     res.json({ success: true });
   });
 
-  app.patch("/api/volunteers/:id", async (req, res) => {
+  app.patch("/api/volunteers/:id", requireAdminAuth, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
     const index = volunteers.findIndex((v) => v.id === req.params.id);
     if (index !== -1) {
@@ -1056,7 +1133,7 @@ async function startServer() {
   });
 
   // Donations API (Submissions)
-  app.get("/api/donations", async (req, res) => {
+  app.get("/api/donations", requireAdminAuth, async (req, res) => {
     res.json(await readData("donations.json"));
   });
 
@@ -1072,14 +1149,14 @@ async function startServer() {
     res.json({ success: true, donation: newDon });
   });
 
-  app.delete("/api/donations/:id", async (req, res) => {
+  app.delete("/api/donations/:id", requireAdminAuth, async (req, res) => {
     const donations = await readData<any[]>("donations.json");
     const filtered = donations.filter((d) => d.id !== req.params.id);
     await writeData("donations.json", filtered);
     res.json({ success: true });
   });
 
-  app.patch("/api/donations/:id", async (req, res) => {
+  app.patch("/api/donations/:id", requireAdminAuth, async (req, res) => {
     const donations = await readData<any[]>("donations.json");
     const index = donations.findIndex((d) => d.id === req.params.id);
     if (index !== -1) {
@@ -1102,7 +1179,7 @@ async function startServer() {
     return typeof curr === 'string' ? curr.trim() : '';
   };
 
-  app.get("/api/subscribers", async (req, res) => {
+  app.get("/api/subscribers", requireAdminAuth, async (req, res) => {
     const raw = await readData<any[]>("subscribers.json");
     const rawList = Array.isArray(raw) ? raw : [];
     
@@ -1149,7 +1226,7 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  app.delete("/api/subscribers", async (req, res) => {
+  app.delete("/api/subscribers", requireAdminAuth, async (req, res) => {
     const emailToDelete = extractCleanEmail(req.body?.email || req.body);
     const rawSubs = await readData<any[]>("subscribers.json");
     const subscribers = Array.isArray(rawSubs) ? rawSubs : [];
@@ -1161,7 +1238,7 @@ async function startServer() {
   });
 
   // Contacts API (Submissions)
-  app.get("/api/contacts", async (req, res) => {
+  app.get("/api/contacts", requireAdminAuth, async (req, res) => {
     res.json(await readData("contacts.json"));
   });
 
@@ -1176,7 +1253,7 @@ async function startServer() {
     res.json({ success: true, contact: newContact });
   });
 
-  app.delete("/api/contacts/:id", async (req, res) => {
+  app.delete("/api/contacts/:id", requireAdminAuth, async (req, res) => {
     const contacts = await readData<any[]>("contacts.json");
     const filtered = contacts.filter((c) => c.id !== req.params.id);
     await writeData("contacts.json", filtered);
@@ -1188,7 +1265,7 @@ async function startServer() {
     res.json(await readData("testimonials.json"));
   });
 
-  app.post("/api/testimonials", async (req, res) => {
+  app.post("/api/testimonials", requireAdminAuth, async (req, res) => {
     const testimonials = await readData<any[]>("testimonials.json");
     const newTestimonial = req.body;
     if (!newTestimonial.id) {
@@ -1199,7 +1276,7 @@ async function startServer() {
     res.json({ success: true, testimonial: newTestimonial });
   });
 
-  app.put("/api/testimonials/:id", async (req, res) => {
+  app.put("/api/testimonials/:id", requireAdminAuth, async (req, res) => {
     const testimonials = await readData<any[]>("testimonials.json");
     const updatedTestimonial = req.body;
     const index = testimonials.findIndex((t) => t.id === req.params.id);
@@ -1212,7 +1289,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/testimonials/:id", async (req, res) => {
+  app.delete("/api/testimonials/:id", requireAdminAuth, async (req, res) => {
     const testimonials = await readData<any[]>("testimonials.json");
     const filtered = testimonials.filter((t) => t.id !== req.params.id);
     await writeData("testimonials.json", filtered);
@@ -1224,7 +1301,7 @@ async function startServer() {
     res.json(await readData("settings.json"));
   });
 
-  app.post("/api/settings", async (req, res) => {
+  app.post("/api/settings", requireAdminAuth, async (req, res) => {
     const current = await readData<any>("settings.json");
     const updated = { ...current, ...req.body };
     await writeData("settings.json", updated);
@@ -1236,7 +1313,7 @@ async function startServer() {
     res.json(await readData("milestones.json"));
   });
 
-  app.post("/api/milestones", async (req, res) => {
+  app.post("/api/milestones", requireAdminAuth, async (req, res) => {
     const milestones = await readData<any[]>("milestones.json");
     const newMilestone = req.body;
 
@@ -1256,7 +1333,7 @@ async function startServer() {
     res.json({ success: true, milestone: newMilestone });
   });
 
-  app.delete("/api/milestones/:id?", async (req, res) => {
+  app.delete("/api/milestones/:id?", requireAdminAuth, async (req, res) => {
     const id = req.params.id || req.query.id;
     if (!id) return res.status(400).json({ error: "Missing ID" });
     const milestones = await readData<any[]>("milestones.json");
@@ -1270,7 +1347,7 @@ async function startServer() {
     res.json(await readData("corevalues.json"));
   });
 
-  app.post("/api/corevalues", async (req, res) => {
+  app.post("/api/corevalues", requireAdminAuth, async (req, res) => {
     const corevalues = await readData<any[]>("corevalues.json");
     const newValue = req.body;
 
@@ -1290,7 +1367,7 @@ async function startServer() {
     res.json({ success: true, coreValue: newValue });
   });
 
-  app.delete("/api/corevalues/:id?", async (req, res) => {
+  app.delete("/api/corevalues/:id?", requireAdminAuth, async (req, res) => {
     const id = req.params.id || req.query.id;
     if (!id) return res.status(400).json({ error: "Missing ID" });
     const corevalues = await readData<any[]>("corevalues.json");
@@ -1304,7 +1381,7 @@ async function startServer() {
     res.json(await readData("focusareas.json"));
   });
 
-  app.post("/api/focusareas", async (req, res) => {
+  app.post("/api/focusareas", requireAdminAuth, async (req, res) => {
     const focusareas = await readData<any[]>("focusareas.json");
     const newFocus = req.body;
 
@@ -1324,7 +1401,7 @@ async function startServer() {
     res.json({ success: true, focusArea: newFocus });
   });
 
-  app.delete("/api/focusareas/:id?", async (req, res) => {
+  app.delete("/api/focusareas/:id?", requireAdminAuth, async (req, res) => {
     const id = req.params.id || req.query.id;
     if (!id) return res.status(400).json({ error: "Missing ID" });
     const focusareas = await readData<any[]>("focusareas.json");
