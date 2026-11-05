@@ -1127,9 +1127,18 @@ async function startServer() {
   app.post("/api/volunteers", submissionRateLimiter, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
     const newVol = req.body;
-    newVol.id = "vol-" + Date.now();
-    newVol.date = new Date().toISOString();
-    volunteers.unshift(newVol); // Newest first
+    const customId = (req.body?.id && String(req.body.id).trim()) ? String(req.body.id).trim() : ("vol-" + Date.now());
+    newVol.id = customId;
+    newVol.date = newVol.date || new Date().toISOString();
+    delete newVol._originalId;
+    delete newVol._isNew;
+
+    const existingIndex = volunteers.findIndex((v) => String(v.id) === String(newVol.id));
+    if (existingIndex !== -1) {
+      volunteers[existingIndex] = { ...volunteers[existingIndex], ...newVol };
+    } else {
+      volunteers.unshift(newVol); // Newest first
+    }
 
     await writeData("volunteers.json", volunteers);
     res.json({ success: true, volunteer: newVol });
@@ -1144,9 +1153,13 @@ async function startServer() {
 
   app.patch("/api/volunteers/:id", requireAdminAuth, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
-    const index = volunteers.findIndex((v) => String(v.id) === String(req.params.id));
+    const targetId = req.body?._originalId || req.params.id;
+    const index = volunteers.findIndex((v) => String(v.id) === String(targetId) || String(v.id) === String(req.params.id));
     if (index !== -1) {
       volunteers[index] = { ...volunteers[index], ...req.body };
+      if (req.body?.id) volunteers[index].id = String(req.body.id).trim();
+      delete volunteers[index]._originalId;
+      delete volunteers[index]._isNew;
       await writeData("volunteers.json", volunteers);
       res.json({ success: true, volunteer: volunteers[index] });
     } else {
@@ -1156,9 +1169,13 @@ async function startServer() {
 
   app.put("/api/volunteers/:id", requireAdminAuth, async (req, res) => {
     const volunteers = await readData<any[]>("volunteers.json");
-    const index = volunteers.findIndex((v) => String(v.id) === String(req.params.id));
+    const targetId = req.body?._originalId || req.params.id;
+    const index = volunteers.findIndex((v) => String(v.id) === String(targetId) || String(v.id) === String(req.params.id));
     if (index !== -1) {
       volunteers[index] = { ...volunteers[index], ...req.body };
+      if (req.body?.id) volunteers[index].id = String(req.body.id).trim();
+      delete volunteers[index]._originalId;
+      delete volunteers[index]._isNew;
       await writeData("volunteers.json", volunteers);
       res.json({ success: true, volunteer: volunteers[index] });
     } else {

@@ -1466,50 +1466,88 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     }
   };
 
-  const handleSaveVolunteerInfo = async (updatedVol: Volunteer) => {
+  const handleSaveVolunteerInfo = async (updatedVol: any) => {
     setIsSavingVolunteer(true);
+    const originalId = updatedVol._originalId || updatedVol.id;
+    const isNew = Boolean(updatedVol._isNew);
+
+    const cleanVol: Volunteer = {
+      id: String(updatedVol.id).trim(),
+      name: updatedVol.name || '',
+      email: updatedVol.email || '',
+      phone: updatedVol.phone || '',
+      location: updatedVol.location || '',
+      profession: updatedVol.profession || 'student',
+      bloodGroup: updatedVol.bloodGroup || 'Unknown',
+      interest: updatedVol.interest || 'plantation',
+      membership: updatedVol.membership || 'no_intent',
+      availability: updatedVol.availability || 'flexible',
+      message: updatedVol.message || '',
+      date: updatedVol.date || new Date().toISOString()
+    };
+
     try {
       // 1. Optimistic UI update
-      setVolunteers(prev => prev.map(v => String(v.id) === String(updatedVol.id) ? { ...v, ...updatedVol } : v));
-      if (selectedVolunteer && String(selectedVolunteer.id) === String(updatedVol.id)) {
-        setSelectedVolunteer({ ...selectedVolunteer, ...updatedVol });
+      if (isNew) {
+        setVolunteers(prev => [cleanVol, ...prev.filter(v => String(v.id) !== String(cleanVol.id))]);
+      } else {
+        setVolunteers(prev => prev.map(v => (String(v.id) === String(originalId) || String(v.id) === String(cleanVol.id)) ? cleanVol : v));
+        if (selectedVolunteer && (String(selectedVolunteer.id) === String(originalId) || String(selectedVolunteer.id) === String(cleanVol.id))) {
+          setSelectedVolunteer(cleanVol);
+        }
       }
 
       // 2. Update local storage caches
       try {
-        const v1 = localStorage.getItem('volunteers');
-        if (v1) {
-          const list = JSON.parse(v1);
-          if (Array.isArray(list)) {
-            localStorage.setItem('volunteers', JSON.stringify(list.map((v: any) => String(v.id) === String(updatedVol.id) ? { ...v, ...updatedVol } : v)));
+        const updateCache = (key: string) => {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              let updatedList: any[];
+              if (isNew) {
+                updatedList = [cleanVol, ...list.filter((v: any) => String(v.id) !== String(cleanVol.id))];
+              } else {
+                updatedList = list.map((v: any) => (String(v.id) === String(originalId) || String(v.id) === String(cleanVol.id)) ? cleanVol : v);
+              }
+              localStorage.setItem(key, JSON.stringify(updatedList));
+            }
           }
-        }
-        const v2 = localStorage.getItem('ge_db_volunteers');
-        if (v2) {
-          const list = JSON.parse(v2);
-          if (Array.isArray(list)) {
-            localStorage.setItem('ge_db_volunteers', JSON.stringify(list.map((v: any) => String(v.id) === String(updatedVol.id) ? { ...v, ...updatedVol } : v)));
-          }
-        }
+        };
+        updateCache('volunteers');
+        updateCache('ge_db_volunteers');
       } catch (e) {
         console.warn('Failed to update local cache on volunteer edit:', e);
       }
 
-      // 3. Server PATCH call
+      // 3. Server API call
       const token = localStorage.getItem('green-earth-admin-token-2026');
-      await fetch(`/api/volunteers/${updatedVol.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(updatedVol)
-      });
+      const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      if (isNew) {
+        await fetch('/api/volunteers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify(cleanVol)
+        });
+      } else {
+        await fetch(`/api/volunteers/${originalId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify({ ...cleanVol, _originalId: originalId })
+        });
+      }
 
       setEditingVolunteer(null);
     } catch (err) {
-      console.error('Failed to update volunteer:', err);
-      alert(isBangla ? 'স্বেচ্ছাসেবীর তথ্য আপডেট করতে সমস্যা হয়েছে।' : 'Failed to update volunteer information.');
+      console.error('Failed to save volunteer:', err);
+      alert(isBangla ? 'স্বেচ্ছাসেবীর তথ্য সংরক্ষণ করতে সমস্যা হয়েছে।' : 'Failed to save volunteer information.');
     } finally {
       setIsSavingVolunteer(false);
     }
@@ -1585,71 +1623,93 @@ export default function Admin({ isBangla = false, settings: parentSettings, onSe
     }
   };
 
-  // Helper to generate direct Gmail Compose URL with pre-filled acknowledgment template
+  // Helper to generate direct Gmail Compose URL with REAL website & volunteer data
   const getVolunteerGmailUrl = (vol?: Volunteer | null) => {
     if (!vol || !vol.email) return '#';
+
+    // Real Organization settings from database
+    const orgName = settings?.orgName || 'Green Earth';
+    const orgPhone = settings?.phone || '+880 1751601039';
+    const orgEmail = settings?.email || 'greenearthbd.25@gmail.com';
+    const orgAddress = (isBangla ? settings?.addressBn : settings?.address) || (isBangla ? 'সান্তাহার, আদমদীঘি, বগুড়া' : 'Santahar, Adamdighi, Bogura');
+    const orgFbUrl = settings?.footerFbUrl || 'https://www.facebook.com/greenearthbd.25/';
+    const websiteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://greenearthbd.org';
+
+    // Real volunteer data
     const interestName = getVolunteerInterestName(vol.interest);
     const dateFormatted = formatFullDateTime(vol.date);
+    const bloodGroupText = (vol.bloodGroup && vol.bloodGroup !== 'Unknown') ? vol.bloodGroup : (isBangla ? 'অনুল্লিখিত' : 'Not specified');
+    const professionText = getProfessionLabel(vol.profession) || (isBangla ? 'অনুল্লিখিত' : 'Not specified');
+    const locationText = vol.location || (isBangla ? 'অনুল্লিখিত' : 'Not specified');
+    const phoneText = vol.phone || (isBangla ? 'অনুল্লিখিত' : 'Not specified');
 
     const subject = isBangla
-      ? `গ্রিন আর্থ - আপনার স্বেচ্ছাসেবী আবেদন গৃহীত হয়েছে (রেফারেন্স: ${vol.id})`
-      : `Green Earth - Volunteer Application Received (Ref: ${vol.id})`;
+      ? `${orgName} - আপনার স্বেচ্ছাসেবী আবেদন গৃহীত হয়েছে (আইডি: ${vol.id})`
+      : `${orgName} - Volunteer Application Received (ID: ${vol.id})`;
 
     const body = isBangla
       ? `প্রিয় ${vol.name || 'স্বেচ্ছাসেবী বন্ধু'},
 
-গ্রিন আর্থ (Green Earth)-এ স্বেচ্ছাসেবী হিসেবে যুক্ত হওয়ার আগ্রহ প্রকাশ করায় আপনাকে আন্তরিক ধন্যবাদ!
+${orgName}-এ স্বেচ্ছাসেবী হিসেবে যুক্ত হওয়ার আগ্রহ প্রকাশ করায় আপনাকে আন্তরিক ধন্যবাদ ও অভিনন্দন!
 
-আপনার স্বেচ্ছাসেবী আবেদনপত্রটি সফলভাবে আমাদের সিস্টেমে গৃহীত হয়েছে।
+আপনার স্বেচ্ছাসেবী আবেদনপত্রটি সফলভাবে আমাদের সিস্টেমে গৃহীত ও নিবন্ধিত হয়েছে।
 
-আবেদনের বিবরণ:
-----------------------------------------
-• রেফারেন্স আইডি: ${vol.id}
-• ক্যাম্পেইন / আগ্রহ: ${interestName}
-• জেলা / এলাকা: ${vol.location || 'উল্লেখ নেই'}
-• মোবাইল নম্বর: ${vol.phone || 'উল্লেখ নেই'}
-• আবেদনের সময়: ${dateFormatted}
-----------------------------------------
+আবেদনের সারসংক্ষেপ ও তথ্য:
+--------------------------------------------------
+• ভলান্টিয়ার আইডি : ${vol.id}
+• ক্যাম্পেইন / আগ্রহ : ${interestName}
+• জেলা / এলাকা     : ${locationText}
+• যোগাযোগের নম্বর  : ${phoneText}
+• রক্তের গ্রুপ      : ${bloodGroupText}
+• পেশা             : ${professionText}
+• আবেদনের সময়      : ${dateFormatted}
+--------------------------------------------------
 
-আমাদের কেন্দ্রীয় স্বেচ্ছাসেবী সমন্বয়ক টিম আপনার আবেদনটি পর্যালোচনা করছে। খুব শীঘ্রই আপনার সাথে পরবর্তী কার্যক্রম ও ওরিয়েন্টেশন সেশন সম্পর্কে যোগাযোগ করা হবে।
+আমাদের কেন্দ্রীয় স্বেচ্ছাসেবী সমন্বয়ক দল আপনার আবেদনটি পর্যালোচনা করছে। খুব শীঘ্রই আপনার মোবাইল নম্বরে কল অথবা এই ইমেইলে পরবর্তী কার্যক্রম ও অন-বোর্ডিং সেশন সম্পর্কে বিস্তারিত জানানো হবে।
 
-যেকোনো তথ্য বা প্রয়োজনে আমাদের সাথে যোগাযোগ করতে পারেন:
-• হটলাইন: +880 1712-345678
-• ইমেইল: info@greenearth.org
-• ওয়েবসাইট: greenearth.org
+যেকোনো তথ্য বা সরাসরি যোগাযোগের জন্য:
+• হটলাইন / ফোন    : ${orgPhone}
+• অফিশিয়াল ইমেইল  : ${orgEmail}
+• প্রধান কার্যালয়  : ${orgAddress}
+• অফিসিয়াল ফেসবুক : ${orgFbUrl}
+• ওয়েবসাইট         : ${websiteUrl}
 
-সবুজ ও সুন্দর বাংলাদেশ বিনির্মাণে আমাদের সাথে থাকার জন্য ধন্যবাদ!
+সবুজ, পরিচ্ছন্ন ও টেকসই বাংলাদেশ বিনির্মাণে আমাদের সাথে থাকার জন্য ধন্যবাদ!
 
 বিনীত,
 স্বেচ্ছাসেবী সমন্বয়ক দল
-গ্রিন আর্থ বাংলাদেশ`
+${orgName} বাংলাদেশ`
       : `Dear ${vol.name || 'Volunteer'},
 
-Thank you for your interest in volunteering with Green Earth!
+Thank you for your enthusiasm and commitment to volunteer with ${orgName}!
 
-We are pleased to inform you that your volunteer application has been successfully received by our coordination team.
+We are pleased to inform you that your volunteer application has been officially received and registered in our central system.
 
-Application Summary:
-----------------------------------------
-• Reference ID: ${vol.id}
-• Campaign Interest: ${interestName}
-• Location / District: ${vol.location || 'Not Specified'}
-• Contact Phone: ${vol.phone || 'Not Specified'}
-• Submitted On: ${dateFormatted}
-----------------------------------------
+Application Details & Overview:
+--------------------------------------------------
+• Volunteer ID       : ${vol.id}
+• Campaign Interest  : ${interestName}
+• District / Area    : ${locationText}
+• Contact Phone      : ${phoneText}
+• Blood Group        : ${bloodGroupText}
+• Profession         : ${professionText}
+• Submitted On       : ${dateFormatted}
+--------------------------------------------------
 
-Our volunteer coordinators are currently reviewing your profile and will connect with you shortly regarding upcoming orientation sessions and field activations.
+Our volunteer coordination team is reviewing your profile and will connect with you shortly via phone or email regarding upcoming orientation sessions and field drives.
 
-If you have any urgent queries, feel free to reply directly to this email or reach us:
-• Hotline: +880 1712-345678
-• Email: info@greenearth.org
-• Website: greenearth.org
+If you have any questions or require direct support, please reach out to us:
+• Hotline / Phone  : ${orgPhone}
+• Official Email   : ${orgEmail}
+• Central Office   : ${orgAddress}
+• Official Facebook: ${orgFbUrl}
+• Website          : ${websiteUrl}
 
-Together for a greener, cleaner Bangladesh!
+Together for a cleaner, greener, and more sustainable future!
 
 Warm regards,
 Volunteer Coordination Team
-Green Earth Bangladesh`;
+${orgName} Bangladesh`;
 
     return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(vol.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
@@ -2936,15 +2996,42 @@ Green Earth Bangladesh`;
                       </p>
                     </div>
                     
-                    {volunteers.length > 0 && (
+                    <div className="flex items-center gap-2 self-start md:self-center flex-wrap">
                       <button
-                        onClick={downloadVolunteersCSV}
-                        className="inline-flex items-center gap-2 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2.5 px-5 rounded-full text-xs font-black cursor-pointer shadow hover:shadow-md transition-all uppercase tracking-wider self-start md:self-center"
+                        onClick={() => {
+                          const newCustomId = `GE-VOL-${String(volunteers.length + 1).padStart(3, '0')}`;
+                          setEditingVolunteer({
+                            id: newCustomId,
+                            name: '',
+                            email: '',
+                            phone: '',
+                            location: '',
+                            profession: 'student',
+                            bloodGroup: 'Unknown',
+                            interest: 'plantation',
+                            membership: 'no_intent',
+                            availability: 'flexible',
+                            message: '',
+                            date: new Date().toISOString(),
+                            _isNew: true
+                          } as any);
+                        }}
+                        className="inline-flex items-center gap-1.5 bg-[#1F5E2E] hover:bg-[#2E7D32] text-white py-2.5 px-4 rounded-full text-xs font-black cursor-pointer shadow hover:shadow-md transition-all"
                       >
-                        <Download size={14} className="stroke-[2.5]" />
-                        <span>{isBangla ? 'ডেটা শিট ডাউনলোড করুন (CSV)' : 'Download CSV Sheet'}</span>
+                        <Plus size={14} className="stroke-[3]" />
+                        <span>{isBangla ? 'নতুন ভলান্টিয়ার যোগ করুন' : 'Add New Volunteer'}</span>
                       </button>
-                    )}
+
+                      {volunteers.length > 0 && (
+                        <button
+                          onClick={downloadVolunteersCSV}
+                          className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 px-4 rounded-full text-xs font-bold cursor-pointer transition-all uppercase tracking-wider"
+                        >
+                          <Download size={14} className="stroke-[2.5]" />
+                          <span>{isBangla ? 'CSV ডাউনলোড' : 'Download CSV'}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Summary KPI Cards */}
@@ -3191,7 +3278,7 @@ Green Earth Bangladesh`;
                                     <Eye size={15} className="stroke-[2.5]" />
                                   </button>
                                   <button
-                                    onClick={() => setEditingVolunteer({ ...vol })}
+                                    onClick={() => setEditingVolunteer({ ...vol, _originalId: vol.id } as any)}
                                     className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl cursor-pointer transition-colors"
                                     title={isBangla ? 'তথ্য সম্পাদনা করুন' : 'Edit Information'}
                                   >
@@ -5704,7 +5791,7 @@ Green Earth Bangladesh`;
                   <button
                     type="button"
                     onClick={() => {
-                      setEditingVolunteer({ ...selectedVolunteer });
+                      setEditingVolunteer({ ...selectedVolunteer, _originalId: selectedVolunteer.id } as any);
                     }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
                     title={isBangla ? 'সম্পূর্ণ তথ্য সম্পাদনা' : 'Edit Full Info'}
@@ -5972,10 +6059,12 @@ Green Earth Bangladesh`;
                   </div>
                   <div>
                     <h4 className="text-lg font-black leading-tight">
-                      {isBangla ? 'স্বেচ্ছাসেবকের তথ্য সম্পাদনা' : 'Edit Volunteer Information'}
+                      {(editingVolunteer as any)._isNew
+                        ? (isBangla ? 'নতুন ভলান্টিয়ার যুক্ত করুন' : 'Add New Volunteer')
+                        : (isBangla ? 'স্বেচ্ছাসেবকের তথ্য সম্পাদনা' : 'Edit Volunteer Information')}
                     </h4>
                     <p className="text-[10px] text-emerald-100 font-medium tracking-wider flex items-center gap-1.5">
-                      <span>ID: {editingVolunteer.id}</span>
+                      <span>ID: {editingVolunteer.id || 'N/A'}</span>
                       <span>•</span>
                       <Clock size={10} className="shrink-0" />
                       <span>{formatFullDateTime(editingVolunteer.date)}</span>
@@ -6002,6 +6091,40 @@ Green Earth Bangladesh`;
                 className="p-6 overflow-y-auto space-y-4 flex-1 text-xs"
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Manual Volunteer ID Field */}
+                  <div className="space-y-1 sm:col-span-2 bg-[#1F5E2E]/5 p-3.5 rounded-2xl border border-[#1F5E2E]/10">
+                    <div className="flex items-center justify-between">
+                      <label className="font-black text-[#1F5E2E] text-xs flex items-center gap-1.5">
+                        <ShieldCheck size={14} />
+                        <span>{isBangla ? 'ভলান্টিয়ার / সদস্য আইডি (Custom Volunteer ID)' : 'Volunteer / Member ID'} *</span>
+                      </label>
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        {isBangla ? 'কাস্টম আইডি ম্যানুয়ালি নির্ধারণ বা পরিবর্তন করুন' : 'Assign or customize this ID'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <input
+                        type="text"
+                        required
+                        value={editingVolunteer.id || ''}
+                        onChange={(e) => setEditingVolunteer({ ...editingVolunteer, id: e.target.value.trim() })}
+                        placeholder="e.g. GE-VOL-001 or VOL-BOGURA-01"
+                        className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl font-mono font-black text-gray-900 focus:ring-2 focus:ring-[#1F5E2E]/20 focus:border-[#1F5E2E] outline-none transition-all uppercase text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const randomNum = Math.floor(1000 + Math.random() * 9000);
+                          setEditingVolunteer({ ...editingVolunteer, id: `GE-VOL-${randomNum}` });
+                        }}
+                        className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl font-bold text-[11px] transition-all cursor-pointer whitespace-nowrap shadow-sm"
+                        title={isBangla ? 'স্বয়ংক্রিয় নতুন আইডি' : 'Auto generate ID'}
+                      >
+                        {isBangla ? 'আইডি জেনারেট' : 'Auto ID'}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Name */}
                   <div className="space-y-1">
                     <label className="font-bold text-gray-700">
@@ -6195,7 +6318,11 @@ Green Earth Bangladesh`;
                     ) : (
                       <>
                         <Check size={14} />
-                        <span>{isBangla ? 'পরিবর্তন সংরক্ষণ করুন' : 'Save Changes'}</span>
+                        <span>
+                          {(editingVolunteer as any)._isNew
+                            ? (isBangla ? 'ভলান্টিয়ার যোগ করুন' : 'Add Volunteer')
+                            : (isBangla ? 'পরিবর্তন সংরক্ষণ করুন' : 'Save Changes')}
+                        </span>
                       </>
                     )}
                   </button>

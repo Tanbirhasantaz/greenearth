@@ -309,11 +309,14 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
     if (method === 'GET') {
       responseData = volunteers;
     } else if (method === 'POST') {
+      const customId = (body?.id && String(body.id).trim()) ? String(body.id).trim() : ('vol-' + Date.now());
       const volunteer = {
         ...body,
-        id: body?.id || 'vol-' + Date.now(),
+        id: customId,
         date: (body?.date && (body.date.includes('T') || body.date.includes(':'))) ? body.date : new Date().toISOString()
       };
+      delete volunteer._originalId;
+      delete volunteer._isNew;
       const idx = volunteers.findIndex((v: any) => String(v.id) === String(volunteer.id));
       if (idx !== -1) {
         volunteers[idx] = volunteer;
@@ -326,9 +329,13 @@ async function handleFallback(url: string, init?: RequestInit): Promise<Response
       }
       responseData = { success: true, volunteer };
     } else if ((method === 'PATCH' || method === 'PUT') && id && id !== 'volunteers') {
-      const idx = volunteers.findIndex((v: any) => String(v.id) === String(id));
+      const targetId = body?._originalId || id;
+      const idx = volunteers.findIndex((v: any) => String(v.id) === String(targetId) || String(v.id) === String(id));
       if (idx !== -1) {
         volunteers[idx] = { ...volunteers[idx], ...body };
+        if (body?.id) volunteers[idx].id = String(body.id).trim();
+        delete volunteers[idx]._originalId;
+        delete volunteers[idx]._isNew;
         await cloudWrite('volunteers.json', 'ge_db_volunteers', volunteers);
         if (typeof window !== 'undefined') {
           try { localStorage.setItem('volunteers', JSON.stringify(volunteers)); } catch {}
